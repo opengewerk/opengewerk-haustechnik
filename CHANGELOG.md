@@ -7,8 +7,20 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+### Hinzugefügt
+
+- Was an keinem Nachweis hängt, hat eigene Fristen (#412, entschieden am 21.10.2026). Ein Vorgang ohne Nachweis
+  bleibt sechs Jahre ab dem Ende des Jahres, in dem er endete, und wird danach zur leeren Hülle; ein behobener
+  Mangel bleibt fünf Jahre und verliert dann Beschreibung, Bemerkung und Fotos, seine Zeile bleibt. Beide schlägt
+  der Lauf unter „Aufbewahrung“ und als Frist vor, und die Leitung bestätigt. Eine erledigte Aufgabe geht ein Jahr
+  nach der Erledigung, die Person an Zählerstand, Buchung und Entnahme drei Jahre danach, beides ohne Rückfrage
+  mit dem Fristenlauf. Unter „Aufbewahrung“ verlängert die Leitung jede Frist, kürzer geht keine; die Datenbank
+  rechnet jedes Ende und lehnt jeden anderen Weg ab. Bis dahin blieb all das, solange die Instanz besteht.
+
 ### Geändert
 
+- Das Fundament steht auf opengewerk `43ff07b`: eine Buchung im Lager darf ohne die Person stehen, die gebucht hat
+  (opengewerk/opengewerk#725). Das braucht #412.
 - Die vier Einträge des Pakets Elektro 1.5.0 (#468), die PV-Anlage im Geltungsbereich der Prüfung nach DGUV
   Vorschrift 3 und 4, sind fachkundig abgenommen, vom Maintainer am 21.10.2026, jeder mit der Prüfsumme seiner
   Datei. Bis dahin standen ihre Vorschläge als „Nicht abgenommen“ da.

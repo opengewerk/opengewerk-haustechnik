@@ -613,6 +613,22 @@ describe('the settings of a kind', () => {
         responsible: 'lead',
         leadDays: 0,
       }),
+      // The end of the retention of an activity without evidence and of a
+      // remedied defect (#412).
+      expect.objectContaining({
+        key: 'activity.retention_ends',
+        source: 'activity_retention',
+        actions: ['reminder'],
+        responsible: 'lead',
+        leadDays: 0,
+      }),
+      expect.objectContaining({
+        key: 'defect.retention_ends',
+        source: 'defect_retention',
+        actions: ['reminder'],
+        responsible: 'lead',
+        leadDays: 0,
+      }),
       // The end of an access and the day its data goes (#356).
       expect.objectContaining({
         key: 'membership.ends',

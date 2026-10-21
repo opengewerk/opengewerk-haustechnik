@@ -425,6 +425,7 @@ export async function defectReading(
     areaId: row.defect.areaId,
     checkedOn: row.defect.checkedOn,
     checkNote: row.defect.checkNote,
+    emptiedAt: row.defect.emptiedAt?.toISOString() ?? null,
     classChoices: await classChoicesFor(tx, catalogue, row.defect),
   }
 }

@@ -707,7 +707,9 @@ export class MetersController {
       this.database,
       [
         ...new Set([
-          ...held.readings.map((reading) => reading.recordedBy),
+          ...held.readings.flatMap((reading) =>
+            reading.recordedBy === null ? [] : [reading.recordedBy],
+          ),
           ...(held.point?.noteBy ? [held.point.noteBy] : []),
         ]),
       ],
@@ -728,7 +730,7 @@ export class MetersController {
       readOn: reading.readOn,
       valueMilli: reading.valueMilli,
       source: reading.source,
-      name: nameOf(reading.recordedBy),
+      name: reading.recordedBy === null ? null : nameOf(reading.recordedBy),
       correctsId: reading.correctsId,
       correctionReason: reading.correctionReason,
       valid: valid.includes(reading),

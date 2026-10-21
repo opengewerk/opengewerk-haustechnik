@@ -41,8 +41,11 @@ export interface WorkOrderMaterial extends Synced {
   readonly quantityMilli: number
   /** When it was taken, by the clock of the device. */
   readonly takenAt: Date
-  /** Who took it: the person signed in, which the server writes. */
-  readonly takenBy: string
+  /**
+   * Who took it: the person signed in, which the server writes. Null three
+   * years after it was taken, when the person goes and the booking stays (#412).
+   */
+  readonly takenBy: string | null
 }
 
 /** What is wrong with a withdrawal, one sentence per field. */

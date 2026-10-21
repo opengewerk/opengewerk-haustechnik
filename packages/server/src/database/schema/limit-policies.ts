@@ -36,6 +36,11 @@ export function kindOfItsEvidence(evidence: PgColumn): SQL {
   return sql`(${limitKinds} IS NULL OR EXISTS (SELECT 1 FROM public.evidence e WHERE e.id = ${evidence}))`
 }
 
+/** The defect a row is about, which is itself limited. */
+export function kindOfItsDefect(defect: PgColumn): SQL {
+  return sql`(${limitKinds} IS NULL OR EXISTS (SELECT 1 FROM public.defects d WHERE d.id = ${defect}))`
+}
+
 /** A print of an activity or of an evidence, which are themselves limited. */
 export function kindOfItsActivityOrEvidence(activity: PgColumn, evidence: PgColumn): SQL {
   return sql`(${limitKinds} IS NULL OR (${activity} IS NOT NULL AND EXISTS (SELECT 1 FROM public.activities a WHERE a.id = ${activity})) OR (${evidence} IS NOT NULL AND EXISTS (SELECT 1 FROM public.evidence e WHERE e.id = ${evidence})))`

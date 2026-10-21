@@ -129,7 +129,8 @@ export interface MeterReading extends Synced {
   readonly correctionReason: string | null
   /** That whoever read it confirmed a figure far above the reading before (#120). */
   readonly jumpConfirmed: boolean
-  readonly recordedBy: string
+  /** Who read it, or null three years after the reading, when the person goes and the figure stays (#412). */
+  readonly recordedBy: string | null
 }
 
 /**

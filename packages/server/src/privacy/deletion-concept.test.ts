@@ -61,6 +61,7 @@ const places: Readonly<Record<string, readonly Why[]>> = {
   ],
   'packages/server/src/notifications/outside-answers.ts#faultReportContacts': ['outside-answer'],
   'packages/server/src/notifications/push.ts#pushSubscriptions': ['access-data'],
+  'packages/server/src/retention/removal.ts#tasks': ['done-task'],
   'upstream/opengewerk/packages/platform/server/src/authentication/administration.ts#authSessions':
     ['sessions', 'access-data'],
   'upstream/opengewerk/packages/platform/server/src/authentication/administration.ts#authVerifications':
@@ -104,27 +105,44 @@ const places: Readonly<Record<string, readonly Why[]>> = {
   ],
 }
 
+/**
+ * The rules an activity is emptied by (#340, #412): after its last evidence,
+ * or after its own years when it hangs on no evidence.
+ */
+const emptied: readonly DeletionRuleKey[] = ['emptied-activity', 'activity-without-evidence']
+
 /** The tables the functions of the migrations delete from, by their name in the database. */
-const inMigrations: Readonly<Record<string, DeletionRuleKey>> = {
+const inMigrations: Readonly<Record<string, readonly DeletionRuleKey[]>> = {
   // 0095: the sessions of the password on an account with the app (#360).
-  auth_sessions: 'sessions',
-  prints: 'evidence',
-  evidence_signed_prints: 'evidence',
-  service_report_records: 'emptied-activity',
-  service_reports: 'emptied-activity',
-  round_records: 'emptied-activity',
-  activity_answers: 'emptied-activity',
-  activity_signatures: 'emptied-activity',
-  work_order_decisions: 'emptied-activity',
-  work_order_participants: 'emptied-activity',
-  work_order_notes: 'emptied-activity',
-  work_order_materials: 'emptied-activity',
-  briefings: 'emptied-activity',
-  work_permits: 'emptied-activity',
+  auth_sessions: ['sessions'],
+  prints: ['evidence'],
+  evidence_signed_prints: ['evidence'],
+  service_report_records: emptied,
+  service_reports: emptied,
+  round_records: emptied,
+  activity_answers: emptied,
+  activity_signatures: emptied,
+  work_order_decisions: emptied,
+  work_order_participants: emptied,
+  work_order_notes: emptied,
+  work_order_materials: emptied,
+  briefings: emptied,
+  work_permits: emptied,
   // 0099: the documents of an emptied activity go for good, with their
-  // versions and the files nothing else names (opengewerk/opengewerk#658).
-  attachment_versions: 'emptied-activity',
-  files: 'emptied-activity',
+  // versions and the files nothing else names (opengewerk/opengewerk#658),
+  // and since 0101 the photos of a remedied defect (#412).
+  attachment_versions: [...emptied, 'remedied-defect'],
+  files: [...emptied, 'remedied-defect'],
+}
+
+/**
+ * The columns that let go of a person while their row stays (#412), as
+ * `<table>.<column>`: the pass of the deadlines sets each to null.
+ */
+const lettingGo: Readonly<Record<string, DeletionRuleKey>> = {
+  'meter_readings.recorded_by': 'person-at-record',
+  'stock_movements.booked_by': 'person-at-record',
+  'work_order_materials.taken_by': 'person-at-record',
 }
 
 /** Rules that delete nothing in the database of the instance: on a device, and the backups. */
@@ -203,11 +221,21 @@ describe('the deletion concept', () => {
     expect([...deleted].sort()).toEqual(Object.keys(inMigrations).sort())
   })
 
+  it('knows every person the pass of the deadlines lets go of at a row that stays', () => {
+    const code = codeOf(join(root, 'packages/server/src/retention/removal.ts'))
+    const columns = [...code.matchAll(/update ([a-z_]+) set ([a-z_]+) = null/g)].map(
+      ([, table, column]) => `${table}.${column}`,
+    )
+
+    expect(columns.sort()).toEqual(Object.keys(lettingGo).sort())
+  })
+
   it('names every rule a place or a migration deletes by, and has no rule that deletes nothing', () => {
     const rules = deletionRules(defaultDeletionFacts).map((rule) => rule.key)
     const used = new Set<DeletionRuleKey>([
       ...Object.values(places).flatMap((whys) => whys.filter((why) => typeof why === 'string')),
-      ...Object.values(inMigrations),
+      ...Object.values(inMigrations).flat(),
+      ...Object.values(lettingGo),
       ...outsideTheDatabase,
     ])
 

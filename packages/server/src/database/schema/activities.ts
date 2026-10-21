@@ -110,6 +110,10 @@ export const activities = pgTable(
     // When it was emptied with its last evidence after the end of the
     // retention (#409): the database's to write, and only then.
     emptiedAt: timestamp('emptied_at', { withTimezone: true }),
+    // The day it was done or closed as not performed (#412): the database's
+    // to write, from its status, for the retention of an activity without
+    // evidence.
+    endedOn: date('ended_on', { mode: 'string' }),
     // The collective activity it is a part of (#342): the server's to write.
     collectiveId: reference<'activity'>('collective_id'),
     // The duty kind of a collective activity, which makes it one (#342): the

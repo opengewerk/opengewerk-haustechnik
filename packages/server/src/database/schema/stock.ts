@@ -93,7 +93,8 @@ export const workOrderMaterials = pgTable(
     articleId: reference<'article'>('article_id').notNull(),
     quantityMilli: integer('quantity_milli').notNull(),
     takenAt: timestamp('taken_at', { withTimezone: true }).notNull(),
-    takenBy: text('taken_by').notNull(),
+    // Null three years after it was taken (#412), as at a booking.
+    takenBy: text('taken_by'),
     ...timestamps,
     ...syncColumns,
   },

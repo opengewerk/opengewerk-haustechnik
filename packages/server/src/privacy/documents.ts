@@ -25,6 +25,7 @@ import { keeperOf } from '../labels/faces.js'
 import { removalDaysOf } from '../memberships/end.js'
 import { giveUpAfterMs } from '../notifications/outside-answers.js'
 import { madeAtInWords } from '../api/processing-descriptions.controller.js'
+import { recordRetentionOf } from '../api/record-retention.controller.js'
 import { minimumYearsOf } from '../api/retention.controller.js'
 import { processingTemplate } from '../processing-description/template.js'
 import { measuresTemplate } from './template.js'
@@ -75,6 +76,7 @@ export async function deletionFactsOf(
 
   return {
     minimumYears: await minimumYearsOf(tx),
+    recordYears: await recordRetentionOf(tx),
     removalDays: await removalDaysOf(tx),
     sessionHours: sessionLifetimes.ordinary / 3600,
     deviceDays: sessionLifetimes.registeredDevice / 86_400,

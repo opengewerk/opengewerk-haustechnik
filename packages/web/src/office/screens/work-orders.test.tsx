@@ -983,6 +983,7 @@ const foundReading: DefectReading = {
   areaId: sued.id as DefectReading['areaId'],
   checkedOn: null,
   checkNote: null,
+  emptiedAt: null,
   classChoices: [],
 }
 

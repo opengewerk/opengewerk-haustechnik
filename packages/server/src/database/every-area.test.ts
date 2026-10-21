@@ -20,6 +20,9 @@ const allowed = [
   // The deadline engine: a pass works for nobody and goes through every area
   // of an operator (opengewerk-haustechnik#25).
   'deadlines/engine.ts',
+  // What goes after its own retention without a confirmation, after each
+  // pass (opengewerk-haustechnik#412): it works for nobody, in every area.
+  'retention/removal.ts',
   // The notifications (opengewerk-haustechnik#126): what the jobs of mail and
   // push raise, and what a writer asks before it writes a message, whether
   // there is still something to tell and to whom. Both work for nobody. A

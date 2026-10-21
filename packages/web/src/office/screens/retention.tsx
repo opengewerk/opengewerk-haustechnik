@@ -26,10 +26,11 @@ import { Check, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 
 import { askAt } from '../../sync/made-at.js'
+import { RecordRetention } from './record-retention.js'
 
 export const retentionWords = {
   title: 'Aufbewahrung',
-  what: 'Wie lange die Nachweise dieses Betreibers bleiben, und was gelöscht werden kann.',
+  what: 'Wie lange Nachweise und was an keinem Nachweis hängt bleiben, und was gelöscht werden kann.',
   card: 'Aufbewahrung der Nachweise',
   rule: 'Wie lange ein Nachweis bleibt, sagt das Regelpaket seiner Pflichtart: eine Zahl von Jahren, bis zur nächsten Prüfung oder solange die Anlage verwendet wird. Ein Nachweis einer eigenen Pflicht bleibt bis zur nächsten Prüfung.',
   minimum: 'Mindestens aufbewahren',
@@ -68,7 +69,7 @@ export const retentionWords = {
 } as const
 
 /** Up to five numbers by name, the rest by their count. */
-function listed(numbers: readonly string[]): string {
+export function listed(numbers: readonly string[]): string {
   const shown = numbers.slice(0, 5)
   const rest = numbers.length - shown.length
 
@@ -96,7 +97,7 @@ const proposalsQuery = {
  * Vorschläge zum Löschen (2.6)" and "Nachweise löschen: Rückfrage (2.6)"
  * (#340): the longer retention of the operator, and the evidence whose
  * retention has ended, which whoever leads the operator confirms for deletion,
- * several at once.
+ * several at once; below it what hangs on no evidence (#412).
  */
 export function RetentionScreen() {
   const settings = useQuery({
@@ -115,6 +116,7 @@ export function RetentionScreen() {
       )}
       <Proposals />
       <NoteBox>{retentionWords.run}</NoteBox>
+      <RecordRetention />
     </SettingsPage>
   )
 }
@@ -459,7 +461,7 @@ function dutyLine(entry: RetentionProposal): string {
 }
 
 /** A box to choose with, which also says "some" for the box over all. */
-function Tick({
+export function Tick({
   label,
   checked,
   mixed = false,

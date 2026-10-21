@@ -21,6 +21,10 @@ import { plainInMarkdown } from './processing-description.js'
 export type DeletionRuleKey =
   | 'evidence'
   | 'emptied-activity'
+  | 'activity-without-evidence'
+  | 'remedied-defect'
+  | 'done-task'
+  | 'person-at-record'
   | 'access-data'
   | 'sessions'
   | 'password-link'
@@ -76,7 +80,7 @@ export const processingActivities = [
     data: 'Zuständigkeit für Pflichten, Zuteilung von Vorgängen und Rundgängen, Aufgaben, was ein Gerät nach den Bereichen seiner Person hält',
     purpose: 'Arbeiten an Anlagen planen, verteilen und vor Ort erledigen, auch ohne Netz',
     legalBasis: 'Art. 6 Abs. 1 lit. b DSGVO',
-    deletion: ['device-store'],
+    deletion: ['device-store', 'activity-without-evidence', 'done-task'],
   },
   {
     key: 'evidence',
@@ -106,7 +110,7 @@ export const processingActivities = [
     data: 'Wer ein Dokument abgelegt, einen Import gemacht, einen Zählerstand eingetragen oder im Lager gebucht hat',
     purpose: 'Dokumente, Etiketten, Mängel, Zählerstände und Material der Anlagen festhalten',
     legalBasis: 'Art. 6 Abs. 1 lit. b DSGVO',
-    deletion: [],
+    deletion: ['remedied-defect', 'person-at-record'],
   },
   {
     key: 'third-parties',

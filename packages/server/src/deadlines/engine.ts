@@ -26,12 +26,15 @@ import { deadlineKindRegistry } from './registry.js'
 import { upgradeOpenRounds } from '../rounds/plans.js'
 import { settleDeadlineTasks, taskFromDeadline } from '../tasks/from-deadline.js'
 import { handBackEndedAccesses, removeEndedAccounts } from '../memberships/end.js'
+import { removeAfterRetention } from '../retention/removal.js'
 import {
+  activityRetentionSource,
   contractSource,
   delegationSource,
   qualificationSource,
   evidenceSource,
   type DeadlineValues,
+  defectRetentionSource,
   defectSource,
   documentSource,
   dutySource,
@@ -59,6 +62,8 @@ const sentences = {
     `Die Fristen des Betreibers ${tenantId} ließen sich nicht abgleichen.`,
   removalFailed: (tenantId: TenantId) =>
     `Die Angaben beendeter Zugänge des Betreibers ${tenantId} ließen sich nicht entfernen.`,
+  retentionFailed: (tenantId: TenantId) =>
+    `Was nach Ablauf seiner Aufbewahrung beim Betreiber ${tenantId} geht, ließ sich nicht löschen.`,
 }
 
 /**
@@ -112,6 +117,13 @@ function bound(
       }),
       // The end of the retention of an evidence (#340).
       evidence: evidenceSource({ today: () => dayInGermany(job.now?.() ?? new Date()) }),
+      // The end of the retention of an activity without evidence and of a remedied defect (#412).
+      activity_retention: activityRetentionSource({
+        today: () => dayInGermany(job.now?.() ?? new Date()),
+      }),
+      defect_retention: defectRetentionSource({
+        today: () => dayInGermany(job.now?.() ?? new Date()),
+      }),
       // The end of an access and the day its data goes (#356).
       membership: membershipSource({ today: () => dayInGermany(job.now?.() ?? new Date()) }),
       membership_removal: membershipRemovalSource(),
@@ -147,6 +159,7 @@ export function runDeadlinesOf(
 ): Promise<DeadlineReport> {
   return runFoundationDeadlinesOf(bound(job), tenantId, now).then(async (report) => {
     await removeEndedAccounts(job.database, tenantId, dayInGermany(now))
+    await removeAfterRetention(job.database, tenantId)
 
     return report
   })
@@ -168,6 +181,14 @@ export async function runDeadlineCycle(job: DeadlineJob): Promise<DeadlineReport
       await removeEndedAccounts(job.database, tenantId, dayInGermany(job.now?.() ?? new Date()))
     } catch (error) {
       console.error(sentences.removalFailed(tenantId), error)
+    }
+
+    // What goes once its retention has ended without a confirmation (#412):
+    // a task done, the person at a reading and at a booking.
+    try {
+      await removeAfterRetention(job.database, tenantId)
+    } catch (error) {
+      console.error(sentences.retentionFailed(tenantId), error)
     }
   }
 

@@ -104,6 +104,13 @@ export interface Defect extends Synced, PlaceTarget {
   readonly checkedOn: IsoDate | null
   /** What was found when it was last checked again. */
   readonly checkNote: string | null
+  /** The day it was remedied (#412): written by the database from its status, null while it is not. */
+  readonly remediedOn: IsoDate | null
+  /**
+   * When its content went after the end of its retention (#412): written by
+   * the database and nobody else, null until then.
+   */
+  readonly emptiedAt: Date | null
 }
 
 /**

@@ -57,6 +57,9 @@ export const tasks = pgTable(
     assetId: reference<'asset'>('asset_id'),
     activityId: reference<'activity'>('activity_id'),
     createdBy: text('created_by'),
+    // The day it was done (#412): the database's to write, from its status,
+    // for the year after which it goes.
+    doneOn: date('done_on', { mode: 'string' }),
     ...timestamps,
     ...syncColumns,
   },

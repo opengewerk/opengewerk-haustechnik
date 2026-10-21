@@ -39,12 +39,13 @@ import {
   TablePanel,
   TextArea,
 } from '@opengewerk/platform-web'
-import { date, today } from '@opengewerk/platform-web/format'
+import { date, moment, today } from '@opengewerk/platform-web/format'
 import {
   ChangesButton,
   Chip,
   Empty,
   FactList,
+  NoteBox,
   PageHead,
   Screen,
   useTableExport,
@@ -104,6 +105,10 @@ import { asTableAddress } from '../table-address.js'
 import { workOrderPlaces, workOrderStartSearch } from '../work-order-addresses.js'
 
 export const defectWords = {
+  // A defect whose content went after the end of its retention (#412), the board
+  // "Mangel nach Ablauf der Aufbewahrung, ohne Inhalt (2.6, #412)".
+  emptied: (at: string) =>
+    `Inhalt gelöscht am ${moment(at)} nach Ablauf der Aufbewahrung, fünf Jahre nach der Beseitigung. Beschreibung, Bemerkung der Nachprüfung und Fotos sind gelöscht. Die Zeile bleibt mit Ort, Tagen, Klasse und Stand; geändert wird sie nicht mehr.`,
   sub: 'Was festgestellt wurde, an einer Anlage oder einem Ort, bis es nachgeprüft ist.',
   note: 'Offen ist ein Mangel, bis er nachgeprüft ist. „Behoben“ kommt aus dem Auftrag, „Nachgeprüft“ ist ein eigener Schritt.',
   noConnection: 'Die Mängel kommen vom Server. Gerade ist keine Verbindung da.',
@@ -916,7 +921,9 @@ export function DefectScreen() {
   }
 
   const where = whereOf(shown)
-  const changes = keeps && shown.status !== 'verified'
+  // Once its content went (#412), nothing is offered any more.
+  const emptied = shown.emptiedAt !== null
+  const changes = keeps && shown.status !== 'verified' && !emptied
   const choice = shown.classChoices.find((each) => each.key === shown.defectClass)
   const order = shown.workOrder
 
@@ -936,7 +943,7 @@ export function DefectScreen() {
           <>
             <ChangesButton table="defects" id={shown.id} />
             {/* A found defect gets its work order here (#117). */}
-            {plans && shown.status === 'found' ? (
+            {plans && shown.status === 'found' && !emptied ? (
               <Button
                 icon={Plus}
                 onClick={() => {
@@ -962,6 +969,7 @@ export function DefectScreen() {
           </>
         }
       />
+      {shown.emptiedAt === null ? null : <NoteBox>{defectWords.emptied(shown.emptiedAt)}</NoteBox>}
       <div className="grid items-start gap-3.5 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="flex min-w-0 flex-col gap-3.5">
           <Panel title="Stand">
@@ -1048,11 +1056,13 @@ export function DefectScreen() {
               </div>
             </Panel>
           )}
-          <DocumentsCard
-            title="Fotos"
-            place={{ propertyId: shown.place.propertyId, defectId: shown.id }}
-            at={`Mangel „${shown.description}“`}
-          />
+          {emptied ? null : (
+            <DocumentsCard
+              title="Fotos"
+              place={{ propertyId: shown.place.propertyId, defectId: shown.id }}
+              at={`Mangel „${shown.description}“`}
+            />
+          )}
         </div>
         <div className="flex min-w-0 flex-col gap-3.5">
           {order === null ? null : (
@@ -1077,7 +1087,7 @@ export function DefectScreen() {
               </div>
             </Panel>
           )}
-          {keeps && shown.status === 'remedied' ? (
+          {keeps && shown.status === 'remedied' && !emptied ? (
             <CheckForm key={shown.id} defect={shown} />
           ) : null}
         </div>

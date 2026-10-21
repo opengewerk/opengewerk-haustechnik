@@ -223,6 +223,9 @@ export const subjectAccessParts = {
       'activities.responsible_user_id',
       'activities.performer_user_id',
       'round_plans.performer_user_id',
+      // What the person confirmed for deletion after its retention (#412).
+      'activity_emptyings.confirmed_by',
+      'defect_emptyings.confirmed_by',
     ],
     printed: true,
   },

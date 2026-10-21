@@ -46,6 +46,12 @@ export interface DeviceScope {
    * named by.
    */
   readonly emptied?: string
+  /**
+   * A fingerprint over the passes that removed tasks a year after they were
+   * done (#412), empty while none did: what the pull of the tasks is named by,
+   * so that a device holding every task lets those go.
+   */
+  readonly tasksRemoved?: string
 }
 
 /**
@@ -70,6 +76,15 @@ export async function deviceScope(
     counted[0] === undefined || counted[0].count === '0'
       ? ''
       : fingerprintOf([`count:${counted[0].count}`, `latest:${counted[0].latest ?? ''}`])
+  // How many passes removed tasks, and the last time one did (#412).
+  const { rows: removals } = await tx.execute<{ count: string; latest: string | null }>(
+    sql`select count(*)::text as count, max(created_at)::text as latest
+          from retention_removals where kind = 'task'`,
+  )
+  const tasksRemoved =
+    removals[0] === undefined || removals[0].count === '0'
+      ? ''
+      : fingerprintOf([`count:${removals[0].count}`, `latest:${removals[0].latest ?? ''}`])
 
   if (seen[0]?.every === true) {
     return {
@@ -81,6 +96,7 @@ export async function deviceScope(
       taskIds: [],
       userId,
       emptied,
+      tasksRemoved,
     }
   }
 
@@ -107,6 +123,7 @@ export async function deviceScope(
     everyArea: false,
     userId,
     emptied,
+    tasksRemoved,
     propertyIds: await ids(sql`select id from properties order by id`),
     buildingIds: await ids(sql`select id from buildings order by id`),
     activityIds,
@@ -477,10 +494,15 @@ export function pullScope(scope: DeviceScope, reads: PullRights): PullScope {
   // and, for what an emptied activity held, the activities emptied (#409).
   const valueOf = (entity: string, value: string) => {
     const words = named(entity, value)
+    const withEmptied =
+      scope.emptied !== undefined && scope.emptied !== '' && emptiedEntities.includes(entity)
+        ? `${words}:emptied-${scope.emptied}`
+        : words
 
-    return scope.emptied !== undefined && scope.emptied !== '' && emptiedEntities.includes(entity)
-      ? `${words}:emptied-${scope.emptied}`
-      : words
+    // And for the tasks, the passes that removed some a year after they were done (#412).
+    return entity === 'tasks' && scope.tasksRemoved !== undefined && scope.tasksRemoved !== ''
+      ? `${withEmptied}:removed-${scope.tasksRemoved}`
+      : withEmptied
   }
 
   if (scope.everyArea) {

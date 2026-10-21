@@ -165,7 +165,9 @@ export const meterReadings = pgTable(
     correctionReason: text('correction_reason'),
     /** That whoever read it confirmed a figure far above the one before (#120). */
     jumpConfirmed: boolean('jump_confirmed').notNull().default(false),
-    recordedBy: text('recorded_by').notNull(),
+    // Null three years after the reading (#412): the database lets the person
+    // go then, on the pass of the deadlines, and on no other way.
+    recordedBy: text('recorded_by'),
     ...timestamps,
     ...syncColumns,
   },

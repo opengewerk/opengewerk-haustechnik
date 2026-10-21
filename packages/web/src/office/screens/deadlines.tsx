@@ -117,6 +117,9 @@ function sourceOf(deadline: DutyDeadlineView): { readonly href: string; readonly
     case 'evidence':
       // The evidence whose retention ended (#340), proposed for deletion under "Aufbewahrung".
       return { href: retentionPlace, name }
+    case 'retention':
+      // An activity without evidence or a defect whose retention ended (#412), proposed there as well.
+      return { href: retentionPlace, name }
     case 'membership':
       // An access that ends or whose data goes (#356), under "Zugänge".
       return { href: accessesPlace, name }

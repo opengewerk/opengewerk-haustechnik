@@ -319,17 +319,19 @@ describe('the tables', () => {
     // the dismissed proposals since #25, the activities with their duties and
     // work orders and the defects since #26.
     expect(rows.length).toBeGreaterThanOrEqual(13)
-    // The one exception, the content of an activity emptied with its last
+    // The two exceptions, the content of an activity emptied with its last
     // evidence after the end of the retention (#409), its documents with
-    // their versions included (opengewerk/opengewerk#658): there the lock of
-    // each table refuses every other way, which `activity-emptying.test.ts`
-    // holds.
+    // their versions included (opengewerk/opengewerk#658), and a task a year
+    // after it was done (#412): there the lock of each table refuses every
+    // other way, which `activity-emptying.test.ts` and
+    // `retention-beyond-evidence.test.ts` hold.
     expect(rows.filter((row) => row.deletable).map((row) => row.table_name)).toEqual([
       'activity_answers',
       'activity_signatures',
       'attachment_versions',
       'briefings',
       'service_reports',
+      'tasks',
       'work_order_decisions',
       'work_order_materials',
       'work_order_notes',

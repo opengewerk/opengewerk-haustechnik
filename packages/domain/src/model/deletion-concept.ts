@@ -1,6 +1,11 @@
 import { membershipRemovalDays } from './membership-end.js'
 import { plainInMarkdown } from './processing-description.js'
 import { type DeletionRuleKey, holdsForInWords } from './processing-record.js'
+import {
+  type RecordRetentionKind,
+  type RecordRetentionSettings,
+  recordRetentionYearsOf,
+} from './record-retention.js'
 import { closedActivitiesStayDays } from './sync.js'
 
 /**
@@ -19,6 +24,8 @@ import { closedActivitiesStayDays } from './sync.js'
 export interface DeletionFacts {
   /** The years every evidence stays at least, or none beyond the rule of its kind (#340). */
   readonly minimumYears: number | null
+  /** The years of what hangs on no evidence that the operator set, null per kind for the law (#412). */
+  readonly recordYears: RecordRetentionSettings | null
   /** The days after the last day of an access before its data goes (#356). */
   readonly removalDays: number
   /** How long a session holds, and one of a device registered for the sync, from the foundation. */
@@ -48,6 +55,11 @@ function count(value: number, one: string, many: string): string {
   return `${String(value)} ${value === 1 ? one : many}`
 }
 
+/** The years of a kind that count for the operator, in words. */
+function years(facts: DeletionFacts, kind: RecordRetentionKind): string {
+  return count(recordRetentionYearsOf(facts.recordYears, kind), 'Jahr', 'Jahre')
+}
+
 /** The rules in their order, with what the operator and the instance set. */
 export function deletionRules(facts: DeletionFacts): readonly DeletionRule[] {
   return [
@@ -64,6 +76,34 @@ export function deletionRules(facts: DeletionFacts): readonly DeletionRule[] {
       when: 'mit seinem letzten Nachweis',
       setting: 'nein',
       proofs: ['B368', 'B369'],
+    },
+    {
+      key: 'activity-without-evidence',
+      data: 'Ein Vorgang ohne Nachweis, mit Antworten, Unterschriften, Namen, Notizen und Dokumenten',
+      when: `${years(facts, 'activity')} ab dem Ende des Jahres, in dem er erledigt oder als nicht durchgeführt geschlossen wurde. Die Anwendung schlägt das Leeren vor, die Leitung bestätigt es; es bleibt eine leere Hülle mit Art, Ort, Tag und Stand.`,
+      setting: 'Jahre unter „Aufbewahrung“',
+      proofs: ['B442', 'B444', 'B445', 'B457'],
+    },
+    {
+      key: 'remedied-defect',
+      data: 'Beschreibung, Bemerkung der Nachprüfung und Fotos eines behobenen Mangels',
+      when: `${years(facts, 'defect')} nach der Beseitigung. Die Anwendung schlägt es vor, die Leitung bestätigt es; die Zeile des Mangels bleibt.`,
+      setting: 'Jahre unter „Aufbewahrung“',
+      proofs: ['B448', 'B449'],
+    },
+    {
+      key: 'done-task',
+      data: 'Eine erledigte Aufgabe',
+      when: `${years(facts, 'task')} nach ihrer Erledigung, mit dem Fristenlauf`,
+      setting: 'Jahre unter „Aufbewahrung“',
+      proofs: ['B452', 'B453'],
+    },
+    {
+      key: 'person-at-record',
+      data: 'Wer einen Zählerstand abgelesen, im Lager gebucht oder Material am Auftrag entnommen hat',
+      when: `${years(facts, 'reading_person')} nach der Ablesung, ${years(facts, 'booking_person')} nach Buchung oder Entnahme, mit dem Fristenlauf; Stand, Buchung und Entnahme bleiben`,
+      setting: 'Jahre unter „Aufbewahrung“',
+      proofs: ['B454', 'B455'],
     },
     {
       key: 'access-data',
@@ -145,6 +185,7 @@ export function deletionRuleNumbers(): Readonly<Record<DeletionRuleKey, string>>
  */
 export const defaultDeletionFacts: DeletionFacts = {
   minimumYears: null,
+  recordYears: null,
   removalDays: membershipRemovalDays.standard,
   sessionHours: 12,
   deviceDays: 30,
@@ -164,8 +205,8 @@ export const keptData: readonly { readonly data: string; readonly why: string }[
     why: 'Sie belegen, wer wann Zugang hatte. Nach dem Ende eines Zugangs gehen seine Angaben nach Regel {access-data}, der Name bleibt.',
   },
   {
-    data: 'Mängel, Aufgaben, Zählerstände und Buchungen im Lager',
-    why: 'Sie hängen an keinem Nachweis. Eine Frist für sie nennt das Planungskonzept noch nicht.',
+    data: 'Die Zeile eines Mangels, Zählerstände und Buchungen im Lager',
+    why: 'Sie gehören zur Anlage und zum Bestand. Inhalt und Fotos eines behobenen Mangels gehen nach Regel {remedied-defect}, wer abgelesen oder gebucht hat, nach Regel {person-at-record}.',
   },
   {
     data: 'Störmeldungen',
