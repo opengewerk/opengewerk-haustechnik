@@ -7,6 +7,24 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-10-21
+
+Zwei Meldungen aus dem Pilotbetrieb, beide vom Tag, an dem 0.2.0 erschien.
+
+Jedes PDF im Büro lädt jetzt herunter, statt sich in einem Tab zu öffnen (#509). In der installierten
+Anwendung ließ sich ein PDF bisher ansehen, aber nicht speichern. Der Knopf heißt „PDF herunterladen“, und
+die Datei trägt einen Namen, der sagt, was sie ist, etwa „Nachweis NW-2026-00131.pdf“.
+
+Ein abgegebener Rundgang lässt sich bis zur Gegenzeichnung wieder öffnen (#510), im Büro und vor Ort,
+durch die Person, die ihn abgegeben hat, und wer Rundgänge gegenzeichnet, solange kein Mangel daraus einen
+Auftrag hat. Die Antworten bleiben und lassen sich ändern. Die Unterschrift zählt nicht mehr, Mängel und
+Zählerstände aus ihr werden entfernt, und ein Nachweis aus dem Rundgang wird für ungültig erklärt; mit der
+nächsten Abgabe entsteht alles neu.
+
+Aktualisiert wird wie bei jeder Fassung in zwei Schritten, vorher gesichert. Die Migration
+`0103_round_reopening` läuft von selbst; sie ändert keine Zeile, sondern gibt dem Vorgang eine Spalte und
+der Datenbank die Prüfungen für das Wiederöffnen.
+
 ### Hinzugefügt
 
 - Ein abgegebener Rundgang lässt sich bis zur Gegenzeichnung wieder öffnen, im Büro und vor Ort, durch die Person,
