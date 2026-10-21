@@ -10,7 +10,8 @@ Normen kommen als neue Fassung, sobald sie am Text der Norm geprüft sind.
 Fachkundig abgenommen hat das Paket der Maintainer am 16.10.2026 (Abschnitt 15), jeder Eintrag
 mit der Prüfsumme dessen, was abgenommen wurde. Wird ein Eintrag geändert, fällt seine Abnahme
 weg, und die Oberfläche kennzeichnet ihn wieder, bis er erneut abgenommen ist. Die Einträge, die mit
-den Fassungen 1.3.0, 1.4.0 und 1.5.0 dazukamen, sind noch nicht abgenommen und bis dahin gekennzeichnet.
+den Fassungen 1.3.0 und 1.4.0 dazukamen, sind noch nicht abgenommen und bis dahin gekennzeichnet; die vier
+der Fassung 1.5.0 hat der Maintainer am 21.10.2026 abgenommen.
 
 ## Anlagenarten
 

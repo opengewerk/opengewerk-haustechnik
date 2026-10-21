@@ -37,7 +37,12 @@
     },
     {
       "file": "anlagenarten/photovoltaic_installation.v2.json",
-      "checkedOn": "2026-10-21"
+      "checkedOn": "2026-10-21",
+      "accepted": {
+        "by": "Moritz Kohm",
+        "on": "2026-10-21",
+        "sha256": "cbe7bf34683f5600db91940cd824604cd53652e14be2bfcd3a1a1a241ab67e63"
+      }
     },
     {
       "file": "anlagenarten/portable_equipment.v1.json",
@@ -129,7 +134,12 @@
     },
     {
       "file": "pflichten/installation_test_dguv_v3.v3.json",
-      "checkedOn": "2026-10-21"
+      "checkedOn": "2026-10-21",
+      "accepted": {
+        "by": "Moritz Kohm",
+        "on": "2026-10-21",
+        "sha256": "c526a9071168ee657334f43404c49f7c4d21b1f60274315910cb4aaf88a23900"
+      }
     },
     {
       "file": "pflichten/installation_test_dguv_v4.v1.json",
@@ -146,7 +156,12 @@
     },
     {
       "file": "pflichten/installation_test_dguv_v4.v3.json",
-      "checkedOn": "2026-10-21"
+      "checkedOn": "2026-10-21",
+      "accepted": {
+        "by": "Moritz Kohm",
+        "on": "2026-10-21",
+        "sha256": "a9f56c5895d16d329be01cca0a05a78f11b64372b7dbab6a7553d66ffc5bfb20"
+      }
     },
     {
       "file": "pflichten/installation_test_special_location_dguv_v3.v1.json",
@@ -163,7 +178,12 @@
     },
     {
       "file": "pflichten/installation_test_special_location_dguv_v3.v3.json",
-      "checkedOn": "2026-10-21"
+      "checkedOn": "2026-10-21",
+      "accepted": {
+        "by": "Moritz Kohm",
+        "on": "2026-10-21",
+        "sha256": "2dfacc9c48cbd6697d6bfac5193d2909e73f016d3f29b84858507fd2ca151a5f"
+      }
     },
     {
       "file": "pflichten/portable_equipment_test_baths_kitchens_dguv_v4.v1.json",
