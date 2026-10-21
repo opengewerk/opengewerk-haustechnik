@@ -7,6 +7,30 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-21
+
+Die Fassung von Phase 2, den vollständigen Betreiberpflichten nach Abschnitt 12 des Planungskonzepts.
+Seit 0.1.10 kommen ihre letzten beiden Bausteine dazu.
+
+Jedes PDF mit einer Unterschrift darin signiert die Instanz jetzt selbst, wenn es entsteht (#457):
+Nachweis, Rundgang, Leistungsnachweis, Pflichtenübertragung, Auskunft über eine Person, Anlagenbuch und
+Nachweisverzeichnis. Wird es danach geändert, zeigt jedes PDF-Programm die Signatur als ungültig. Den
+Schlüssel erzeugt die Instanz selbst, ihre Einstellungen zeigen sein Zertifikat mit Fingerabdruck, und
+„PDF prüfen“ unter „Pflichten“ sagt zu einem vorgelegten PDF, ob es ein aufbewahrter Druck ist und ob es
+seit der Signatur unverändert ist. Ein Druck von vor dieser Fassung trägt keine Signatur und gilt weiter
+als aufbewahrter Druck, wenn er Byte für Byte gleich ist.
+
+Was an keinem Nachweis hängt, hat eigene Fristen (#412). Ein Vorgang ohne Nachweis bleibt sechs Jahre, ein
+behobener Mangel fünf; beide schlägt der Lauf unter „Aufbewahrung“ vor, und die Leitung bestätigt. Eine
+erledigte Aufgabe geht ein Jahr nach der Erledigung, die Person an Zählerstand, Buchung und Entnahme drei
+Jahre danach, beides ohne Rückfrage mit dem Fristenlauf. Vor Ort laden einige Seiten erst, wenn sie geöffnet
+werden (#502), ohne Netz wie bisher.
+
+Aktualisiert wird wie bei jeder Fassung in zwei Schritten, vorher gesichert; die Migrationen
+`0101_retention_beyond_evidence` und `0102_instance_signing` laufen von selbst. Der Schlüssel der Signatur
+entsteht mit dem ersten PDF, das eine Unterschrift zeigt; seinen Fingerabdruck findet danach, wer die
+Instanz betreibt, unter „Einstellungen“ der Instanz.
+
 ### Hinzugefügt
 
 - Jedes PDF mit einer Unterschrift darin signiert die Instanz selbst (PAdES), wenn es entsteht: Nachweis, Rundgang,
