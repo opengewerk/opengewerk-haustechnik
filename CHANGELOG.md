@@ -26,6 +26,15 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 - Tests für fünf Zusagen aus Phase 2, die bisher keiner ganz hielt (#530): einen Lieferanten entfernen, die
   Zeiten der Störmeldungen, eine Pflichtenübertragung nach dem letzten Tag eines Zugangs, dass eine Auskunft
   keine Spur hinterlässt, und die Tests des Fundaments zum Ende eines Zugangs in der Verfahrensbeschreibung.
+- Eine Rolle mit „Anlagen ansehen“ und ohne „Mängel ansehen“ sieht „außer Betrieb durch Mangel“ jetzt auch im
+  Lagebild und vor Ort (#520), ohne etwas vom Mangel selbst zu erfahren. Ihr Gerät hält von einem solchen
+  Mangel nur Anlage, Stand und Klasse; bisher fehlte der Zustand dort ganz.
+- Das höher signierte PDF am Nachweis lädt herunter, statt sich im Tab zu öffnen, und nennt die Stufe, die das
+  Zertifikat von sich angibt, qualifiziert oder fortgeschritten (#526). Jeder PDF-Knopf heißt „PDF
+  herunterladen“, auch bei Verfahrensbeschreibung, Verzeichnis und Auskunft, und kein Text sagt mehr „PDF
+  öffnen“.
+- Die Liste der Störungen lässt sich als XLSX und CSV ausgeben, mit dem, was ihr Filter zeigt (#527); die
+  Tabelle nennt niemanden, der gemeldet hat, und keine Adresse.
 
 ## [0.2.2] - 2026-10-22
 

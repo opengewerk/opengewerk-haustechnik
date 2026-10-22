@@ -460,6 +460,22 @@ export function pullScope(scope: DeviceScope, reads: PullRights): PullScope {
     }
   }
 
+  // Out of service by a defect, for whoever sees the assets and not the
+  // defects (#520, section 4.6: "sieht den Zustand und nicht den Mangel"): the
+  // device holds the defects that put an asset out of service now, each by what
+  // the state needs and nothing of the defect itself (`shutDownDefect`), under
+  // a value that changes with them, so that one set right leaves the device.
+  const shutDownOnly = !reads.holds('defect.read') && reads.shutDownDefects !== undefined
+
+  if (shutDownOnly) {
+    const shutDown = reads.shutDownDefects ?? []
+
+    withheld.set('defects', {
+      conditions: [sql`${column('defects', 'id')} = any(${idArray(shutDown)})`],
+      words: [`shut-down:${fingerprintOf(shutDown)}`],
+    })
+  }
+
   const kept: Readonly<Record<string, SQL>> = Object.fromEntries(
     [...withheld].flatMap(([entity, { conditions }]) =>
       conditions.length === 0 ? [] : [[entity, and(...conditions) as SQL]],
@@ -474,16 +490,19 @@ export function pullScope(scope: DeviceScope, reads: PullRights): PullScope {
   }
   const named = (entity: string, value: string) =>
     [value, ...(withheld.get(entity)?.words ?? [])].join(':')
-  const answering: Pick<PullScope, 'answer'> = contractors
-    ? {}
-    : {
-        answer: (changes) =>
-          changes.map((change) =>
-            change.entity === 'contractors'
-              ? { ...change, rows: change.rows.map(namedFirm) }
-              : change,
-          ),
-      }
+  const answering: Pick<PullScope, 'answer'> =
+    contractors && !shutDownOnly
+      ? {}
+      : {
+          answer: (changes) =>
+            changes.map((change) =>
+              !contractors && change.entity === 'contractors'
+                ? { ...change, rows: change.rows.map(namedFirm) }
+                : shutDownOnly && change.entity === 'defects'
+                  ? { ...change, rows: change.rows.map(shutDownDefect) }
+                  : change,
+            ),
+        }
 
   // The qualifications of the person of the device and nobody else's, also
   // for whoever sees every area (#337): what another holds is no business of
@@ -595,6 +614,36 @@ export interface PullRights {
   readonly onlyWhatDutiesHangOn?: boolean
   /** The firms the live duties of an auditor name (#474), `firmsOfTheDuties`; none where not given. */
   readonly firmsOfTheDuties?: readonly string[]
+  /**
+   * The defects that put an asset out of service now (#520), `defectsShuttingDown`:
+   * given for whoever sees the assets and not the defects.
+   */
+  readonly shutDownDefects?: readonly string[]
+}
+
+/**
+ * The defects that put an asset out of service today, in the areas of the
+ * transaction (#520): at an asset, waiting to be set right, of a class that
+ * makes an asset unsafe. Whoever sees the assets and not the defects holds
+ * these on the device, by what the state needs alone.
+ */
+export async function defectsShuttingDown(
+  tx: TenantTransaction,
+  unsafeClasses: readonly string[],
+): Promise<readonly string[]> {
+  if (unsafeClasses.length === 0) {
+    return []
+  }
+
+  const { rows } = await tx.execute<{ id: string }>(
+    sql`select id from defects
+         where deleted_at is null and asset_id is not null
+           and status in ('found', 'ordered')
+           and defect_class = any(string_to_array(${unsafeClasses.join(',')}, ','))
+         order by 1`,
+  )
+
+  return rows.map((row) => row.id)
 }
 
 /**
@@ -638,6 +687,28 @@ const firmNamedBy: readonly string[] = [
   'deletedAt',
   'changeSequence',
 ]
+
+/**
+ * What a device without the right to see the defects holds of one that puts
+ * an asset out of service (#520): the asset, its state and its class, which
+ * say whether it does, with what the sync needs to keep the row. Named one
+ * by one, so that the description, the place, the photos and who found it
+ * stay in the office.
+ */
+const shutDownBy: readonly string[] = [
+  'id',
+  'tenantId',
+  'assetId',
+  'status',
+  'defectClass',
+  'version',
+  'deletedAt',
+  'changeSequence',
+]
+
+function shutDownDefect(row: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(row).filter(([field]) => shutDownBy.includes(field)))
+}
 
 function namedFirm(row: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return Object.fromEntries(Object.entries(row).filter(([field]) => firmNamedBy.includes(field)))

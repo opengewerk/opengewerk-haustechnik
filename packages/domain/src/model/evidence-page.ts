@@ -81,9 +81,28 @@ export interface SignedPrint {
   readonly signedAt: string | null
   readonly validFrom: string
   readonly validTo: string
+  /**
+   * What the certificate states of itself (#526, section 2.6): qualified or
+   * advanced, no trusted list asked; null for one filed before it was read.
+   */
+  readonly level: SignatureLevel | null
   /** The name of the person, read from the instance. */
   readonly filedBy: string
   readonly filedAt: string
+}
+
+/** The level a certificate states for its signature (#526). */
+export type SignatureLevel = 'qualified' | 'advanced'
+
+/** A level as it is kept, read back; anything else is no level. */
+export function signatureLevel(kept: string | null): SignatureLevel | null {
+  return kept === 'qualified' || kept === 'advanced' ? kept : null
+}
+
+/** What the screen calls a level, with what was not checked. */
+export const signatureLevelLabel: Readonly<Record<SignatureLevel, string>> = {
+  qualified: 'qualifiziert nach Angabe des Zertifikats',
+  advanced: 'fortgeschritten',
 }
 
 /** What filing one says: the file that went up ahead of it, by its hash. */
@@ -93,7 +112,7 @@ export interface SignedPrintFiling {
 
 export const signedPrintWords = {
   noPrint:
-    'Zu diesem Nachweis gibt es noch kein PDF. Erst „PDF öffnen“, dann außerhalb signieren und hier ablegen.',
+    'Zu diesem Nachweis gibt es noch kein PDF. Erst „PDF herunterladen“, dann außerhalb signieren und hier ablegen.',
   missingFile: 'Die Datei ist nicht auf dem Server.',
   twice: 'Dieses signierte PDF liegt schon am Nachweis.',
   missing: 'Dieses signierte PDF gibt es an diesem Nachweis nicht.',

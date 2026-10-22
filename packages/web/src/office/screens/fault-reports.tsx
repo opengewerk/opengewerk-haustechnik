@@ -33,6 +33,7 @@ import {
   FactList,
   PageHead,
   Screen,
+  useTableExport,
 } from '@opengewerk/platform-web/office'
 import { useRight } from '@opengewerk/platform-web/session'
 import {
@@ -147,7 +148,11 @@ function addressOf(search: Readonly<Record<string, unknown>>): InboxAddress {
   )
 }
 
-function inboxRequest(address: InboxAddress, filter: FaultInboxFilter): string {
+function inboxRequest(
+  address: InboxAddress,
+  filter: FaultInboxFilter,
+  path = '/fault-reports',
+): string {
   const query = new URLSearchParams({ state: filter })
 
   for (const name of ['propertyId', 'areaId', 'categoryId', 'buildingId'] as const) {
@@ -158,7 +163,7 @@ function inboxRequest(address: InboxAddress, filter: FaultInboxFilter): string {
     }
   }
 
-  return `/fault-reports?${query.toString()}`
+  return `${path}?${query.toString()}`
 }
 
 export function faultReportQuery(id: string) {
@@ -316,6 +321,8 @@ export function FaultListScreen() {
     queryFn: () => request<readonly FaultReportEntry[]>(inboxRequest({}, 'received')),
   })
   const narrowed = Object.keys(address).some((name) => name !== 'state')
+  // The list as a table, with what its filter shows (#527).
+  const table = useTableExport(inboxRequest(address, filter, '/fault-reports/table'))
 
   const set = (name: keyof InboxAddress, value: string) => {
     const next: InboxAddress = { ...address, [name]: value === '' ? undefined : value }
@@ -407,8 +414,10 @@ export function FaultListScreen() {
               </option>
             ))}
           </RegisterFilter>
+          {table.button}
         </div>
       </div>
+      {table.trouble}
       {list.data === undefined ? (
         <Panel>
           <Empty>

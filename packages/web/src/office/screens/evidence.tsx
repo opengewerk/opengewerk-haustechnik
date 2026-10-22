@@ -478,6 +478,7 @@ export function EvidenceScreen() {
           )}
           <SignedPrintsCard
             evidenceId={shown.id}
+            number={shown.number}
             prints={shown.signedPrints}
             mayFile={keeps && open}
           />

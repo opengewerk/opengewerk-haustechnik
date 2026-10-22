@@ -1,6 +1,7 @@
 import { constants, createHash, verify, X509Certificate } from 'node:crypto'
 
 import { childrenOf, DerRefusal, type DerElement, oidOf, readElement, timeOf } from './der.js'
+import { type StatedLevel, statedLevelOf } from './signature-level.js'
 
 /**
  * Whether a file is the PDF of an evidence with a higher signature on it
@@ -27,7 +28,7 @@ export class SignedPdfRefusal extends Error {}
 export const signedPdfSentences = {
   notPdf: 'Abgelegt wird ein PDF.',
   notThisEvidence:
-    'Diese Datei ist nicht das PDF dieses Nachweises. Signiert wird das PDF, das „PDF öffnen“ am Nachweis gibt, und die Signatur wird daran angehängt.',
+    'Diese Datei ist nicht das PDF dieses Nachweises. Signiert wird das PDF, das „PDF herunterladen“ am Nachweis gibt, und die Signatur wird daran angehängt.',
   noSignature: 'In dieser Datei ist keine Signatur, die das ganze Dokument deckt.',
   changedAfter: 'Nach der Signatur wurde die Datei noch verändert.',
   digestMismatch: 'Die Signatur passt nicht zum Inhalt der Datei.',
@@ -45,6 +46,8 @@ export interface SignedPdfFacts {
   readonly signedAt: Date | null
   readonly validFrom: Date
   readonly validTo: Date
+  /** What the certificate states of itself, qualified or advanced, no trusted list asked (#526). */
+  readonly level: StatedLevel
 }
 
 const oids = {
@@ -394,6 +397,7 @@ export function checkSignedPdf(file: Uint8Array, prints: readonly Uint8Array[]):
     signedAt: read.signedAt,
     validFrom: new Date(read.by.validFrom),
     validTo: new Date(read.by.validTo),
+    level: statedLevelOf(new Uint8Array(read.by.raw)),
   }
 }
 

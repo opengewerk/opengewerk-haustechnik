@@ -190,6 +190,12 @@ export const evidenceSignedPrints = pgTable(
     signedAt: timestamp('signed_at', { withTimezone: true }),
     validFrom: timestamp('valid_from', { withTimezone: true }).notNull(),
     validTo: timestamp('valid_to', { withTimezone: true }).notNull(),
+    /**
+     * What the certificate states of itself (#526): qualified where it says it
+     * is an EU qualified certificate, advanced otherwise. No trusted list is
+     * asked. Null for one filed before it was read.
+     */
+    statedLevel: text('stated_level'),
     filedBy: text('filed_by').notNull(),
     filedAt: timestamp('filed_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -198,6 +204,10 @@ export const evidenceSignedPrints = pgTable(
     withinAreas(),
     withinLimits(table.propertyId, kindOfItsEvidence(table.evidenceId)),
     unique('evidence_signed_prints_tenant_id_key').on(table.tenantId, table.id),
+    check(
+      'evidence_signed_prints_level_known',
+      sql`${table.statedLevel} is null or ${table.statedLevel} in ('qualified', 'advanced')`,
+    ),
     // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
       columns: [table.tenantId, table.evidenceId, table.areaId],

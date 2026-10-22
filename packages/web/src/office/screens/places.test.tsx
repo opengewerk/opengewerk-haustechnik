@@ -375,6 +375,35 @@ describe('the Lagebild of a building (#121)', () => {
     expect(screen.queryByRole('link', { name: 'AN-00012 Notleuchte Flur' })).toBeNull()
   })
 
+  it('names the asset and not the defect for whoever sees the assets and not the defects (#520)', async () => {
+    // What the device holds of a defect without "Mängel ansehen": the state alone.
+    server.put('defects', {
+      id: 'df-unsafe',
+      assetId: boiler.id,
+      status: 'found',
+      defectClass: 'probe.severe',
+    })
+
+    const technician = memberIn('technician')
+
+    signedInOffice('technician', [nord, sued], {
+      ...servingCatalogue(),
+      [`/overview/buildings/${house.id}`]: situation,
+      '/auth/tenants': [
+        { ...technician, rights: technician.rights.filter((right) => right !== 'defect.read') },
+      ],
+    })
+    await mountOffice(`/gebaeude/${house.id}`, server, [...everything, 'defects'])
+
+    const named = await screen.findByRole('link', { name: 'AN-00010 Heizkessel' })
+
+    await waitFor(() => {
+      expect(named.parentElement?.textContent).toBe(
+        'Außer Betrieb durch Mangel: AN-00010 Heizkessel, E.14 Heizraum.',
+      )
+    })
+  })
+
   it('says nothing of the kind while no defect puts an asset of the building out of service (#345)', async () => {
     signedInOffice('technician', [nord, sued], {
       ...servingCatalogue(),

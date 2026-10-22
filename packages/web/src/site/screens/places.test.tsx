@@ -1,3 +1,4 @@
+import { rightsOfRoles } from '@opengewerk/haustechnik-domain'
 import { fromTheGallery } from '@opengewerk/platform-web/forms'
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -413,6 +414,29 @@ describe('an asset a defect puts out of service, on site (#345)', () => {
           'Die Anlage bleibt außer Betrieb, bis der Mangel behoben ist. Ihre Pflichten laufen weiter.',
       )
     })
+  })
+
+  it('says only the state for whoever sees the assets and not the defects (#520)', async () => {
+    const server = schoolServer()
+
+    // What the device of such a person holds of the defect: the state alone.
+    server.put('defects', {
+      id: unsafe.id,
+      tenantId: (unsafe as { tenantId?: string }).tenantId,
+      assetId: unsafe.assetId,
+      status: unsafe.status,
+      defectClass: unsafe.defectClass,
+    })
+    await mountSite('/anlagen/a-heater', {
+      server,
+      rights: [...rightsOfRoles(['technician'])].filter((right) => right !== 'defect.read'),
+    })
+
+    const note = await screen.findByRole('note')
+
+    expect(note.textContent).toBe(
+      'Außer Betrieb durch MangelDie Anlage bleibt außer Betrieb, bis der Mangel behoben ist. Ihre Pflichten laufen weiter.',
+    )
   })
 
   it('says nothing of the kind for a defect of another class, or one that is remedied', async () => {

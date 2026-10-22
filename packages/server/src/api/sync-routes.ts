@@ -20,7 +20,12 @@ import { memberships } from '@opengewerk/platform-server/schema'
 
 import { SigningRefusal } from '../activities/signing.js'
 import { EvidenceRefusal } from '../evidence/write.js'
-import { deviceScope, firmsOfTheDuties, pullScope } from '../sync/device-scope.js'
+import {
+  defectsShuttingDown,
+  deviceScope,
+  firmsOfTheDuties,
+  pullScope,
+} from '../sync/device-scope.js'
 import type { Sender } from '../sync/signatures.js'
 import { syncFor } from '../sync/sync.js'
 import { answerFor as answerForTheDatabase } from './database-errors.js'
@@ -325,18 +330,30 @@ export function syncRoutesFor(
   catalogue: Catalogue,
   database: Database,
 ): SyncRoutes<Identity, Right, Sender> {
+  // The classes of defects that make an asset unsafe, which put it out of service (#345, #520).
+  const unsafeClasses = catalogue.packages.flatMap((pack) =>
+    catalogue
+      .defectClasses(pack.name)
+      .filter(({ defectClass }) => defectClass.unsafe)
+      .map(({ defectClass }) => defectClass.key),
+  )
+
   return {
     sync: syncFor(catalogue),
     permissionFor,
     answerFor,
     scope: async ({ tx, identity }) => {
       const limited = isLimited(identity.roles)
+      const stateOnly =
+        isAllowed(identity, 'asset.read') && !isAllowed(identity, 'defect.read') && !limited
 
       return pullScope(await deviceScope(tx, identity.userId), {
         holds: (right) => isAllowed(identity, right),
         onlyWhatDutiesHangOn: limited,
         // The firms of an auditor are those its duties name (#474).
         ...(limited ? { firmsOfTheDuties: await firmsOfTheDuties(tx) } : {}),
+        // Out of service without the defects, for whoever sees the assets alone (#520).
+        ...(stateOnly ? { shutDownDefects: await defectsShuttingDown(tx, unsafeClasses) } : {}),
       })
     },
     senderOf: (identity, operations) => senderOf(database, identity, operations),

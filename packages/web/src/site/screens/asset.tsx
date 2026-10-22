@@ -207,6 +207,7 @@ export function SiteAssetScreen() {
   // The power of a PV installation from its modules on this device (#461).
   const peak = useInstallationPeak(holdsInverters(maybeText(asset, 'kind')) ? assetId : undefined)
   const seesDuties = useRight('duty.read')
+  const seesDefects = useRight('defect.read')
   const seesEvidence = useRight('evidence.read')
   const records = useRight('asset.record')
   const reports = useRight('defect.report')
@@ -272,6 +273,7 @@ export function SiteAssetScreen() {
         <ShutDownNotice
           defects={shutDownOn(defects, catalogue).get(assetId) ?? []}
           catalogue={catalogue}
+          seesDefects={seesDefects}
         />
         {/* The boards of a low-voltage installation, under the path and after a
             defect that puts it out of service (#349). */}
