@@ -63,6 +63,10 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   immer die gesetzliche Frist, auch wenn die Leitung sie verlängert hatte, und eine neue Fassung nannte den Abschnitt
   nicht als geändert. Drei Sätze, die Phase 2 noch als künftig beschrieben, sagen jetzt, was gebaut ist (#525), und
   Anhang C nennt jeden Weg des Servers mit seiner Methode, gegen den ein Test die Liste hält (#541).
+- Eine Anfrage eines Prüfers, die abgelehnt wird, weil ihm das Recht fehlt, steht im Protokoll der Zugriffe, als
+  „abgelehnt“ (#537); das Konzept sagt „jede seiner Anfragen“. Das Protokoll bleibt so lange wie das
+  Änderungsprotokoll, und das Löschkonzept und die Verfahrensbeschreibung sagen es. Prüfer und Melder stehen nicht mehr
+  zur Wahl, wenn jemand für eine Pflicht verantwortlich wird, und der Server nimmt sie dafür nicht an (#538).
 
 ## [0.2.2] - 2026-10-22
 

@@ -466,6 +466,38 @@ describe('an auditor from outside', () => {
     await http().get('/auditor-reads').set(testIdentityHeader, by('u-duties')).expect(403)
   })
 
+  it('has a request the guard refuses written down as well, marked as refused (#537)', async () => {
+    await admin.query('delete from auditor_reads')
+
+    // The defects are no right of an auditor.
+    await http().get('/defects').set(testIdentityHeader, by('u-auditor')).expect(403)
+    // Nobody else's refusal is written down.
+    await http().get('/defects').set(testIdentityHeader, by('u-duties')).expect(200)
+    await http().get('/auditor-reads').set(testIdentityHeader, by('u-duties')).expect(403)
+
+    const { rows } = await admin.query<{ user_id: string; route: string; refused: boolean }>(
+      'select user_id, route, refused from auditor_reads',
+    )
+
+    expect(rows).toEqual([{ user_id: 'u-auditor', route: '/defects', refused: true }])
+
+    const reads = (
+      await http().get('/auditor-reads').set(testIdentityHeader, by('u-lead')).expect(200)
+    ).body as AuditorReadList
+
+    expect(reads.reads.map((read) => [read.personName, read.what])).toEqual([
+      ['Dr. Frank Seidel', '/defects, abgelehnt'],
+    ])
+
+    // A read the guard lets through stays one line, not refused.
+    await admin.query('delete from auditor_reads')
+    await http().get('/duties/register').set(testIdentityHeader, by('u-auditor')).expect(200)
+
+    expect(
+      (await admin.query<{ refused: boolean }>('select refused from auditor_reads')).rows,
+    ).toEqual([{ refused: false }])
+  })
+
   it('holds on its device what the duties hang on, within its limits, and nothing else', async () => {
     await limit('u-auditor', [place.school], ['probe.elevator'])
     // Something the device of an auditor must not hold: a task of the operator,

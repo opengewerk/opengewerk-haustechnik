@@ -149,7 +149,8 @@ export class AuditorReadsController {
         readAt: row.readAt.toISOString(),
         userId: row.userId,
         personName: names.get(row.userId)?.name ?? 'Unbekanntes Konto',
-        what: auditorReadWhat(row.route),
+        // A request the guard refused stands as well (#537), and says so.
+        what: row.refused ? `${auditorReadWhat(row.route)}, abgelehnt` : auditorReadWhat(row.route),
         subject: subjectOf(row),
       })),
       more: read.rows.length > auditorReadPage,

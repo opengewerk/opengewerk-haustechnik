@@ -757,6 +757,13 @@
       "when": 1792692839064,
       "tag": "0107_replaced_duty",
       "breakpoints": true
+    },
+    {
+      "idx": 108,
+      "version": "7",
+      "when": 1792698574194,
+      "tag": "0108_refused_auditor_reads",
+      "breakpoints": true
     }
   ]
 }

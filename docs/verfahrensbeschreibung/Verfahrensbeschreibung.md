@@ -354,9 +354,9 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 ### 3.20 Prüfer von außen
 
 - Ein Prüfer ist ein Zugang mit der Rolle Prüfer: eine Person von außen, etwa von einer Behörde, einem Versicherer oder einer Prüforganisation. Sein Konto steht mit Name und E-Mail-Adresse beim Betreiber wie jedes andere; das ist eine Angabe über einen Dritten. Die Leitung lädt ihn ein, mit einem letzten Tag, in Bereichen wie jeden Zugang und auf Wunsch beschränkt auf Liegenschaften und Anlagenarten. [K4.3, K7, K9]
-- **Zusage:** Ein Prüfer liest Pflichten und Nachweise, mit den Prüfbescheinigungen, die das Nachweisverzeichnis anhängt, und nur in den Liegenschaften und Anlagenarten seines Zugangs; die Datenbank hält das wie den Bereich. Er sieht dabei, wer für eine Pflicht verantwortlich ist und wer einen Nachweis unterschrieben hat. Er ändert nichts, und eine Pflicht wird ihm nicht übertragen. Die Beschränkung steht auf jeder Tabelle mit einer Liegenschaft, nicht nur auf denen, die er über eine Route erreicht. [K4.3, K7, B346, B347, B350, B352, B356]
+- **Zusage:** Ein Prüfer liest Pflichten und Nachweise, mit den Prüfbescheinigungen, die das Nachweisverzeichnis anhängt, und nur in den Liegenschaften und Anlagenarten seines Zugangs; die Datenbank hält das wie den Bereich. Er sieht dabei, wer für eine Pflicht verantwortlich ist und wer einen Nachweis unterschrieben hat. Er ändert nichts, eine Pflicht wird ihm nicht übertragen, und verantwortlich für eine Pflicht wird er nicht: die Wahl bietet nur an, wer die Pflichten ansehen darf und kein Prüfer ist, und der Server nimmt keinen anderen an. Die Beschränkung steht auf jeder Tabelle mit einer Liegenschaft, nicht nur auf denen, die er über eine Route erreicht. [K4.3, K7, B346, B347, B350, B352, B356, B478]
 - **Zusage:** Ein Zugang als Prüfer hat immer einen letzten Tag; danach sieht er nichts mehr, ohne dass jemand etwas tut. Eine Beschränkung auf Liegenschaften oder Anlagenarten gibt es nur für den Prüfer. [K4.3, K7, B348, B349, B354]
-- **Zusage:** Jede Anfrage eines Prüfers steht im Protokoll der Zugriffe, mit dem Zeitpunkt, was er gelesen oder ausgegeben hat und wovon, geschrieben, bevor die Anfrage beantwortet wird. Lesen kann es die Leitung unter „Zugänge“ und sonst niemand; die Anwendung ändert und löscht keine Zeile davon. [K4.3, K9, B351]
+- **Zusage:** Jede Anfrage eines Prüfers steht im Protokoll der Zugriffe, mit dem Zeitpunkt, was er gelesen oder ausgegeben hat und wovon, geschrieben, bevor die Anfrage beantwortet wird. Auch eine Anfrage, die abgelehnt wird, weil ihm das Recht dafür fehlt, steht darin, als abgelehnt. Lesen kann es die Leitung unter „Zugänge“ und sonst niemand; die Anwendung ändert und löscht keine Zeile davon. [K4.3, K7, K9, B351, B477]
 - Auf seinem Gerät liegt nur, woran die Pflichten hängen: Liegenschaften, Gebäude, Geschosse, Räume, Anlagen, Pflichten und die Namen der Fremdfirmen, die diese Pflichten nennen, in den Grenzen seines Zugangs. [K2.7, K4.3, B355, B441]
 
 ### 3.21 Erzeugte Verfahrensbeschreibungen und Dokumente zum Datenschutz
@@ -526,7 +526,7 @@ Leitung und Technische Leitung sehen als Vorgabe alle Bereiche.
 - **Zusage:** Vorgang und Mangel löscht nur, wer den Betreiber führt, und nur, was abgelaufen ist; ein Recht dafür gibt es nicht. Die Bestätigung nennt, wer bestätigt hat und wann, nach welcher Zahl von Jahren und bis zu welchem Tag. Das Änderungsprotokoll schreibt den Inhalt dabei nicht noch einmal ab, und was der Fristenlauf entfernt, steht dort nur als Zahl. [K2.6, K7, K9, B444, B449, B459]
 - **Zusage:** Beim Löschen eines Nachweises und eines Vorgangs schreibt das Änderungsprotokoll den Inhalt nicht noch einmal ab; die Bestätigung steht darin. Was es schon hält, bleibt, bis die Leitung es schwärzt (Abschnitt 8). [K9, B361, B368]
 - Eine Vertretung, die jemand vorzeitig beendet, wird gelöscht; wer sie eingetragen und wer sie beendet hat, behält das Änderungsprotokoll. [K2.8]
-- Das Protokoll der Zugriffe eines Prüfers löscht diese Fassung nicht; es bleibt mit der Zugehörigkeit, bis das Löschkonzept regelt, wie lange (Abschnitt 10). [K9]
+- Das Protokoll der Zugriffe eines Prüfers bleibt so lange wie das Änderungsprotokoll und wird wie dieses nur ergänzt; einen Löschlauf dafür gibt es nicht (entschieden am 22.10.2026). [K7, K9]
 - Eine Sicherung enthält alles, was in der Datenbank steht. Aufbewahrt werden nach der Vorgabe vierzehn Generationen; wo sie liegen und ob sie verschlüsselt sind, stellt ein, wer die Instanz betreibt. [K3, B64]
 
 ---
@@ -557,7 +557,6 @@ Die Bausteine des Datenschutzes, die nach dem Fahrplan zu Phase 2 gehören, sind
 ## 10. Was das Planungskonzept zusagt und diese Fassung noch nicht hält
 
 - **Was beim Löschen noch bleibt.** Gebaut ist das Löschen des Nachweises, des Vorgangs dahinter und dessen, was an keinem Nachweis hängt (Abschnitt 7). Es bleibt bis auf Weiteres, was das Änderungsprotokoll schon hält, bis die Leitung es schwärzt, und jede Sicherung, bis sie selbst verfällt. [K2.6, K9, K12]
-- **Aufbewahrung des Protokolls der Zugriffe.** Wie lange die Zeilen des Protokolls eines Prüfers bleiben, sagt das Planungskonzept nicht. Sie bleiben, und das Löschkonzept nennt sie unter dem, was aufbewahrt wird. [K9, K12]
 
 ---
 
@@ -1059,6 +1058,8 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B474 | Test | `packages/server/src/sync/sync.test.ts` | `takes nothing more of a round handed on from the device of the person before, and all from the person after (#559)` |
 | B475 | Test | `packages/server/src/api/qualifications.test.ts` | `note it as well for a collective, where it is put together and planned, and for the rounds of a plan (#515)` |
 | B476 | Test | `packages/server/src/api/retention.test.ts` | `takes the files of its prints, its signed PDF and its certificate along, unless something else names them (#522, #552)` |
+| B477 | Test | `packages/server/src/api/auditors.test.ts` | `has a request the guard refuses written down as well, marked as refused (#537)` |
+| B478 | Test | `packages/server/src/api/duties.test.ts` | `is somebody who may read the duties and no auditor, in the choice as at the route` |
 
 ---
 

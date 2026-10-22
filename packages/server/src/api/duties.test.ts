@@ -741,7 +741,7 @@ describe('changing a duty', () => {
       'Die Fremdfirma gehört zu einer Pflicht, die eine Fremdfirma ausführt.',
     )
     expect((await change({ responsibleUserId: 'u-gone' }).expect(400)).body.message).toBe(
-      'Verantwortlich ist jemand, der für diesen Betreiber arbeitet.',
+      'Verantwortlich ist jemand, der für diesen Betreiber arbeitet, die Pflichten ansehen darf und kein Prüfer ist.',
     )
     expect((await change({ sourceNote: 'Vertrag' }).expect(400)).body.message).toBe(
       'Eine Pflicht aus dem Katalog nimmt Bezeichnung, Grundlage, Quelle, Tätigkeit und Termin von ihrer Pflichtart.',
@@ -888,6 +888,63 @@ describe('the unit of an interval', () => {
           .expect(200)
       ).body,
     ).toMatchObject({ intervalDays: 90, intervalMonths: null })
+  })
+})
+
+describe('the person who answers for a duty (#538)', () => {
+  it('is somebody who may read the duties and no auditor, in the choice as at the route', async () => {
+    for (const [userId, role] of [
+      ['u-auditor', 'auditor'],
+      ['u-reporter', 'reporter'],
+    ] as const) {
+      await admin.query(
+        'insert into auth_users (id, name, email) values ($1, $1, $2) on conflict do nothing',
+        [userId, `${userId}@beispiel.example`],
+      )
+      await admin.query(
+        `insert into memberships (tenant_id, user_id, roles) values ($1, $2, $3)
+         on conflict do nothing`,
+        [small, userId, [role]],
+      )
+    }
+
+    const offered = (
+      await http().get('/duties/colleagues').set(testIdentityHeader, by('u-duties')).expect(200)
+    ).body as { userId: string }[]
+
+    expect(offered.map((colleague) => colleague.userId)).toEqual(
+      expect.arrayContaining(['u-lead', 'u-duties', 'u-site', 'u-tech']),
+    )
+    expect(offered.map((colleague) => colleague.userId)).not.toContain('u-auditor')
+    expect(offered.map((colleague) => colleague.userId)).not.toContain('u-reporter')
+
+    const place = await placeIn()
+
+    for (const userId of ['u-auditor', 'u-reporter']) {
+      expect(
+        (
+          await post({
+            assetId: place.elevator,
+            kind: mainTest,
+            intervalMonths: 24,
+            responsibleUserId: userId,
+          }).expect(400)
+        ).body.message,
+      ).toBe(
+        'Verantwortlich ist jemand, der für diesen Betreiber arbeitet, die Pflichten ansehen darf und kein Prüfer ist.',
+      )
+    }
+
+    expect(
+      (
+        await post({
+          assetId: place.elevator,
+          kind: mainTest,
+          intervalMonths: 24,
+          responsibleUserId: 'u-tech',
+        }).expect(201)
+      ).body,
+    ).toMatchObject({ responsibleUserId: 'u-tech' })
   })
 })
 
