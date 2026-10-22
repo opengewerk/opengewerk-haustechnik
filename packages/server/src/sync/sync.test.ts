@@ -1457,6 +1457,24 @@ describe('a signature from a device', () => {
       { asset_id: toSign.asset, description: 'Speicher dicht: Dichtung am Flansch tropft.' },
     ])
 
+    // With the photos of its point, in their order and with their files (#519).
+    const { rows: photos } = await admin.query<{
+      title: string
+      sha256: string
+      file_name: string
+    }>(
+      `select a.title, v.sha256, v.file_name
+         from attachments a join attachment_versions v on v.attachment_id = a.id
+        where a.defect_id = (select id from defects where found_in_activity_id = $1)
+        order by a.created_at, a.id`,
+      [toSign.activity],
+    )
+
+    expect(photos).toEqual([
+      { title: 'Foto der Dichtung', sha256: bytesOf('d'), file_name: 'd.jpg' },
+      { title: 'Foto der Dichtung, näher', sha256: bytesOf('e'), file_name: 'e.jpg' },
+    ])
+
     // The point that fulfils the duty wrote its evidence, with its result.
     const { rows: evidence } = await admin.query<{
       duty_id: string

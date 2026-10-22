@@ -827,6 +827,91 @@ describe('an activity with a form', () => {
     { field: 'reading', value: '1234567' },
   ]
 
+  it('gives a defect of a point the photos of its answer, and one by hand keeps its own (#519)', async () => {
+    const activity = await filledIn(everyPoint)
+
+    /** A photo at an activity or a defect, with a version of its file. */
+    async function filed(
+      home: 'activity_id' | 'defect_id',
+      at: string,
+      title: string,
+      letter: string,
+    ): Promise<string> {
+      const { rows } = await admin.query<{ id: string }>(
+        `insert into attachments (tenant_id, property_id, area_id, ${home}, title)
+         select tenant_id, property_id, area_id, id, $2
+           from ${home === 'activity_id' ? 'activities' : 'defects'} where id = $1
+         returning id`,
+        [at, title],
+      )
+      const id = rows[0]?.id ?? ''
+
+      await admin.query(
+        `insert into files (tenant_id, sha256, size_bytes, media_type)
+         values ($1, $2, 1, 'image/jpeg') on conflict do nothing`,
+        [tenant, letter.repeat(64)],
+      )
+      await admin.query(
+        `insert into attachment_versions (tenant_id, attachment_id, sha256, file_name, media_type,
+                                          size_bytes)
+         values ($1, $2, $3, $4, 'image/jpeg', 1)`,
+        [tenant, id, letter.repeat(64), `${letter}.jpg`],
+      )
+
+      return id
+    }
+
+    const first = await filed('activity_id', activity, 'Plombe', 'a')
+    const second = await filed('activity_id', activity, 'Plombe, näher', 'b')
+
+    await admin.query(
+      `update activity_answers set attachment_id = $2, more_attachment_ids = array[$3]::uuid[]
+        where activity_id = $1 and field_key = 'seal_intact'`,
+      [activity, first, second],
+    )
+
+    const { rows: made } = await admin.query<{ id: string }>(
+      `insert into defects (tenant_id, property_id, area_id, asset_id, description, found_on)
+       select tenant_id, property_id, area_id, asset_id, 'Schild fehlt', '2026-10-01'
+         from activities where id = $1
+       returning id`,
+      [activity],
+    )
+    const byHand = made[0]?.id ?? ''
+
+    await filed('defect_id', byHand, 'Schild', 'c')
+    await as(technician, async (tx, context) =>
+      takeSignature(tx, context, await signatureFor(activity)),
+    )
+
+    const photosOf = async (home: 'activity_id' | 'defect_id', id: string) =>
+      (
+        await admin.query<{ title: string; sha256: string }>(
+          `select a.title, v.sha256
+             from attachments a join attachment_versions v on v.attachment_id = a.id
+            where a.${home} = $1 and a.deleted_at is null
+            order by a.created_at, a.id`,
+          [id],
+        )
+      ).rows
+    const { rows: found } = await admin.query<{ id: string }>(
+      'select id from defects where found_in_activity_id = $1',
+      [activity],
+    )
+    const ofThePoint = [
+      { title: 'Plombe', sha256: 'a'.repeat(64) },
+      { title: 'Plombe, näher', sha256: 'b'.repeat(64) },
+    ]
+
+    expect(found).toHaveLength(1)
+    expect(await photosOf('defect_id', found[0]?.id ?? '')).toEqual(ofThePoint)
+    // The defect by hand keeps its photo and gets none of the point; the point keeps its own.
+    expect(await photosOf('defect_id', byHand)).toEqual([
+      { title: 'Schild', sha256: 'c'.repeat(64) },
+    ])
+    expect(await photosOf('activity_id', activity)).toEqual(ofThePoint)
+  })
+
   it('is signed only once every point has its answer, and the remark each answer asks for', async () => {
     const activity = await filledIn([
       { field: 'seal_intact', result: 'ok' },

@@ -72,6 +72,8 @@ export const workOrderWords = {
   fromDefect: (foundOn: string | null, description: string) =>
     foundOn === null ? `Mangel: ${description}` : `Mangel vom ${date(foundOn)}: ${description}`,
   fromDuty: (duty: string) => `Termin: ${duty}`,
+  defectPhotos: 'Fotos des Mangels',
+  defectPhotoOf: (at: number) => `Foto des Mangels ${String(at)}`,
   open: 'Offen',
   begun: 'Begonnen',
   waits: 'Wartet auf Abnahme',
@@ -378,6 +380,21 @@ function WorkOrderOf({ activityId }: { readonly activityId: string }) {
   const place = usePlaceWords(work.activity)
   const asset = useRecord('assets', maybeText(work.activity, 'assetId') ?? undefined)
   const defect = useRecord('defects', maybeText(work.order, 'originDefectId') ?? undefined)
+  const documents = useRecords('attachments')
+  // The photos of the defect the order comes from, those of its point among
+  // them, in the order they were filed (#519).
+  const defectPhotos = useMemo(
+    () =>
+      defect === null
+        ? []
+        : documentsAt(documents, {
+            propertyId: text(defect, 'propertyId'),
+            defectId: String(defect['id']),
+          })
+            .filter((document) => live(document) && maybeText(document, 'kind') === null)
+            .sort((left, right) => (String(left['id']) < String(right['id']) ? -1 : 1)),
+    [documents, defect],
+  )
   const lines = useRelated('activity_duties', 'activityId', activityId).filter(live)
   const duty = useDutyName(maybeText(lines[0], 'dutyId'))
   // Several photos from the gallery are filed one after the other: the first
@@ -463,6 +480,23 @@ function WorkOrderOf({ activityId }: { readonly activityId: string }) {
               { label: workOrderWords.responsible, value: responsibleWords },
             ]}
           />
+          {defectPhotos.length === 0 ? null : (
+            <div className="flex flex-col gap-1.5 pt-3">
+              <SiteText muted size={15}>
+                {workOrderWords.defectPhotos}
+              </SiteText>
+              <div className="flex flex-wrap items-stretch gap-2">
+                {defectPhotos.map((photo, index) => (
+                  <PhotoThumb
+                    key={String(photo['id'])}
+                    attachmentId={String(photo['id'])}
+                    label={workOrderWords.defectPhotoOf(index + 1)}
+                    compact
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </Panel>
         {/* A firm of the list carries it out: its briefings and permits (#330). */}
         <VisitCard activityId={activityId} />

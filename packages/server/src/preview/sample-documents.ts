@@ -45,6 +45,8 @@ export type SampleHome =
       readonly buildingId?: string
       readonly roomId?: string
       readonly assetId?: string
+      /** The photos of a defect (#519). */
+      readonly defectId?: string
     }
   | { readonly contractorId: string }
   // The paper of a contract (#329), which has no place either.

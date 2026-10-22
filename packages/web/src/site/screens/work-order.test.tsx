@@ -125,6 +125,35 @@ describe('a work order on site', () => {
     expect(screen.getByText('Nur Sie als verantwortliche Person schließen ab.')).toBeDefined()
   })
 
+  it('shows the photos of the defect it came of, and those of no other (#519)', async () => {
+    const server = orderServer()
+    const filed = (id: string, defectId: string, kind: string | null = null) => ({
+      id,
+      propertyId: school.id,
+      areaId: school.areaId,
+      buildingId: null,
+      roomId: null,
+      assetId: null,
+      activityId: null,
+      defectId,
+      title: 'Foto',
+      kind,
+    })
+
+    server.put('attachments', filed('d-first', tooCold.id))
+    server.put('attachments', filed('d-second', tooCold.id))
+    server.put('attachments', filed('d-elsewhere', 'df-other'))
+    server.put('attachments', filed('d-paper', tooCold.id, 'test_certificate'))
+    await mountSite(`/vorgaenge/${order.id}`, { server })
+
+    expect(await screen.findByText('Fotos des Mangels')).toBeDefined()
+    expect(
+      screen
+        .getAllByRole('img', { name: /^Foto des Mangels/ })
+        .map((photo) => photo.getAttribute('aria-label')),
+    ).toEqual(['Foto des Mangels 1', 'Foto des Mangels 2'])
+  })
+
   it('offers a further person notes, photos and the time spent, and not the finishing', async () => {
     await mountSite(`/vorgaenge/${order.id}`, {
       server: orderServer({ responsibleUserId: 'u-lead' }),
