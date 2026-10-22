@@ -82,7 +82,9 @@ export const weekWords = {
   handedOut: (handed: number, kept: number) =>
     `${String(handed)} ${handed === 1 ? 'Rundgang' : 'Rundgänge'} wie letzte Woche zugeteilt` +
     (kept > 0 ? `, ${String(kept)} ohne Rundgang in der Woche davor bleiben, wie sie sind.` : '.'),
-  begunStays: 'Ein Rundgang, den schon jemand begonnen hat, bleibt bei dieser Person.',
+  begunStays:
+    'Ein begonnener Rundgang geht mit dem, was schon übertragen ist, an die neue Person; ein abgegebener bleibt bei seiner Person.',
+  begun: 'begonnen',
   everybody: (area: string | null) =>
     `Alle im Bereich: Der Rundgang liegt auf den Geräten aller im Bereich${area ? ` ${area}` : ''}, die Vorgänge ausführen.`,
   openBefore: 'nicht still verschwunden',
@@ -91,6 +93,12 @@ export const weekWords = {
   open: 'Öffnen',
   close: 'Schließen mit Grund',
 } as const
+
+/**
+ * The states in which a round goes to a person, or to everybody: until it is
+ * handed in, a begun one as well when its person falls ill (#559).
+ */
+const handedOnWhile: readonly RoundState[] = ['open', 'started']
 
 /** How each state of a round looks in its chip, as `ROUND_STATES` of the boards. */
 const chipLook: Readonly<
@@ -635,7 +643,8 @@ function HandOutDialog({
   async function save() {
     const changed = row.rounds.filter(
       (round) =>
-        round.state === 'open' && (chosen[round.id] ?? '') !== (round.performerUserId ?? ''),
+        handedOnWhile.includes(round.state) &&
+        (chosen[round.id] ?? '') !== (round.performerUserId ?? ''),
     )
 
     if (changed.length === 0) {
@@ -697,7 +706,10 @@ function HandOutDialog({
               >
                 <span className="w-[90px] text-[14px] font-medium">{day}</span>
                 <div className="grow" />
-                {round.state === 'open' ? (
+                {round.state === 'started' ? (
+                  <span className="text-[13px] text-ink-muted">{weekWords.begun}</span>
+                ) : null}
+                {handedOnWhile.includes(round.state) ? (
                   // Named by the day it stands beside, with the arrow of the
                   // canvas as `SelectField` draws it.
                   <div className="relative w-[230px] max-sm:w-[190px]">

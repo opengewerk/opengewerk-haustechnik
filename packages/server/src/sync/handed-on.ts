@@ -52,14 +52,6 @@ export const walkedByItsPerson: SyncCheck<Sender> = async ({
         ? values[field]
         : current?.[field]
 
-  // The countersignature is the office's, whoever walked the round.
-  if (
-    operation.entity === 'activity_signatures' &&
-    (Object.hasOwn(values, 'role') ? values['role'] : current?.['role']) !== 'signer'
-  ) {
-    return null
-  }
-
   if (!isUuid(activityId)) {
     return null
   }
