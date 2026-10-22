@@ -19,6 +19,9 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Übersicht der Einstellungen nennt jeden Eintrag, die Hilfe zu „Datenschutz“ alle erzeugten Dokumente, und das
   Handbuch der Instanz hat ein Kapitel zu Maßnahmen und Signatur (#528). Das Konzept zieht in v0.94 nach, was der
   Abgleich gefragt hat und wo der Code richtig ist (#554), und das Löschkonzept sagt „Sitzungen“, wo es die meinte.
+- Die Grenzen der Seite eines Etiketts für Meldungen ohne Konto zählt die Datenbank (#540), nicht mehr der Speicher
+  eines Prozesses: ein Neustart setzt sie nicht zurück, und mehrere Prozesse zählen gemeinsam. Gezählt wird unter
+  dem Hashwert der Adresse, und nach einer Stunde ist die Zählung weg.
 - Ein Soll-Dokument gilt erst als vorhanden, wenn die Datei des Dokuments angekommen ist (#516). Bisher zählte
   auch ein Dokument, das vor Ort ohne Netz abgelegt wurde und dessen Datei nie ankam; Akte, Anlagenverzeichnis
   und Lagebild sagten dann „vorhanden“.
