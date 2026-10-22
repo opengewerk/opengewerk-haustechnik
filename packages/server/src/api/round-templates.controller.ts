@@ -22,7 +22,9 @@ import {
   type RoundTemplateId,
   storedTemplate,
   type TemplateDefinition,
+  templateImportFields,
   templateLimits,
+  templateLines,
   templateOfFormKey,
   templatePointers,
   templateProblemLines,
@@ -189,6 +191,76 @@ export class RoundTemplatesController {
         dayInGermany(new Date()),
       ),
     )
+  }
+
+  /**
+   * A version of a template as a list the import takes in again (#558), as a
+   * workbook or as text (`?format=xlsx` or `csv`): the newest, or the one
+   * `?version=` names. For whoever reads activities, who is shown the
+   * template; what a list cannot say, the asset, room or duty of a point and
+   * a limit of a rule, it leaves out as the import leaves it to the editor.
+   */
+  @Get(':id/table')
+  @RequiresPermission('activity.read')
+  @Header('Cache-Control', 'no-store')
+  lines(
+    @CurrentIdentity() identity: Asking,
+    @Param('id') id: string,
+    @Query() query: Readonly<Record<string, unknown>>,
+  ): Promise<StreamableFile> {
+    const format = tableFormatOf(query)
+
+    if (!isUuid(id)) {
+      throw new NotFoundException('Diese Vorlage gibt es nicht.')
+    }
+
+    return this.database.forTenant(identity, async (tx) => {
+      const [template] = await tx
+        .select({ title: roundTemplates.title })
+        .from(roundTemplates)
+        .where(
+          and(
+            eq(roundTemplates.id, id as (typeof roundTemplates.$inferSelect)['id']),
+            isNull(roundTemplates.deletedAt),
+          ),
+        )
+      const versions =
+        template === undefined
+          ? []
+          : await tx
+              .select({
+                formVersion: roundTemplateVersions.formVersion,
+                definition: roundTemplateVersions.definition,
+                asksCountersignature: roundTemplateVersions.asksCountersignature,
+              })
+              .from(roundTemplateVersions)
+              .where(
+                eq(
+                  roundTemplateVersions.templateId,
+                  id as (typeof roundTemplateVersions.$inferSelect)['templateId'],
+                ),
+              )
+              .orderBy(desc(roundTemplateVersions.formVersion))
+      const asked = query['version']
+      const version =
+        asked === undefined
+          ? versions[0]
+          : versions.find((each) => String(each.formVersion) === asked)
+
+      if (template === undefined || version === undefined) {
+        throw new NotFoundException('Diese Vorlage gibt es nicht in dieser Fassung.')
+      }
+
+      return tableAnswer(
+        {
+          name: template.title,
+          columns: templateImportFields.map((field) => field.label),
+          rows: templateLines(template.title, version.definition, version.asksCountersignature),
+        },
+        format,
+        dayInGermany(new Date()),
+      )
+    })
   }
 
   /**

@@ -568,6 +568,59 @@ function limitOf(
   return milli
 }
 
+/**
+ * A version of a template as a list the import takes in again (#558): a line
+ * a point, in the columns of `templateImportFields` and in the words the
+ * import reads, with its chapter, its kind and what that kind asks for, a
+ * limit the operator states with its source. What a list cannot say is left
+ * out, as the import leaves it to the editor: the asset, room or duty a point
+ * is about, and a limit of a rule.
+ */
+export function templateLines(
+  title: string,
+  definition: TemplateDefinition,
+  asksCountersignature: boolean,
+): string[][] {
+  const yesOrNo = (flag: boolean) => (flag ? 'ja' : 'nein')
+
+  return definition.sections.flatMap((section) =>
+    section.fields.map((field) => {
+      const unit = (field as { readonly unit?: FormUnitKey }).unit
+      const decimals = (field as { readonly decimals?: number }).decimals
+      const limit = field.kind === 'measurement' ? field.limit : undefined
+      const stated = limit?.kind === 'stated' ? limit : undefined
+      const cells: Readonly<Record<string, string>> = {
+        template: title,
+        chapter: section.title,
+        point: field.label,
+        kind:
+          field.kind === 'text' && (field as { readonly multiline?: boolean }).multiline === true
+            ? 'Bemerkung'
+            : (templatePointKinds.find((each) => each.value === field.kind)?.label ?? field.kind),
+        hint: field.hint ?? '',
+        required: yesOrNo(field.required === true),
+        unit: unit === undefined ? '' : formUnits[unit].sign,
+        decimals: decimals === undefined ? '' : String(decimals),
+        options:
+          field.kind === 'choice'
+            ? field.options.map((option) => option.label).join(`${optionSeparator} `)
+            : '',
+        atLeast: stated?.bound === 'at_least' ? figureOf(stated.milli) : '',
+        atMost: stated?.bound === 'at_most' ? figureOf(stated.milli) : '',
+        limitSource: stated?.source ?? '',
+        countersignature: yesOrNo(asksCountersignature),
+      }
+
+      return templateImportFields.map((column) => cells[column.key] ?? '')
+    }),
+  )
+}
+
+/** Thousandths of a unit as a list writes the figure: 55, 7,5 or -0,125. */
+function figureOf(milli: number): string {
+  return String(milli / 1000).replace('.', ',')
+}
+
 /** What an import of templates made, as the log and the page say it. */
 export function templateImportSummary(counts: TemplateImportCounts): string {
   return `${counted(counts.templates, 'Vorlage', 'Vorlagen')} mit ${counted(counts.points, 'Punkt', 'Punkten')} übernommen`
