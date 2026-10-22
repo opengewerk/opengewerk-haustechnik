@@ -250,6 +250,19 @@ function expectedOf(entity: string, held: ReadonlySet<string>, full: Pulled): re
     return all.filter((row) => row['roomId'] !== null)
   }
 
+  // Out of service without the defects (#520): whoever sees the assets and
+  // not the defects holds those that put an asset out of service, by the
+  // state alone, and no other.
+  if (entity === 'defects' && !reads('defect.read') && reads('asset.read')) {
+    return all.filter(
+      (row) =>
+        row['assetId'] !== null &&
+        (row['status'] === 'found' || row['status'] === 'ordered') &&
+        typeof row['defectClass'] === 'string' &&
+        previewCatalogue.defectClass(row['defectClass'])?.defectClass.unsafe === true,
+    )
+  }
+
   if (!(readBy[entity] ?? []).some(reads)) {
     return []
   }
