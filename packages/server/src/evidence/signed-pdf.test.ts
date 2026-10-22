@@ -45,6 +45,8 @@ describe('a PDF with a higher signature', () => {
       signedAt: new Date('2026-10-04T08:12:00Z'),
       validFrom: new Date('2026-01-01T00:00:00Z'),
       validTo: new Date('2036-01-01T00:00:00Z'),
+      // A certificate made for the test says nothing of being qualified (#526).
+      level: 'advanced',
     })
     expect(checkSignedPdf(signedPdf(print, ecdsa), [print]).signer).toBe(
       'Erika Muster, Sachverständige Süd',
