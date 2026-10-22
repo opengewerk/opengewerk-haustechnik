@@ -796,7 +796,7 @@ describe('the rounds of a week', () => {
     expect(await seen('u-south')).toEqual([])
   })
 
-  it('are handed out by whoever plans, to somebody who performs in their area, while nobody has begun them', async () => {
+  it('are handed out by whoever plans, to somebody who performs in their area, until they are handed in (#559)', async () => {
     const plan = await planned('u-site')
     const [first, second] = await roundsOf(plan.body['id'])
     const assign = (person: Person, rounds: object[]) =>
@@ -828,13 +828,28 @@ describe('the rounds of a week', () => {
       today,
     ])
 
+    // Begun, it goes to another person all the same, when its person falls ill (#559).
+    expect((await assign('u-site', [{ id: second?.id, performerUserId: 'u-tech' }])).status).toBe(
+      200,
+    )
+    expect((await roundsOf(plan.body['id']))[1]?.performer_user_id).toBe('u-tech')
+
+    await admin.query(`update activities set status = 'signed' where id = $1`, [second?.id])
+
+    // Handed in, it stays with its person, and so does every round asked with it.
     expect(
       await assign('u-site', [
         { id: first?.id, performerUserId: null },
         { id: second?.id, performerUserId: null },
       ]),
-    ).toMatchObject({ status: 409 })
-    expect((await roundsOf(plan.body['id']))[0]?.performer_user_id).toBe('u-tech')
+    ).toMatchObject({
+      status: 409,
+      message:
+        'Zugeteilt wird ein Rundgang, solange er offen oder begonnen ist. Einer davon ist schon abgegeben oder geschlossen.',
+    })
+    expect(
+      (await roundsOf(plan.body['id'])).slice(0, 2).map((round) => round.performer_user_id),
+    ).toEqual(['u-tech', 'u-tech'])
   })
 
   it('are handed out like the week before, each to whoever had the round of its plan seven days earlier', async () => {

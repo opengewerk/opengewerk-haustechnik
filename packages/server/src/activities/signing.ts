@@ -18,6 +18,7 @@ import {
   type SignedCircuit,
   keyDateFor,
   partAsksForAnswers,
+  photosOfAnswer,
   pointFulfilling,
   pointOutcome,
   readingDoubt,
@@ -40,7 +41,7 @@ import {
   type WorkOrderId,
 } from '@opengewerk/haustechnik-domain'
 import type { TenantTransaction } from '@opengewerk/platform-server'
-import { and, asc, eq, inArray, isNull } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, isNull } from 'drizzle-orm'
 
 import {
   activities,
@@ -48,6 +49,8 @@ import {
   activityDuties,
   activitySignatures,
   assets,
+  attachments,
+  attachmentVersions,
   buildings,
   defects,
   properties,
@@ -873,6 +876,9 @@ async function followCollective(
  * An answer in the block of a circuit is judged against the circuits the
  * signed page names, and its defect is at the installation with the circuit
  * it was found on (#350).
+ *
+ * A defect comes with the photos of its point (#519, section 4.6 of the
+ * concept: "mit Foto"), see `photosAtTheDefect`.
  */
 async function defectsFromAnswers(
   tx: TenantTransaction,
@@ -918,15 +924,106 @@ async function defectsFromAnswers(
       continue
     }
 
-    await tx.insert(defects).values({
+    const [made] = await tx
+      .insert(defects)
+      .values({
+        tenantId: context.tenantId,
+        propertyId: activity.propertyId,
+        ...(await placeOfFinding(tx, activity, finding.about)),
+        foundInActivityId: activity.id,
+        foundInAnswerId: finding.answer.id,
+        circuitId: (finding.circuitId ?? null) as typeof defects.$inferInsert.circuitId,
+        description: finding.description,
+        foundOn: activity.performedOn,
+      })
+      .returning({ id: defects.id, propertyId: defects.propertyId, areaId: defects.areaId })
+
+    if (made) {
+      await photosAtTheDefect(tx, context, made, photosOfAnswer(finding.answer))
+    }
+  }
+}
+
+/**
+ * The photos of the point a defect was found at, as photos of the defect
+ * (#519): a document at the defect for each live photo of the answer, in
+ * their order, with the newest version of its file, the one the evidence
+ * states. The bytes are the same file of the store. The photo at the activity
+ * stays with the evidence, and one removed at the defect leaves it as it is.
+ * A photo whose file never arrived is left out here as in the evidence.
+ */
+async function photosAtTheDefect(
+  tx: TenantTransaction,
+  context: WritingContext,
+  defect: Pick<typeof defects.$inferSelect, 'id' | 'propertyId' | 'areaId'>,
+  photos: readonly (typeof attachments.$inferSelect)['id'][],
+): Promise<void> {
+  if (photos.length === 0) {
+    return
+  }
+
+  const documents = new Map(
+    (
+      await tx
+        .select({ id: attachments.id, title: attachments.title })
+        .from(attachments)
+        .where(
+          and(
+            eq(attachments.tenantId, context.tenantId),
+            inArray(attachments.id, [...photos]),
+            isNull(attachments.deletedAt),
+          ),
+        )
+    ).map((row) => [row.id, row.title]),
+  )
+  const newest = new Map<string, Omit<typeof attachmentVersions.$inferSelect, 'attachmentId'>>()
+
+  for (const { attachmentId, ...version } of await tx
+    .select()
+    .from(attachmentVersions)
+    .where(
+      and(
+        eq(attachmentVersions.tenantId, context.tenantId),
+        inArray(attachmentVersions.attachmentId, [...photos]),
+      ),
+    )
+    .orderBy(desc(attachmentVersions.createdAt), desc(attachmentVersions.id))) {
+    if (!newest.has(attachmentId)) {
+      newest.set(attachmentId, version)
+    }
+  }
+
+  for (const photo of photos) {
+    const title = documents.get(photo)
+    const file = newest.get(photo)
+
+    if (title === undefined || file === undefined) {
+      continue
+    }
+
+    const [document] = await tx
+      .insert(attachments)
+      .values({
+        tenantId: context.tenantId,
+        propertyId: defect.propertyId,
+        areaId: defect.areaId,
+        defectId: defect.id,
+        title,
+      })
+      .returning({ id: attachments.id })
+
+    if (!document) {
+      throw new Error('The photo of the defect was not written')
+    }
+
+    await tx.insert(attachmentVersions).values({
       tenantId: context.tenantId,
-      propertyId: activity.propertyId,
-      ...(await placeOfFinding(tx, activity, finding.about)),
-      foundInActivityId: activity.id,
-      foundInAnswerId: finding.answer.id,
-      circuitId: (finding.circuitId ?? null) as typeof defects.$inferInsert.circuitId,
-      description: finding.description,
-      foundOn: activity.performedOn,
+      attachmentId: document.id,
+      sha256: file.sha256,
+      fileName: file.fileName,
+      mediaType: file.mediaType,
+      sizeBytes: file.sizeBytes,
+      previewSha256: file.previewSha256,
     })
   }
 }

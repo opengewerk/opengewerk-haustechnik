@@ -144,6 +144,8 @@ interface SampleDefect {
   readonly foundDaysAgo: number
   readonly defectClass?: string
   readonly order?: SampleOrder
+  /** Its photos, which the work order of it shows on site (#519). */
+  readonly photos?: readonly SampleDocument[]
 }
 
 /**
@@ -708,6 +710,10 @@ export const sampleProperties: readonly SampleProperty[] = [
                 foundDaysAgo: 9,
                 defectClass: 'allgemein.minor',
                 order: { title: 'Haltegenauigkeit der Kabine nachstellen', leads: 'preview-wendt' },
+                photos: [
+                  { title: 'Kabine im Erdgeschoss', versions: [{ fileName: 'kabine-eg.png' }] },
+                  { title: 'Kante der Schwelle', versions: [{ fileName: 'schwelle.png' }] },
+                ],
               },
               // Today: newer than the defect of the round, which has the last
               // Wednesday before today. Two days ago it was older on most days
@@ -1467,13 +1473,17 @@ async function plantAsset(
     await send(address, '/duty-dismissals', { assetId: created.id, kind, reason })
   }
 
-  for (const { description, foundDaysAgo, defectClass, order } of defects) {
+  for (const { description, foundDaysAgo, defectClass, order, photos = [] } of defects) {
     const reported = await send(address, '/defects', {
       assetId: created.id,
       description,
       foundOn: daysAhead(-foundDaysAgo),
       ...(defectClass === undefined ? {} : { defectClass }),
     })
+
+    for (const photo of photos) {
+      await plantDocument(address, { propertyId, defectId: reported.id }, photo)
+    }
 
     if (order !== undefined) {
       await plantOrder(address, standings, order, { origin: 'defect', defectId: reported.id })

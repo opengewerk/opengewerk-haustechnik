@@ -17,6 +17,7 @@ import * as schema from '../database/schema/index.js'
 import { answered } from './answers.js'
 import { contractDocumentKept, contractorDocumentKept } from './contractor-documents.js'
 import { unseenDuplicate } from './duplicates.js'
+import { walkedByItsPerson } from './handed-on.js'
 import { assigned } from './labels.js'
 import { placed } from './places.js'
 import { readOnSite } from './readings.js'
@@ -213,6 +214,8 @@ export function syncFor(catalogue: Catalogue): ServerSync<Sender> {
       contractDocumentKept,
       handedOut,
       readOnSite,
+      // A round handed on takes nothing more from the device before (#559).
+      walkedByItsPerson,
       answered(catalogue),
       unseenDuplicate,
       assigned,

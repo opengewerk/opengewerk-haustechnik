@@ -11,9 +11,11 @@ import {
   addDays,
   type CatalogueBundle,
   catalogueOf,
+  type CollectiveCandidates,
   type IsoDate,
   missingRight,
   type QualificationEntry,
+  type QualificationHint,
   type QualificationKindChoice,
   type QualificationList,
   rightsOfRoles,
@@ -619,6 +621,91 @@ describe('the qualifications', () => {
     ).body as ActivityCandidates
 
     expect(blind.hints).toEqual({})
+  })
+
+  it('note it as well for a collective, where it is put together and planned, and for the rounds of a plan (#515)', async () => {
+    await cleared()
+    await entered({ userId: 'u-tech', validUntil: inDays(100) })
+    await entered({ userId: 'u-other', validUntil: inDays(-3) })
+
+    const asked = async <Answer>(path: string, header = by('u-site')): Promise<Answer> =>
+      (await http().get(path).set(testIdentityHeader, header).expect(200)).body as Answer
+    const lacking = (hints: Readonly<Record<string, QualificationHint>> | undefined) => ({
+      other: hints?.['u-other']?.check,
+      tech: hints?.['u-tech'],
+    })
+    const asTheKindAsks = { other: 'expired', tech: undefined }
+    const days = `from=${today}&to=${inDays(60)}`
+    // Whoever plans without looking at qualifications is told nothing of them.
+    const blind = JSON.stringify({
+      userId: 'u-site',
+      tenantId: tenant,
+      roles: ['site_management'],
+      rights: [...rightsOfRoles(['site_management'])].filter(
+        (right) => right !== 'qualification.read',
+      ),
+    })
+    const composing = `/collectives/candidates?property=${property}&kind=probe.elevator_main_test&${days}`
+
+    // Put together: the kind chosen asks the qualification of the whole, and before a kind nothing.
+    expect(lacking((await asked<CollectiveCandidates>(composing)).hints)).toEqual(asTheKindAsks)
+    expect((await asked<CollectiveCandidates>(composing, blind)).hints).toEqual({})
+    expect(
+      (await asked<CollectiveCandidates>(`/collectives/candidates?property=${property}&${days}`))
+        .hints,
+    ).toEqual({})
+
+    // Planned: a collective has no duties of its own, its kind is the one of its parts.
+    const { rows: collective } = await admin.query<{ id: string }>(
+      `insert into activities (tenant_id, property_id, area_id, kind, title, status, collective_kind)
+       select tenant_id, id, area_id, 'inspection', 'Hauptprüfungen der Aufzüge', 'open',
+              'probe.elevator_main_test'
+         from properties where id = $1
+       returning id`,
+      [property],
+    )
+
+    const planning = `/activities/${collective[0]?.id}/candidates`
+
+    expect(lacking((await asked<ActivityCandidates>(planning)).hints)).toEqual(asTheKindAsks)
+    expect((await asked<ActivityCandidates>(planning, blind)).hints).toEqual({})
+
+    // Handed out: what the duties of the rounds of a plan ask for.
+    const { rows: round } = await admin.query<{ id: string; area_id: string }>(
+      `with lift as (
+         select * from duties where tenant_id = $1 and kind = 'probe.elevator_main_test' limit 1
+       ), template as (
+         insert into round_templates (tenant_id, title) values ($1, 'Aufzüge') returning id
+       ), plan as (
+         insert into round_plans (tenant_id, property_id, area_id, template_id, rhythm, weekdays,
+                                  starts_on)
+         select lift.tenant_id, lift.property_id, lift.area_id, template.id, 'weekly', '{3}',
+                '2026-09-01'
+           from lift, template
+         returning id
+       ), round as (
+         insert into activities (tenant_id, property_id, area_id, asset_id, kind, title, status,
+                                 due_on, round_plan_id)
+         select lift.tenant_id, lift.property_id, lift.area_id, lift.asset_id, 'round', 'Aufzüge',
+                'open', $2, plan.id
+           from lift, plan
+         returning id, tenant_id, property_id, area_id
+       ), line as (
+         insert into activity_duties (tenant_id, property_id, area_id, activity_id, duty_id)
+         select round.tenant_id, round.property_id, round.area_id, round.id, lift.id
+           from round, lift
+       )
+       select id, area_id from round`,
+      [tenant, inDays(3)],
+    )
+    const handedOut = (header?: string) =>
+      asked<Record<string, QualificationHint>>(
+        `/rounds/hints?area=${round[0]?.area_id}&rounds=${round[0]?.id}`,
+        header,
+      )
+
+    expect(lacking(await handedOut())).toEqual(asTheKindAsks)
+    expect(await handedOut(blind)).toEqual({})
   })
 })
 

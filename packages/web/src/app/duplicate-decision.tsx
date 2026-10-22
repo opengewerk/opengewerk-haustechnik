@@ -21,6 +21,7 @@ import { Link } from '@tanstack/react-router'
 import { useState } from 'react'
 
 import { makeAt } from '../sync/made-at.js'
+import { HandedOnDecision, isHandedOnConflict, roundOf } from './handed-on-decision.js'
 import { titleOfRoom } from './place-records.js'
 import { isSignatureConflict, SignatureDecision } from './signature-decision.js'
 
@@ -130,11 +131,20 @@ export function followersOf(
 }
 
 /**
- * The card of a possible duplicate, nothing for what is decided with one, the
- * card of a signature the server did not take (#108), and the foundation's
- * for the rest.
+ * The card of a round given to another person meanwhile (#559), once for the
+ * round, the card of a possible duplicate, nothing for what is decided with
+ * one, the card of a signature the server did not take (#108), and the
+ * foundation's for the rest.
  */
 export const ownDecision: NonNullable<RecordWords['ownDecision']> = (conflict, conflicts) => {
+  if (isHandedOnConflict(conflict)) {
+    const ofTheRound = conflicts.filter(
+      (other) => isHandedOnConflict(other) && roundOf(other) === roundOf(conflict),
+    )
+
+    return ofTheRound[0]?.id === conflict.id ? <HandedOnDecision conflicts={ofTheRound} /> : null
+  }
+
   if (isSignatureConflict(conflict)) {
     return <SignatureDecision conflict={conflict} />
   }

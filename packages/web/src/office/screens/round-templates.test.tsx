@@ -584,4 +584,18 @@ describe('the templates as a table (#236)', () => {
       expect(tables.asked).toEqual(['/round-templates/table?format=xlsx'])
     })
   })
+
+  it('gives the version a page shows out as the list its import takes in again (#558)', async () => {
+    await mountOffice(`/rundgaenge/vorlagen/${template.id}`, server, everything)
+
+    const button = await screen.findByRole('button', { name: 'Als Tabelle' })
+    const tables = servingTables()
+
+    fireEvent.click(button)
+    fireEvent.click(screen.getByRole('menuitem', { name: 'CSV (.csv)' }))
+
+    await waitFor(() => {
+      expect(tables.asked).toEqual([`/round-templates/${template.id}/table?version=2&format=csv`])
+    })
+  })
 })

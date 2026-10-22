@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 import {
   templateImportFields,
   templateImportSummary,
+  templateLines,
   templatePointKinds,
   planTemplates,
 } from './import-templates.js'
@@ -457,5 +458,91 @@ describe('what a template may hold', () => {
     expect(templateImportSummary({ templates: 1, chapters: 1, points: 1, known: 0 })).toBe(
       '1 Vorlage mit 1 Punkt übernommen',
     )
+  })
+})
+
+describe('a template as a list (#558)', () => {
+  it('goes out in the columns the import reads, and comes in again as the same template', () => {
+    const list: readonly Readonly<Record<string, string>>[] = [
+      { template: round, chapter: 'Heizraum', point: 'Dichtheit', hint: 'Sichtprüfung am Flansch' },
+      {
+        template: round,
+        chapter: 'Heizraum',
+        point: 'Vorlauf',
+        kind: 'Messwert',
+        unit: '°C',
+        decimals: '1',
+        atLeast: '55',
+        limitSource: 'DVGW W 551',
+        countersignature: 'ja',
+      },
+      {
+        template: round,
+        chapter: 'Heizraum',
+        point: 'Wärmezähler',
+        kind: 'Zählerstand',
+        unit: 'MWh',
+      },
+      {
+        template: round,
+        chapter: 'Keller',
+        point: 'Zustand',
+        kind: 'Auswahl',
+        options: 'gut; mittel; schlecht',
+      },
+      {
+        template: round,
+        chapter: 'Keller',
+        point: 'Foto der Anzeige',
+        kind: 'Foto',
+        required: 'ja',
+      },
+      { template: round, chapter: 'Keller', point: 'Was auffiel', kind: 'Bemerkung' },
+      {
+        template: round,
+        chapter: 'Keller',
+        point: 'Gewicht',
+        kind: 'Zahl',
+        unit: 'kg',
+        decimals: '2',
+      },
+      { template: round, chapter: 'Keller', point: 'Licht an', kind: 'Ja oder nein' },
+    ]
+    const [first] = plan(list).create.templates
+
+    expect(first).toBeDefined()
+
+    const lines = templateLines(
+      round,
+      first?.definition ?? { title: round, sections: [] },
+      first?.asksCountersignature ?? false,
+    )
+
+    expect(lines).toHaveLength(list.length)
+    expect(lines[1]).toEqual([
+      round,
+      'Heizraum',
+      'Vorlauf',
+      'Messwert',
+      '',
+      'ja',
+      '°C',
+      '1',
+      '',
+      '55',
+      '',
+      'DVGW W 551',
+      'ja',
+    ])
+
+    const again = plan(
+      lines.map((cells) =>
+        Object.fromEntries(templateImportFields.map((field, at) => [field.key, cells[at] ?? ''])),
+      ),
+    )
+
+    expect(again.problems).toEqual([])
+    expect(again.create.templates[0]?.definition).toEqual(first?.definition)
+    expect(again.create.templates[0]?.asksCountersignature).toBe(true)
   })
 })

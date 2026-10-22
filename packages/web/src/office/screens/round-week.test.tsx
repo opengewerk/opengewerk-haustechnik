@@ -118,6 +118,14 @@ function signedIn(role: RoleKey) {
         { userId: 'u-murat', name: 'Murat Yilmaz' },
         { userId: 'u-lena', name: 'Lena Vogt' },
       ],
+      // Of the rounds still to hand out: Lena lacks the kind their duties ask for (#515).
+      [`/rounds/hints?area=${nord.id}&rounds=r-2,r-3,r-4`]: {
+        'u-lena': {
+          kindLabel: 'Elektrotechnisch unterwiesene Person',
+          check: 'missing',
+          expiredOn: null,
+        },
+      },
     },
     (write) => answerToWrite(write),
   )
@@ -224,8 +232,8 @@ describe('the rounds of a week', () => {
     })
   })
 
-  it('hand out the rounds of a plan nobody has begun, each to a person or to everybody in the area', async () => {
-    answerToWrite = () => ({ status: 200, body: { ids: ['r-3', 'r-4'] } })
+  it('hand out the rounds of a plan until they are handed in, a begun one as well (#559), each to a person or to everybody in the area', async () => {
+    answerToWrite = () => ({ status: 200, body: { ids: ['r-2', 'r-3'] } })
     await mountOffice('/rundgaenge', server, everything)
     await screen.findByRole('button', { name: 'Zuteilen' })
 
@@ -235,15 +243,26 @@ describe('the rounds of a week', () => {
       name: 'Zuteilen: Wache, täglicher Rundgang',
     })
 
-    // The two begun or handed in say who has them and offer no choice.
-    expect(within(dialog).getAllByRole('combobox')).toHaveLength(2)
+    // The one handed in and the one awaiting its countersignature say who has
+    // them and offer no choice; the begun one says so beside its choice.
+    expect(within(dialog).getAllByRole('combobox')).toHaveLength(3)
+    expect(within(dialog).getByText('begonnen')).toBeDefined()
     await waitFor(() => {
-      expect(within(dialog).getAllByRole('option', { name: 'Lena Vogt' })).toHaveLength(2)
+      expect(within(dialog).getAllByRole('option', { name: 'Lena Vogt' })).toHaveLength(3)
     })
 
-    const [wednesday] = within(dialog).getAllByRole('combobox')
+    const [tuesday, wednesday] = within(dialog).getAllByRole('combobox')
 
+    // Lena is ill: her begun Tuesday goes to Murat.
+    fireEvent.change(tuesday as HTMLElement, { target: { value: 'u-murat' } })
+    expect(within(dialog).queryByText(/Lena Vogt hat sie nicht/)).toBeNull()
     fireEvent.change(wednesday as HTMLElement, { target: { value: 'u-lena' } })
+    // Chosen, she lacks what the duties of the rounds ask for: a note, not a refusal (#515).
+    expect(
+      await within(dialog).findByText(
+        'Gefordert ist „Elektrotechnisch unterwiesene Person“. Lena Vogt hat sie nicht. Sie können trotzdem speichern.',
+      ),
+    ).toBeDefined()
     fireEvent.click(within(dialog).getByRole('button', { name: 'Zuteilen' }))
 
     await waitFor(() => {
@@ -252,7 +271,12 @@ describe('the rounds of a week', () => {
     expect(written[0]).toEqual({
       method: 'PUT',
       path: '/rounds/assignment',
-      body: { rounds: [{ id: 'r-3', performerUserId: 'u-lena' }] },
+      body: {
+        rounds: [
+          { id: 'r-2', performerUserId: 'u-murat' },
+          { id: 'r-3', performerUserId: 'u-lena' },
+        ],
+      },
     })
   })
 

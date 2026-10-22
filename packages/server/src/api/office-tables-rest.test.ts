@@ -28,6 +28,7 @@ import {
   type Right,
   type RoleKey,
   type RoundWeek,
+  templateImportFields,
   shippedRoles,
   type TenantId,
   weekNamed,
@@ -2127,6 +2128,39 @@ describe('the rounds as tables (#236)', () => {
 
     expect(await places()).toEqual(['Gebäude', 'Liegenschaft'])
     expect(await places('location.read')).toEqual(['Haus A', 'Rundenhaus'])
+  })
+
+  it('give a template out as the list its import takes in again (#558)', async () => {
+    const path = `/round-templates/${template}/table`
+
+    for (const format of ['xlsx', 'csv'] as const) {
+      // The asset the point is about is no column: the editor says it after the import.
+      expect(await tableOf(path, {}, by('u-lead', tenant), format)).toEqual([
+        templateImportFields.map((field) => field.label),
+        [
+          title,
+          'Fahrzeughalle',
+          'Aufzug ohne Störung',
+          'Prüfpunkt',
+          '',
+          'ja',
+          '',
+          '',
+          '',
+          '',
+          '',
+          '',
+          'ja',
+        ],
+      ])
+    }
+
+    expect(await tableOf(path, { version: '1' }, by('u-lead', tenant))).toHaveLength(2)
+    expect((await refusalOf(path, { version: '2' }, by('u-lead', tenant))).status).toBe(404)
+    expect(await refusalOf(path, {}, holding('location.read'))).toEqual({
+      status: 403,
+      message: missingRight('activity.read'),
+    })
   })
 
   it('hold the templates of the operator with their newest version and the rounds made of them', async () => {

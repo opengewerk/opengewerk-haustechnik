@@ -40,6 +40,7 @@ import { activities } from '../database/schema/index.js'
 import { writeCollectiveReport } from '../evidence/report.js'
 import { EvidenceRefusal } from '../evidence/write.js'
 import { tellHandedOut } from '../notifications/tell.js'
+import { qualificationHints } from '../qualifications/hints.js'
 import { dayInGermany } from '../today.js'
 import { candidatesIn } from './activities.controller.js'
 import { RequiresPermission } from './authorization.js'
@@ -135,15 +136,17 @@ export class CollectivesController {
           roomId: said(query, 'room') ?? null,
         })
 
+        const kind = said(query, 'kind') ?? null
+        const people = await candidatesIn(tx, place.areaId)
+
         return {
-          ...(await collectiveCandidates(
-            tx,
-            this.catalogue,
-            place,
-            said(query, 'kind') ?? null,
-            today,
-          )),
-          people: await candidatesIn(tx, place.areaId),
+          ...(await collectiveCandidates(tx, this.catalogue, place, kind, today)),
+          people,
+          // The kind the parts are of asks the qualification of the whole (#515).
+          hints:
+            kind === null || !identity.rights.includes('qualification.read')
+              ? {}
+              : await qualificationHints(tx, this.catalogue, [kind], people.performers, today),
         }
       })
       .catch((error: unknown) => {
@@ -174,6 +177,7 @@ export class CollectivesController {
         responsible: people(read.people.responsible),
         performers: people(read.people.performers),
       },
+      hints: read.hints,
       candidates: read.candidates.map(({ activity, ...candidate }) => ({
         ...candidate,
         activity:

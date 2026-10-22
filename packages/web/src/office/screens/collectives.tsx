@@ -58,6 +58,7 @@ import { ContractorField, contractorFieldWords, useContractorNames } from '../co
 import { EvidenceNumber, ResultMark } from '../evidence-words.js'
 import { factLink } from '../links.js'
 import { officePlaces } from '../place-addresses.js'
+import { QualificationNotes } from '../qualification-note.js'
 import { activityQuery } from './activities.js'
 import { reportWords } from './report.js'
 
@@ -581,6 +582,16 @@ export function CollectiveComposeScreen() {
                   {...(problems['dueOn'] ? { problem: problems['dueOn'] } : {})}
                 />
               </div>
+              {/* The person chosen lacks the kind of the parts (#515): a note, not a refusal. */}
+              {performer === 'own_staff' ? (
+                <QualificationNotes
+                  hints={found.data?.hints}
+                  chosen={[person]}
+                  nameOf={(userId) =>
+                    people?.performers.find((each) => each.userId === userId)?.name ?? ''
+                  }
+                />
+              ) : null}
             </div>
           </Panel>
         </div>

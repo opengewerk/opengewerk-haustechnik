@@ -21,7 +21,7 @@ Wie sie sich von CAFM-Systemen, Checklisten-Werkzeugen und Excel abgrenzt und wi
 
 ## Stand
 
-Phase 1, das MVP für den Pilotbetrieb, ist abgeschlossen; die neueste Fassung steht unter [Releases](https://github.com/opengewerk/opengewerk-haustechnik/releases). Der Pilotbetrieb, ein Träger mit rund zwanzig Liegenschaften, nutzt sie im Parallelbetrieb neben seiner bisherigen Anwendung. Phase 2, die vollständigen Betreiberpflichten, ist mit der Fassung 0.2.0 erschienen; was dazu noch offen ist, steht im [Meilenstein Phase 2](https://github.com/opengewerk/opengewerk-haustechnik/milestone/3). Was jede Fassung gebracht hat, steht im [CHANGELOG](CHANGELOG.md).
+Phase 1, das MVP für den Pilotbetrieb, ist abgeschlossen; die neueste Fassung steht unter [Releases](https://github.com/opengewerk/opengewerk-haustechnik/releases). Der Pilotbetrieb, ein Träger mit rund zwanzig Liegenschaften, arbeitet nur noch damit; seine bisherige Anwendung ist abgeschaltet. Phase 2, die vollständigen Betreiberpflichten, ist mit der Fassung 0.2.0 erschienen; was dazu noch offen ist, steht im [Meilenstein Phase 2](https://github.com/opengewerk/opengewerk-haustechnik/milestone/3). Was jede Fassung gebracht hat, steht im [CHANGELOG](CHANGELOG.md).
 
 ## Schnellstart
 

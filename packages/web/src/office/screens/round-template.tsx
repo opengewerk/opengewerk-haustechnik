@@ -20,6 +20,7 @@ import {
   NoteBox,
   PageHead,
   Screen,
+  useTableExport,
 } from '@opengewerk/platform-web/office'
 import { useRight } from '@opengewerk/platform-web/session'
 import { useHoldUpdates } from '@opengewerk/platform-web/shell'
@@ -436,6 +437,10 @@ function TemplateEditor({
   // What was changed here and is not saved yet.
   const edited = canonicalForm(draft) !== canonicalForm(began) || asks !== beganAsks
   const changed = version === null || edited
+  // The version shown as the list its import takes in again (#558).
+  const table = useTableExport(
+    templateId === null ? '' : `/round-templates/${templateId}/table?version=${String(number)}`,
+  )
 
   // A new version of the application waits while the draft is not saved
   // (#465). The foundation holds for what was typed; a point moved or taken
@@ -522,6 +527,7 @@ function TemplateEditor({
         actions={
           <>
             {templateId === null ? null : <ChangesButton table="round_templates" id={templateId} />}
+            {templateId === null ? null : table.button}
             {keeps ? (
               <>
                 <Button
@@ -547,6 +553,7 @@ function TemplateEditor({
           </>
         }
       />
+      {table.trouble}
       {newest > number && onOpen !== undefined ? (
         <NoteBox
           tone="waiting"
