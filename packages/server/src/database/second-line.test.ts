@@ -106,12 +106,26 @@ beforeAll(async () => {
     }
   }
 
-  // A contact of a contractor of the north, which lies in no area.
-  await admin.query(
-    `insert into contacts (tenant_id, contractor_id, family_name, role)
-     select tenant_id, id, 'Weber', 'Bauleitung' from contractors where tenant_id = $1 limit 1`,
+  // A contact, a document and its deadline at a contractor of the north,
+  // which lie in no area.
+  const inNoArea = await admin.query<{ id: string }>(
+    `with firm as (
+       select tenant_id, id from contractors where tenant_id = $1 order by created_at, id limit 1
+     ), contact as (
+       insert into contacts (tenant_id, contractor_id, family_name, role)
+       select tenant_id, id, 'Weber', 'Bauleitung' from firm returning id
+     ), document as (
+       insert into attachments (tenant_id, contractor_id, title)
+       select tenant_id, id, 'Versicherungsnachweis' from firm returning id, tenant_id
+     )
+     insert into deadlines (tenant_id, kind, source_id, source_label, anchor_on, due_on, attachment_id)
+     select tenant_id, 'document.expires', id, 'Versicherungsnachweis', '2026-01-01', '2027-01-01', id
+       from document
+     returning id`,
     [north.id],
   )
+
+  expect(inNoArea.rows).toHaveLength(1)
 
   database = Database.connect(applicationDatabaseUrl())
 })
@@ -169,46 +183,48 @@ describe('a role of the operator own', () => {
   })
 })
 
+// The colleague of a tenant in the rows of the test holds the limits of an
+// auditor; the person past the last day here is the one who leads.
 describe('a person after the last day of an access', () => {
   it('reads nothing of the tables without an area any more, as of those with one (#539)', async () => {
-    await lastDay(north.colleagueId, null)
+    await lastDay(north.userId, null)
 
     const before = new Map<string, number>()
 
     for (const table of [...withoutAnArea, ...partlyWithoutAnArea]) {
-      before.set(table, await readBy(north.colleagueId, table))
+      before.set(table, await readBy(north.userId, table))
     }
 
     // A floor: the person reads something of every table while the access holds.
     expect([...before].filter(([, n]) => n < 1)).toEqual([])
 
-    await lastDay(north.colleagueId, '2020-01-01')
+    await lastDay(north.userId, '2020-01-01')
 
     const after: [string, number][] = []
 
     for (const table of [...withoutAnArea, ...partlyWithoutAnArea]) {
-      after.push([table, await readBy(north.colleagueId, table)])
+      after.push([table, await readBy(north.userId, table)])
     }
 
     expect(after.filter(([, n]) => n !== 0)).toEqual([])
     // Whoever still works here reads them as before.
-    expect(await readBy(north.userId, 'contractors')).toBe(before.get('contractors'))
+    expect(await readBy(north.colleagueId, 'contractors')).toBe(before.get('contractors'))
 
-    await lastDay(north.colleagueId, null)
+    await lastDay(north.userId, null)
   })
 
   it('writes nothing into them either', async () => {
-    await lastDay(north.colleagueId, '2020-01-01')
+    await lastDay(north.userId, '2020-01-01')
 
     expect(
       await answerTo(
         north.id,
-        north.colleagueId,
+        north.userId,
         sql`insert into suppliers (tenant_id, name) values (${north.id}, 'Großhandel Rhein')`,
       ),
     ).toBe('42501')
 
-    await lastDay(north.colleagueId, null)
+    await lastDay(north.userId, null)
   })
 
   it('stands as a policy on each of these tables, which the application role cannot leave', async () => {
