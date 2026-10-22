@@ -134,7 +134,7 @@ const settings = [
     to: '/einstellungen/datenschutz',
     title: 'Datenschutz',
     about:
-      'Die Verfahrensbeschreibung für eine Arbeitnehmervertretung, erzeugt aus dem, was hier eingestellt ist.',
+      'Verfahrensbeschreibung, Verzeichnis, Maßnahmen und Löschkonzept, erzeugt aus dem, was hier eingestellt ist, und die Auskunft über eine Person.',
     icon: ShieldCheck,
     right: 'privacy.generate',
   },

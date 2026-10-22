@@ -153,7 +153,7 @@ describe('"Hilfe" in the office', () => {
 })
 
 describe('the manual in the area of the instance', () => {
-  it('stands in its navigation and lists the four chapters', async () => {
+  it('stands in its navigation and lists the five chapters', async () => {
     await office('/instanz/handbuch', runsTheInstance)
 
     expect(await screen.findByRole('heading', { level: 1, name: manualWords.title })).toBeTruthy()
@@ -170,6 +170,7 @@ describe('the manual in the area of the instance', () => {
       'Update',
       'Sicherung und Rückspielen',
       'Betreiber anlegen',
+      'Maßnahmen und Signatur der Instanz',
     ])
     expect(
       within(chapters[2] as HTMLElement)

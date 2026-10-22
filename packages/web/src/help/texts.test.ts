@@ -140,13 +140,14 @@ describe('the quick guides and the manual', () => {
     ])
   })
 
-  it('are the four chapters for whoever runs the instance', () => {
+  it('are the five chapters for whoever runs the instance', () => {
     expect([...manualTexts.keys()].sort()).toEqual([...manualOrder].sort())
     expect(manualOrder.map((key) => markdownTitle(manualTexts.get(key) ?? ''))).toEqual([
       'Installation',
       'Update',
       'Sicherung und Rückspielen',
       'Betreiber anlegen',
+      'Maßnahmen und Signatur der Instanz',
     ])
   })
 
@@ -169,7 +170,7 @@ describe('every text of the help', () => {
     expect(officeTexts.size).toBeGreaterThan(20)
     expect(siteTexts.size).toBe(7)
     expect(guideTexts.size).toBe(5)
-    expect(manualTexts.size).toBe(4)
+    expect(manualTexts.size).toBe(5)
   })
 
   it('says what it is called in a first heading', () => {
