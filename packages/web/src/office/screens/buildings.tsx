@@ -8,6 +8,7 @@ import {
   type RecordState,
 } from '@opengewerk/haustechnik-domain'
 import { Button, cardLink, Cell, Column, Panel, Status, TablePanel } from '@opengewerk/platform-web'
+import { useVersions } from '@opengewerk/platform-web/attachments'
 import { today } from '@opengewerk/platform-web/format'
 import { ChangesButton, PageHead, Screen } from '@opengewerk/platform-web/office'
 import { useRight } from '@opengewerk/platform-web/session'
@@ -16,6 +17,7 @@ import { Link, useNavigate, useParams } from '@tanstack/react-router'
 import { Building2, Pencil, Plus } from 'lucide-react'
 import { type ReactNode, useMemo } from 'react'
 
+import { withAFile } from '../../app/documents.js'
 import { placePath } from '../../app/place-path.js'
 import { byLevel, kindsOf, placeAbove } from '../../app/place-records.js'
 import { areaName, useAreas } from '../../session/areas.js'
@@ -375,11 +377,13 @@ function AssetsByCostGroup({
   }, [assets, catalogue])
   const named = useMemo(() => catalogue?.assetKinds(today()) ?? [], [catalogue])
   const documents = useRecords('attachments')
+  const versions = useVersions()
   const lacking = useMemo(() => {
     const day = today()
     const kindsAt = new Map<unknown, (DocumentKind | null)[]>()
 
-    for (const document of documents) {
+    // Only a document whose file arrived fulfils one (#516).
+    for (const document of withAFile(documents, versions)) {
       if (document['assetId'] !== null && document['assetId'] !== undefined) {
         kindsAt.set(document['assetId'], [
           ...(kindsAt.get(document['assetId']) ?? []),
@@ -400,7 +404,7 @@ function AssetsByCostGroup({
       required: missing.filter((each) => each.some((expected) => expected.demand === 'required'))
         .length,
     }
-  }, [assets, documents, catalogue])
+  }, [assets, documents, versions, catalogue])
 
   if (assets.length === 0) {
     return (

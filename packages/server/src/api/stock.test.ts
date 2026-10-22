@@ -386,6 +386,48 @@ describe('the stock of a store', () => {
     // A new booking of it is refused.
     await book(store, { articleId: article, kind: 'receipt', quantityMilli: 1000 }).expect(404)
   })
+
+  it('removes a supplier only for whoever keeps the stores, and keeps it readable at its bookings (#391, #530)', async () => {
+    const { store, article } = await storeWithArticle()
+    const supplier = await made('/suppliers', { name: 'Leuchten Kurpfalz GmbH' })
+
+    await book(store, {
+      articleId: article,
+      kind: 'receipt',
+      quantityMilli: 3000,
+      supplierId: supplier.id,
+    }).expect(201)
+    await http()
+      .delete(`/suppliers/${supplier.id}`)
+      .set(testIdentityHeader, by('u-tech'))
+      .expect(403)
+    await http()
+      .delete(`/suppliers/${supplier.id}`)
+      .set(testIdentityHeader, by('u-site'))
+      .expect(200)
+
+    const listed = (
+      await http().get('/suppliers').set(testIdentityHeader, by('u-site')).expect(200)
+    ).body as { readonly id: string }[]
+
+    expect(listed.map((each) => each.id)).not.toContain(supplier.id)
+
+    const page = (
+      await http()
+        .get(`/stores/${store}/articles/${article}`)
+        .set(testIdentityHeader, by('u-tech'))
+        .expect(200)
+    ).body as StoreArticlePage
+
+    expect(page.movements.map((each) => each.supplier)).toEqual(['Leuchten Kurpfalz GmbH'])
+    // A new receipt from it is refused.
+    await book(store, {
+      articleId: article,
+      kind: 'receipt',
+      quantityMilli: 1000,
+      supplierId: supplier.id,
+    }).expect(404)
+  })
 })
 
 describe('an article', () => {

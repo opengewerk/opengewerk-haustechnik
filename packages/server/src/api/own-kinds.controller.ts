@@ -412,7 +412,7 @@ export class OwnKindsController {
     @Param('id') id: string,
     @Body() body: unknown,
   ): Promise<OwnAssetField> {
-    const said = fieldsOf(body, ['label', 'unit', 'options'] as const, ['unit'])
+    const said = fieldsOf(body, ['label', 'sort', 'unit', 'options'] as const, ['unit'])
 
     if (Object.keys(said).length === 0) {
       throw new BadRequestException('Es wurde nichts geändert.')
@@ -420,15 +420,36 @@ export class OwnKindsController {
 
     return this.database.forTenant(identity, async (tx) => {
       const field = await this.fieldAt(tx, id)
+      const sort = (said.sort ?? field.sort) as OwnAssetField['sort']
+      const resorted = sort !== field.sort
 
-      refuse(ownFieldProblems({ ...said, sort: field.sort }))
+      refuse(ownFieldProblems({ ...said, sort }))
+
+      // Its sort changes only while no asset holds a value of it, in any area
+      // (section 2.5 of the concept, #529): a value of another sort would stand
+      // at an asset that cannot read it any more.
+      if (resorted) {
+        const held = (await usesOf(tx, true)).values.get(field.key)?.held ?? 0
+
+        if (held > 0) {
+          throw new ConflictException(
+            `${assetsWords(held)} ${held === 1 ? 'hält' : 'halten'} einen Wert dieser Angabe. Ihre Sorte ändert sich nur, solange keine Anlage einen Wert hat.`,
+          )
+        }
+
+        if (sort === 'choice' && said.options === undefined) {
+          throw new BadRequestException('Eine Auswahl nennt ihre Möglichkeiten.')
+        }
+      }
 
       const options =
         said.options === undefined
-          ? undefined
+          ? resorted
+            ? []
+            : undefined
           : choicesFrom(
               (said.options as string[]).map((each) => each.trim()),
-              field.options,
+              resorted ? [] : field.options,
             )
 
       if (options !== undefined) {
@@ -454,7 +475,12 @@ export class OwnKindsController {
         .update(ownAssetFields)
         .set({
           ...(said.label === undefined ? {} : { label: said.label as string }),
-          ...(said.unit === undefined ? {} : { unit: said.unit as string | null }),
+          ...(resorted ? { sort } : {}),
+          ...(said.unit === undefined
+            ? resorted && sort !== 'number'
+              ? { unit: null }
+              : {}
+            : { unit: said.unit as string | null }),
           ...(options === undefined ? {} : { options }),
           updatedAt: sql`now()`,
         })

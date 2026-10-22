@@ -1367,12 +1367,18 @@ export const auditVocabulary: AuditVocabulary = {
   // What a record holds as one column of JSON and shows whole on a screen of
   // its own: the state an evidence and a round were frozen in, and the
   // chapters and points of a version of a template. The log says that it was
-  // set, and the page of the record says what (#263).
+  // set, and the page of the record says what (#263). So does the drawing of
+  // a signature: a table of the log can be changed by whoever holds it, and
+  // a signature stands in none (#457, #523).
   secretFields: {
     evidence: ['state'],
     round_records: ['state'],
     service_report_records: ['state'],
     round_template_versions: ['definition'],
+    activity_signatures: ['path'],
+    briefings: ['path'],
+    duty_delegation_signatures: ['path'],
+    service_reports: ['path'],
   },
   reasons: {
     // A report over a label from somebody without an account (#332): the log

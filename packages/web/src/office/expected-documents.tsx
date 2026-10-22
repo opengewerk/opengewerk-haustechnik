@@ -13,7 +13,7 @@ import { Link } from '@tanstack/react-router'
 import { Check, TriangleAlert, Upload } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
-import { type DocumentPlace, documentsAt, newestFirst } from '../app/documents.js'
+import { type DocumentPlace, documentsAt, newestFirst, withAFile } from '../app/documents.js'
 import { documentPlaces } from './document-addresses.js'
 import { UploadDocumentDialog } from './documents.js'
 import { factLink } from './links.js'
@@ -69,7 +69,7 @@ export function ExpectedDocumentsCard({
     () =>
       expectedDocumentsAt<Filed>(
         kind,
-        newestFirst(documentsAt(documents, place), versions).map((record) => ({
+        newestFirst(withAFile(documentsAt(documents, place), versions), versions).map((record) => ({
           record,
           kind: (maybeText(record, 'kind') ?? null) as DocumentKind | null,
         })),

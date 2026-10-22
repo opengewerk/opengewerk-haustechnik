@@ -417,6 +417,35 @@ describe('a delegation of duties', () => {
     await applyOn(today)
   })
 
+  it('counts no longer the day after the last day of the access of its person (#356, #530)', async () => {
+    await endedAll()
+
+    const duty = await dutyAt('north', 'u-site')
+
+    await signedByBoth()
+    expect(await responsibleOf(duty)).toMatchObject({ user: 'u-duties' })
+
+    // The access of the person it goes to ends today; tomorrow the duty has nobody.
+    await admin.query(
+      "update memberships set last_day = current_date where tenant_id = $1 and user_id = 'u-duties'",
+      [tenant],
+    )
+
+    try {
+      await applyOn(today)
+      expect(await responsibleOf(duty)).toMatchObject({ user: 'u-duties' })
+
+      await applyOn(addDays(today, 1))
+      expect(await responsibleOf(duty)).toEqual({ user: null, delegation: null })
+    } finally {
+      await admin.query(
+        "update memberships set last_day = null where tenant_id = $1 and user_id = 'u-duties'",
+        [tenant],
+      )
+      await endedAll()
+    }
+  })
+
   it('ends earlier with a revocation and its reason, and stays readable', async () => {
     await endedAll()
 

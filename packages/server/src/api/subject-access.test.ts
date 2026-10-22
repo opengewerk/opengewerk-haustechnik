@@ -272,6 +272,36 @@ describe('the information about a person with an access (#355)', () => {
   })
 
   /**
+   * Section 3.22 of the processing description: the information is not kept,
+   * and that it was made is held nowhere (#355, #530), neither as a print nor
+   * as a line of the change log.
+   */
+  it('keeps no print of itself and writes no line of the change log', async () => {
+    const counted = async () =>
+      (
+        await admin.query<{ prints: number; entries: number }>(
+          `select (select count(*)::int from prints) as prints,
+                  (select count(*)::int from audit_entries) as entries`,
+        )
+      ).rows[0]
+    const before = await counted()
+
+    for (const format of ['pdf', 'json'] as const) {
+      await http()
+        .get(`/settings/subject-access/people/${north.userId}?format=${format}`)
+        .set(testIdentityHeader, by(north.userId))
+        .expect(200)
+    }
+
+    await http()
+      .get('/settings/subject-access/matches/file?term=becker&format=json')
+      .set(testIdentityHeader, by(north.userId))
+      .expect(200)
+
+    expect(await counted()).toEqual(before)
+  })
+
+  /**
    * A file any editor changes holds no signature (#457): the machine-readable
    * file says that a drawing is there, and the PDF draws it.
    */

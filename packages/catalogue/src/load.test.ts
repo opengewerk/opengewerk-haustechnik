@@ -1718,6 +1718,12 @@ describe('a package', () => {
     ])
   })
 
+  it('is not called "eigen", the name of the asset kinds an operator keeps of its own (#529)', () => {
+    expect(problems({ 'eigen/manifest.json': contentOf(manifestFile) })).toEqual([
+      'eigen/manifest.json: Ein Paket heißt nicht „eigen“: so heißen die eigenen Anlagenarten eines Betreibers.',
+    ])
+  })
+
   it('is read as UTF-8 without a BOM, and as JSON', () => {
     const text = new TextDecoder().decode(probe.get(manifestFile))
 

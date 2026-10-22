@@ -21,10 +21,10 @@ import {
   withoutLifecycle,
 } from '@opengewerk/haustechnik-domain'
 import { isUuid, type TenantTransaction } from '@opengewerk/platform-server'
-import { and, asc, eq, inArray, isNotNull, isNull } from 'drizzle-orm'
+import { and, asc, eq, exists, inArray, isNotNull, isNull, sql } from 'drizzle-orm'
 
 import { assetsOnADay } from '../database/duty-standing.js'
-import { assets, attachments } from '../database/schema/index.js'
+import { assets, attachments, attachmentVersions } from '../database/schema/index.js'
 import { counted, said } from './register-question.js'
 import { tenantCatalogue } from '../own-kinds/catalogue.js'
 
@@ -222,8 +222,9 @@ export async function assetsPassing(
  * The kinds of the documents that hang on each asset itself and are not
  * removed (#347): what fulfils the documents its kind expects. A document at
  * the room or the building of an asset is not among them, and one without a
- * kind fulfils nothing. The transaction is the person's, so these are the
- * documents of their areas, as are the assets they hang on.
+ * kind fulfils nothing, nor one without a version, whose file never arrived
+ * (#516). The transaction is the person's, so these are the documents of
+ * their areas, as are the assets they hang on.
  */
 async function documentKindsAtAssets(tx: TenantTransaction): Promise<Map<string, DocumentKind[]>> {
   const rows = await tx
@@ -234,6 +235,17 @@ async function documentKindsAtAssets(tx: TenantTransaction): Promise<Map<string,
         isNull(attachments.deletedAt),
         isNotNull(attachments.assetId),
         isNotNull(attachments.kind),
+        exists(
+          tx
+            .select({ one: sql`1` })
+            .from(attachmentVersions)
+            .where(
+              and(
+                eq(attachmentVersions.tenantId, attachments.tenantId),
+                eq(attachmentVersions.attachmentId, attachments.id),
+              ),
+            ),
+        ),
       ),
     )
   const kinds = new Map<string, DocumentKind[]>()

@@ -91,6 +91,21 @@ describe('the change log in the words of this application', () => {
     expect(audit.isSecret('evidence', 'number')).toBe(false)
   })
 
+  it('says of the drawing of every signature only that it was set, also in its table (#523)', () => {
+    const drawings = Object.entries(auditVocabulary.tables).flatMap(([table, words]) =>
+      Object.entries(words.fields ?? {})
+        .filter(([, label]) => label === 'Linienzug' || label === 'Schriftzug')
+        .map(([field]) => [table, field] as const),
+    )
+
+    // A floor, so that a search that found none would not pass.
+    expect(drawings.length).toBeGreaterThanOrEqual(4)
+
+    for (const [table, field] of drawings) {
+      expect([table, field, audit.isSecret(table, field)]).toEqual([table, field, true])
+    }
+  })
+
   it('names the areas, who sees which and who stands in for whom', () => {
     expect(audit.tableLabel('areas')).toBe('Bereich')
     expect(audit.fieldLabel('member_areas', 'area_id')).toBe('Bereich einer Person, Bereich')

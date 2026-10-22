@@ -465,6 +465,48 @@ describe("an asset kind of the operator's own", () => {
     expect((await get('/own-kinds', lead).expect(200)).body).toEqual({ kinds: [], fields: [] })
   })
 
+  it('changes the sort of a field only while no asset holds a value of it (section 2.5, #529)', async () => {
+    const tenant = await tenantWith()
+    const lead = by('management', tenant)
+    const { kind, flow, pumps } = await liftingStation(tenant)
+    const building = await buildingOf(tenant)
+
+    await post(`/buildings/${building}/assets`, by('technician', tenant), {
+      kind: kind.key,
+      name: 'Hebeanlage Keller',
+      values: { eigen_pumpen: 'o1' },
+    }).expect(201)
+
+    // The pumps are held at an asset: their sort stays.
+    expect(
+      (await patch(`/own-kinds/fields/${pumps.id}`, lead, { sort: 'text' }).expect(409)).body
+        .message,
+    ).toBe(
+      '1 Anlage hält einen Wert dieser Angabe. Ihre Sorte ändert sich nur, solange keine Anlage einen Wert hat.',
+    )
+
+    // Nobody holds the flow: a number becomes a choice, and its unit goes.
+    await patch(`/own-kinds/fields/${flow.id}`, lead, { sort: 'choice' }).expect(400)
+    expect(
+      (
+        await patch(`/own-kinds/fields/${flow.id}`, lead, {
+          sort: 'choice',
+          options: ['klein', 'groß'],
+        }).expect(200)
+      ).body,
+    ).toMatchObject({
+      sort: 'choice',
+      unit: null,
+      options: [
+        { value: 'o1', label: 'klein' },
+        { value: 'o2', label: 'groß' },
+      ],
+    })
+    expect(
+      (await patch(`/own-kinds/fields/${flow.id}`, lead, { sort: 'date' }).expect(200)).body,
+    ).toMatchObject({ sort: 'date', unit: null, options: [] })
+  })
+
   it('counts what carries a kind and holds a field past the areas of whoever asks', async () => {
     const tenant = await tenantWith()
     const { kind } = await liftingStation(tenant)
