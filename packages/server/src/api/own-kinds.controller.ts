@@ -42,7 +42,7 @@ import { and, eq, isNull, sql } from 'drizzle-orm'
 
 import { CATALOGUE } from '../catalogue.js'
 import { ownAssetFields, ownAssetKinds } from '../database/schema/index.js'
-import { ownOf, tenantCatalogue } from '../own-kinds/catalogue.js'
+import { changingOwnKinds, ownOf, tenantCatalogue } from '../own-kinds/catalogue.js'
 import { dayInGermany } from '../today.js'
 import { RequiresPermission } from './authorization.js'
 import { type Asking, fieldsOf, refuse, seesEveryAreaNow } from './places.js'
@@ -306,6 +306,9 @@ export class OwnKindsController {
   @RequiresPermission('kind.write')
   remove(@CurrentIdentity() identity: Asking, @Param('id') id: string): Promise<void> {
     return this.database.forTenant(identity, async (tx) => {
+      // Before it reads anything, so that no asset takes the kind meanwhile (#529).
+      await changingOwnKinds(tx)
+
       const kind = await this.kindAt(tx, id)
 
       if (!(await seesEveryAreaNow(tx))) {
@@ -423,6 +426,10 @@ export class OwnKindsController {
     }
 
     return this.database.forTenant(identity, async (tx) => {
+      // Before it reads the field, so that no asset takes a value of the sort
+      // or the choice it may leave meanwhile (#529).
+      await changingOwnKinds(tx)
+
       const field = await this.fieldAt(tx, id)
       const sort = (said.sort ?? field.sort) as OwnAssetField['sort']
       const resorted = sort !== field.sort
@@ -506,6 +513,9 @@ export class OwnKindsController {
   @RequiresPermission('kind.write')
   removeField(@CurrentIdentity() identity: Asking, @Param('id') id: string): Promise<void> {
     return this.database.forTenant(identity, async (tx) => {
+      // Before it reads the field, so that no asset takes a value of it meanwhile (#529).
+      await changingOwnKinds(tx)
+
       const field = await this.fieldAt(tx, id)
 
       if (!(await seesEveryAreaNow(tx))) {

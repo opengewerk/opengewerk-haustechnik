@@ -20,7 +20,9 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Tabelle (#523). Bisher standen die ersten 300 Zeichen des Linienzugs in XLSX und CSV.
 - Ein Paket heißt nicht „eigen“ (#529): so heißen die eigenen Anlagenarten eines Betreibers, und der Lader
   weist ein solches Paket ab. Die Sorte einer eigenen Angabe lässt sich ändern, solange keine Anlage einen Wert
-  von ihr hat, wie 2.5 des Konzepts es sagt.
+  von ihr hat, wie 2.5 des Konzepts es sagt. Damit keine Anlage in einer zweiten Transaktion zur selben Zeit
+  einen Wert der alten Sorte nimmt, wartet eine solche Änderung auf alle, die die eigenen Angaben gerade lesen,
+  und hält die nächsten an, bis sie gezählt hat; das gilt ebenso für eine entfernte Auswahl, Angabe oder Art.
 - Tests für fünf Zusagen aus Phase 2, die bisher keiner ganz hielt (#530): einen Lieferanten entfernen, die
   Zeiten der Störmeldungen, eine Pflichtenübertragung nach dem letzten Tag eines Zugangs, dass eine Auskunft
   keine Spur hinterlässt, und die Tests des Fundaments zum Ende eines Zugangs in der Verfahrensbeschreibung.

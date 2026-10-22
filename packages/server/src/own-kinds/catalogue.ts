@@ -9,7 +9,7 @@ import {
   withOwn,
 } from '@opengewerk/haustechnik-domain'
 import type { TenantTransaction } from '@opengewerk/platform-server'
-import { asc, isNull } from 'drizzle-orm'
+import { asc, isNull, sql } from 'drizzle-orm'
 
 import { assets, ownAssetFields, ownAssetKinds } from '../database/schema/index.js'
 import { dayInGermany } from '../today.js'
@@ -23,10 +23,33 @@ import { dayInGermany } from '../today.js'
  * catalogue of the build, which the operator adds nothing to.
  */
 
+/**
+ * The lock of the own kinds of an operator (#529), held until the transaction
+ * ends. Whoever reads them shares it, and a change that first counts what
+ * assets hold (the sort of a field, a choice, a field or a kind removed) takes
+ * it alone. An asset written against a field is then either counted by that
+ * change, or written against the field as changed: without it, a change
+ * counted nothing while an asset in another transaction took a value of the
+ * sort it was leaving.
+ */
+const ownKindsLock = sql`hashtext('opengewerk.own_asset_kinds'), hashtext(current_setting('app.tenant_id', true))`
+
+/** Waits for a change of the own kinds under way, and holds the next one back. */
+export async function readingOwnKinds(tx: TenantTransaction): Promise<void> {
+  await tx.execute(sql`select pg_advisory_xact_lock_shared(${ownKindsLock})`)
+}
+
+/** Waits for every transaction that read the own kinds, and holds each next one back. */
+export async function changingOwnKinds(tx: TenantTransaction): Promise<void> {
+  await tx.execute(sql`select pg_advisory_xact_lock(${ownKindsLock})`)
+}
+
 /** The own kinds and fields an operator keeps, without those it removed. */
 export async function ownOf(
   tx: TenantTransaction,
 ): Promise<{ readonly kinds: OwnAssetKind[]; readonly fields: OwnAssetField[] }> {
+  await readingOwnKinds(tx)
+
   const kinds = await tx
     .select()
     .from(ownAssetKinds)
