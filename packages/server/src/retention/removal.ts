@@ -2,7 +2,7 @@ import type { RecordRetentionKind, TenantId } from '@opengewerk/haustechnik-doma
 import type { Database, TenantTransaction } from '@opengewerk/platform-server'
 import { type SQL, and, eq, sql } from 'drizzle-orm'
 
-import { inEveryArea } from '../database/every-area.js'
+import { asTheDeadlineRun } from '../database/every-area.js'
 import { retentionRemovals, tasks } from '../database/schema/index.js'
 
 /** The kinds that go without a confirmation, and how many of each went. */
@@ -24,14 +24,15 @@ async function touched(tx: TenantTransaction, statement: SQL): Promise<number> {
  * the material taken for a work order three years after it, an operator's
  * longer years counting. The reading, the booking and the material stay.
  *
- * Runs after the pass of the deadlines, for nobody and in every area. The
+ * Runs after the pass of the deadlines, for nobody, in every area and as that
+ * pass, which the database asks for (#542). The
  * database counts each end itself (`record_retention_ended`) and refuses the
  * same statements on every other way, for somebody, or before the end; the
  * conditions here only pick what it lets through. What went is written as a
  * count per kind, nothing of what it was.
  */
 export function removeAfterRetention(database: Database, tenantId: TenantId): Promise<Removed> {
-  return inEveryArea(database, { tenantId, reason: 'retention.removal' }, async (tx) => {
+  return asTheDeadlineRun(database, { tenantId, reason: 'retention.removal' }, async (tx) => {
     const removed: Removed = {
       task: (
         await tx

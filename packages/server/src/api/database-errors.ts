@@ -64,6 +64,9 @@ export const applicationConflicts: Readonly<Record<string, string>> = {
     'Ein abgegebener Rundgang wird bis zur Gegenzeichnung wieder geöffnet, solange kein Mangel daraus einen Auftrag hat.',
   // A briefing the application writes without the page the person saw (#545).
   HT018: 'Eine Einweisung nennt die Seite, die die Person gesehen und unterschrieben hat.',
+  // A role of the operator's own that would lead it or hold a right that
+  // stays with the Leitung (#534).
+  HT019: 'Eine eigene Rolle führt den Betreiber nicht und hält kein Recht, das der Leitung bleibt.',
 }
 
 export const { answerFor, DatabaseExceptionFilter } = databaseErrors(applicationConflicts)

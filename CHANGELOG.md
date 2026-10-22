@@ -91,6 +91,12 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Leistungsnachweis. Hat sich die Seite geändert, seit sie gezeigt wurde, nimmt der Server die Einweisung nicht an,
   und die Datenbank nimmt von der Anwendung keine ohne den Fingerabdruck. Bisher konnte eine Unterschrift unter einer
   Seite stehen, die so niemand gesehen hatte.
+- Die Datenbank hält selbst, was bisher nur der Server hielt (#534): eine eigene Rolle führt den Betreiber nicht
+  und hält kein Recht, das der Leitung bleibt, auch an jeder Route vorbei. Nach dem letzten Tag eines Zugangs liest
+  und schreibt die Person auch in Lager, Fremdfirmen, Verträgen, Qualifikationen und Pflichtenübertragungen nichts
+  mehr (#539), wie schon in allem mit Bereich. Der Lauf der Fristen weist sich aus, wenn er Aufgaben und Personen
+  nach ihrer Aufbewahrung entfernt (#542), statt dass jede Transaktion ohne Person es dürfte. Warum die Anwendung
+  zehn Spalten eines Nachweises ändern darf, sagt ADR 0004 jetzt selbst (#535).
 
 ## [0.2.2] - 2026-10-22
 

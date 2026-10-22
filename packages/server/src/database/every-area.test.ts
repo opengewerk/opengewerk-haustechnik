@@ -89,3 +89,23 @@ describe('the area of a label in one transaction', () => {
     ).toEqual([])
   })
 })
+
+describe('the pass of the deadlines in one transaction', () => {
+  /**
+   * What only the pass may do, the database lets through for the transaction
+   * that says it is the pass (opengewerk-haustechnik#542): a done task goes a
+   * year after, the person at a reading, a booking or a material three years
+   * after. The way in names the setting, and the removal after the retention
+   * is the one file that opens it.
+   */
+  it('is opened by the removal after the retention and by nothing else', () => {
+    const naming = codeFiles(source).filter((file) =>
+      /app\.deadline_run|\basTheDeadlineRun\b/.test(readFileSync(join(source, file), 'utf8')),
+    )
+
+    expect(naming).toContain('database/every-area.ts')
+    expect(
+      naming.filter((file) => !['database/every-area.ts', 'retention/removal.ts'].includes(file)),
+    ).toEqual([])
+  })
+})
