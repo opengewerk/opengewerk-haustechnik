@@ -578,6 +578,140 @@ describe('the retention of an evidence (#340)', () => {
     ).toBe('Dieser Nachweis ist schon gelöscht.')
   })
 
+  it('takes the files of its prints, its signed PDF and its certificate along, unless something else names them (#522, #552)', async () => {
+    const printed = 'b'.repeat(64)
+    const shared = 'c'.repeat(64)
+    const signed = 'd'.repeat(64)
+    const certificate = 'e'.repeat(64)
+    const alsoNamed = 'f'.repeat(64)
+
+    for (const sha256 of [printed, shared, signed, certificate, alsoNamed]) {
+      await admin.query(
+        `insert into files (tenant_id, sha256, size_bytes, media_type) values ($1, $2, 2048, 'application/pdf')`,
+        [tenant, sha256],
+      )
+    }
+
+    // The same bytes in another tenant, which an emptying here leaves alone.
+    const neighbour = newId<'tenant'>() as TenantId
+
+    await admin.query('insert into tenants (id, name) values ($1, $2)', [neighbour, 'Nachbar'])
+    await admin.query(
+      `insert into files (tenant_id, sha256, size_bytes, media_type) values ($1, $2, 2048, 'application/pdf')`,
+      [neighbour, printed],
+    )
+
+    /** An evidence of a report whose state names the file of its certificate. */
+    const reported = async (performedOn: string, years: number, files: readonly string[]) => {
+      const number = nextEvidenceNumber()
+      const state = {
+        ...leastState(number, performedOn as IsoDate, 'without_defects'),
+        retention: retainedYears(years),
+        files: files.map((sha256) => ({
+          sha256,
+          name: 'bericht.pdf',
+          mediaType: 'application/pdf',
+        })),
+      }
+      const { rows } = await admin.query<{ id: string }>(
+        `insert into evidence (tenant_id, property_id, area_id, duty_id, performed_on, result, number, origin,
+                               examiner, examiner_organisation, written_by, state, fingerprint)
+         select tenant_id, property_id, area_id, id, $2, 'without_defects', $3, 'report',
+                'Erika Muster', 'Prüfstelle Süd', 'u-duties', $4, $5
+           from duties where id = $1
+         returning id`,
+        [duty.years, performedOn, number, JSON.stringify(state), stateFingerprint(state)],
+      )
+
+      return rows[0]?.id ?? ''
+    }
+    /** The certificate of a report, as a document at the asset of the duty. */
+    const filed = async (sha256: string) => {
+      const { rows } = await admin.query<{ id: string }>(
+        `insert into attachments (tenant_id, property_id, area_id, asset_id, title, kind)
+         select tenant_id, property_id, area_id, asset_id, 'Prüfbericht', 'test_certificate'
+           from duties where id = $1
+         returning id`,
+        [duty.years],
+      )
+      const id = rows[0]?.id ?? ''
+
+      await admin.query(
+        `insert into attachment_versions (tenant_id, attachment_id, sha256, file_name, media_type, size_bytes)
+         values ($1, $2, $3, 'bericht.pdf', 'application/pdf', 2048)`,
+        [tenant, id, sha256],
+      )
+
+      return id
+    }
+
+    const ended = await reported('2019-02-01', 2, [certificate, alsoNamed])
+    // A later report names one of the files as well, and its retention has not ended.
+    await reported('2025-02-01', 10, [alsoNamed])
+
+    const goes = await filed(certificate)
+    const stays = await filed(alsoNamed)
+
+    await admin.query(
+      `insert into prints (tenant_id, property_id, area_id, evidence_id, sha256)
+       select tenant_id, property_id, area_id, id, $2 from evidence where id = $1`,
+      [ended, printed],
+    )
+
+    // Two PDFs with a higher signature, and a document names the bytes of one of them too.
+    for (const sha256 of [signed, shared]) {
+      await admin.query(
+        `insert into evidence_signed_prints (tenant_id, property_id, area_id, evidence_id, sha256, signer, issuer,
+                                             valid_from, valid_to, filed_by)
+         select tenant_id, property_id, area_id, id, $2, 'Dr. Anna Becker', 'Dr. Anna Becker',
+                '2018-01-01T00:00:00Z', '2028-01-01T00:00:00Z', 'u-lead'
+           from evidence where id = $1`,
+        [ended, sha256],
+      )
+    }
+
+    await filed(shared)
+
+    await http()
+      .post('/settings/evidence-retention/emptyings')
+      .set(testIdentityHeader, by('u-lead'))
+      .send({ evidenceIds: [ended] })
+      .expect(201)
+
+    // What this tenant still has a row for; the bytes of the rest go with the sweep of the store.
+    const { rows: held } = await admin.query<{ sha256: string }>(
+      'select sha256 from files where tenant_id = $1 and sha256 = any($2::text[]) order by sha256',
+      [tenant, [printed, shared, signed, certificate, alsoNamed]],
+    )
+
+    expect(held.map((row) => row.sha256)).toEqual([shared, alsoNamed])
+
+    const { rows: elsewhere } = await admin.query<{ held: number }>(
+      'select count(*)::int as held from files where tenant_id = $1 and sha256 = $2',
+      [neighbour, printed],
+    )
+
+    expect(elsewhere).toEqual([{ held: 1 }])
+
+    const { rows: documents } = await admin.query<{
+      id: string
+      title: string
+      gone: boolean
+      versions: number
+    }>(
+      `select a.id, a.title, a.deleted_at is not null as gone,
+              (select count(*)::int from attachment_versions v where v.attachment_id = a.id) as versions
+         from attachments a where a.id = any($1::uuid[])
+        order by a.id = $2 desc`,
+      [[goes, stays], goes],
+    )
+
+    expect(documents).toEqual([
+      { id: goes, title: 'Gelöscht nach Ablauf der Aufbewahrung', gone: true, versions: 0 },
+      { id: stays, title: 'Prüfbericht', gone: false, versions: 1 },
+    ])
+  })
+
   it('says what stays of it, and hands out and takes nothing more', async () => {
     const page = (
       await http()

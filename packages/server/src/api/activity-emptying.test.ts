@@ -215,6 +215,13 @@ async function workOrder(title: string) {
      select tenant_id, property_id, area_id, id, '{"client": "Herr Maier"}', $2 from service_reports where id = $1`,
     [report.id, 'd'.repeat(64)],
   )
+  // The file of its prints, for each order anew: an emptied activity takes it along with them (#522).
+  await admin.query(
+    `insert into files (tenant_id, sha256, size_bytes, media_type)
+     select tenant_id, $1, 2048, 'application/pdf' from (${of}) a
+     on conflict do nothing`,
+    ['e'.repeat(64)],
+  )
   await admin.query(
     `insert into prints (tenant_id, property_id, area_id, service_report_id, sha256)
      select tenant_id, property_id, area_id, id, $2 from service_reports where id = $1`,
@@ -405,10 +412,6 @@ beforeAll(async () => {
   duty.north = await dutyAt(place.assetNorth)
   duty.south = await dutyAt(place.assetSouth)
 
-  await admin.query(
-    `insert into files (tenant_id, sha256, size_bytes, media_type) values ($1, $2, 2048, 'application/pdf')`,
-    [tenant, 'e'.repeat(64)],
-  )
   await admin.query(`insert into stores (tenant_id, name) values ($1, 'Lager Nord')`, [tenant])
   await admin.query(
     `insert into articles (tenant_id, number, designation, unit) values ($1, 'ART-1', 'Dichtung', 'piece')`,
@@ -495,6 +498,13 @@ describe('the activity behind an evidence deleted after the end of its retention
     expect(await count('attachment_versions', 'attachment_id', order.document)).toBe(0)
     expect(
       await one('select count(*)::int as files from files where sha256 = $1', [order.file]),
+    ).toEqual({ files: 0 })
+    // The prints of the round and of its service report take their file along (#522).
+    expect(
+      await one('select count(*)::int as files from files where tenant_id = $1 and sha256 = $2', [
+        tenant,
+        'e'.repeat(64),
+      ]),
     ).toEqual({ files: 0 })
     // A defect found in it keeps its own content, and loses the answer it was found at.
     expect(
