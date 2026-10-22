@@ -771,6 +771,13 @@
       "when": 1792701028038,
       "tag": "0109_briefing_page",
       "breakpoints": true
+    },
+    {
+      "idx": 110,
+      "version": "7",
+      "when": 1792703594638,
+      "tag": "0110_second_line",
+      "breakpoints": true
     }
   ]
 }

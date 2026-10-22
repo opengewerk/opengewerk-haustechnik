@@ -89,16 +89,26 @@ async function logged(table: string, id: string): Promise<number> {
   )
 }
 
-/** What the database answers a statement of a person, or of nobody: its class, or that it wrote. */
+/**
+ * What the database answers a statement of a person, of nobody, or of the
+ * pass of the deadlines, which says so (#542): its class, or that it wrote.
+ */
 async function refusalOf(
-  userId: string | null,
+  userId: string | null | 'the pass',
   statement: ReturnType<typeof sql>,
 ): Promise<unknown> {
   try {
     await database.forTenant(
-      userId === null ? { tenantId: tenant, reason: 'probe' } : { tenantId: tenant, userId },
+      userId === null || userId === 'the pass'
+        ? { tenantId: tenant, reason: 'probe' }
+        : { tenantId: tenant, userId },
       async (tx) => {
         await tx.execute(sql`select set_config('app.all_areas', 'on', true)`)
+
+        if (userId === 'the pass') {
+          await tx.execute(sql`select set_config('app.deadline_run', 'on', true)`)
+        }
+
         await tx.execute(statement)
       },
     )
@@ -664,8 +674,10 @@ describe('the pass of the deadlines', () => {
     )
 
     expect(await refusalOf('u-lead', sql`delete from tasks where id = ${id}`)).toBe('HT009')
-    expect(await refusalOf(null, sql`delete from tasks where id = ${young}`)).toBe('HT009')
-    expect(await refusalOf(null, sql`delete from tasks where id = ${id}`)).toBe('written')
+    expect(await refusalOf('the pass', sql`delete from tasks where id = ${young}`)).toBe('HT009')
+    // Nobody is not yet the pass of the deadlines (#542).
+    expect(await refusalOf(null, sql`delete from tasks where id = ${id}`)).toBe('HT009')
+    expect(await refusalOf('the pass', sql`delete from tasks where id = ${id}`)).toBe('written')
   })
 
   it('lets the person at a reading go three years after it and keeps the reading', async () => {
@@ -696,7 +708,14 @@ describe('the pass of the deadlines', () => {
       ),
     ).toBe('HT005')
     expect(
-      await refusalOf(null, sql`update meter_readings set recorded_by = null where id = ${young}`),
+      await refusalOf(
+        'the pass',
+        sql`update meter_readings set recorded_by = null where id = ${young}`,
+      ),
+    ).toBe('HT005')
+    // Nobody is not yet the pass of the deadlines (#542).
+    expect(
+      await refusalOf(null, sql`update meter_readings set recorded_by = null where id = ${old}`),
     ).toBe('HT005')
     // Any other column the application may not even write.
     expect(
@@ -759,8 +778,21 @@ describe('the pass of the deadlines', () => {
     ).toBe('HT005')
     expect(
       await refusalOf(
-        null,
+        'the pass',
         sql`update stock_movements set booked_by = null where id = ${young.id}`,
+      ),
+    ).toBe('HT005')
+    // Nobody is not yet the pass of the deadlines (#542).
+    expect(
+      await refusalOf(
+        null,
+        sql`update stock_movements set booked_by = null where id = ${booking.id}`,
+      ),
+    ).toBe('HT005')
+    expect(
+      await refusalOf(
+        null,
+        sql`update work_order_materials set taken_by = null where id = ${material.id}`,
       ),
     ).toBe('HT005')
     expect(

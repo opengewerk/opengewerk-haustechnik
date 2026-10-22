@@ -115,6 +115,17 @@ beforeAll(async () => {
   firm = await contractorOf(tenant)
   otherFirm = await contractorOf(other)
 
+  // Whoever the application acts for works here: the rows of a contractor lie
+  // in no area and are kept to the people of the operator (#539).
+  await admin.query(
+    "insert into auth_users (id, name, email) values ('user-lead', 'Leitung', 'leitung@nord.example')",
+  )
+  await admin.query('insert into memberships (tenant_id, user_id, roles) values ($1, $2, $3)', [
+    tenant,
+    'user-lead',
+    ['management'],
+  ])
+
   database = Database.connect(applicationDatabaseUrl())
 })
 

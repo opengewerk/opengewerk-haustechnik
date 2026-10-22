@@ -24,3 +24,23 @@ export function inEveryArea<Result>(
     return work(tx)
   })
 }
+
+/**
+ * The pass of the deadlines that removes what has passed its own retention
+ * (#412), in every area, and saying that it is that pass (#542): the database
+ * lets a done task go and a person at a reading, a booking or a material
+ * become nobody only for the transaction that says so, without a person, and
+ * no longer for any transaction that merely has none. No route calls it, and
+ * a test of this package holds the one file that does.
+ */
+export function asTheDeadlineRun<Result>(
+  database: Database,
+  actor: Actor,
+  work: (tx: TenantTransaction) => Promise<Result>,
+): Promise<Result> {
+  return inEveryArea(database, actor, async (tx) => {
+    await tx.execute(sql`select set_config('app.deadline_run', 'on', true)`)
+
+    return work(tx)
+  })
+}
