@@ -69,6 +69,7 @@ import {
   intervalToCheck,
   intervalWords,
   isAllowed,
+  isLimited,
   lastDayOf,
   type IsoDate,
   keepingProblems,
@@ -78,6 +79,7 @@ import {
   type Property,
   type Room,
   type RoomId,
+  shippedRoles,
   tableNamesPeople,
 } from '@opengewerk/haustechnik-domain'
 import {
@@ -92,6 +94,7 @@ import {
   tableFormatOf,
   type TenantTransaction,
 } from '@opengewerk/platform-server'
+import { tenantRoles } from '@opengewerk/platform-server/schema'
 import { and, asc, desc, eq, inArray, isNull, notInArray } from 'drizzle-orm'
 
 import { underWayFor } from '../activities/for-duty.js'
@@ -609,7 +612,10 @@ async function intervalDocumentAt(
   }
 }
 
-/** Refuses a responsible person who does not work for the tenant, or is blocked. */
+/**
+ * Refuses a responsible person who does not work for the tenant, is blocked,
+ * may not read the duties or is an auditor from outside (#538).
+ */
 async function checkResponsible(tx: TenantTransaction, userId: unknown): Promise<void> {
   if (!given(userId)) {
     return
@@ -622,9 +628,44 @@ async function checkResponsible(tx: TenantTransaction, userId: unknown): Promise
       and(eq(memberships.userId, String(userId)), isNull(memberships.blockedAt), beforeItsEnd()),
     )
 
-  if (member === undefined) {
-    throw new BadRequestException('Verantwortlich ist jemand, der für diesen Betreiber arbeitet.')
+  if (member === undefined || !(await answeringForDuties(tx, [member.userId])).has(member.userId)) {
+    throw new BadRequestException(
+      'Verantwortlich ist jemand, der für diesen Betreiber arbeitet, die Pflichten ansehen darf und kein Prüfer ist.',
+    )
   }
+}
+
+/**
+ * Who of these people, or of everybody, may answer for a duty (#538, section
+ * 7 of the concept): somebody whose roles let them read the duties and who
+ * is no auditor from outside. A duty is not given to an auditor, and a Melder
+ * reads no duty. A role of the operator's own has its rights in its row; a
+ * shipped role keeps the rights it ships with, row or not.
+ */
+async function answeringForDuties(
+  tx: TenantTransaction,
+  userIds?: readonly string[],
+): Promise<ReadonlySet<string>> {
+  const members = await tx
+    .select({ userId: memberships.userId, roles: memberships.roles })
+    .from(memberships)
+    .where(userIds === undefined ? undefined : inArray(memberships.userId, [...userIds]))
+  const rightsOf = new Map<string, readonly string[]>([
+    ...shippedRoles.map((role) => [role.key, role.rights] as const),
+    ...(
+      await tx.select({ key: tenantRoles.key, rights: tenantRoles.rights }).from(tenantRoles)
+    ).map((role) => [role.key, role.rights] as const),
+  ])
+
+  return new Set(
+    members
+      .filter(
+        (member) =>
+          !isLimited(member.roles) &&
+          member.roles.some((role) => (rightsOf.get(role) ?? []).includes('duty.read')),
+      )
+      .map((member) => member.userId),
+  )
 }
 
 /** A firm out of the list, or a note on one, belongs to a duty a contractor performs (#328). */
@@ -1265,8 +1306,12 @@ export class DutiesController {
    */
   @Get('colleagues')
   @RequiresPermission('duty.write')
-  colleagues(@CurrentIdentity() identity: Asking): Promise<DutyColleague[]> {
-    return listColleagues(this.database, identity)
+  async colleagues(@CurrentIdentity() identity: Asking): Promise<DutyColleague[]> {
+    const colleagues = await listColleagues(this.database, identity)
+    // Nobody who may not answer for a duty is offered for it (#538).
+    const answering = await this.database.forTenant(identity, (tx) => answeringForDuties(tx))
+
+    return colleagues.filter((colleague) => answering.has(colleague.userId))
   }
 
   /**

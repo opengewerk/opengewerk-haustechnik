@@ -214,7 +214,7 @@ export const keptData: readonly { readonly data: string; readonly why: string }[
   },
   {
     data: 'Das Protokoll der Zugriffe eines Prüfers',
-    why: 'Wie lange es bleibt, sagt das Planungskonzept noch nicht.',
+    why: 'Es bleibt so lange wie das Änderungsprotokoll und wird wie dieses nur ergänzt, auch um die Anfragen, die abgelehnt wurden.',
   },
   {
     data: 'Dokumente mit ihren Fassungen, Ansprechpartner, Fremdfirmen und was sonst jemand entfernt',

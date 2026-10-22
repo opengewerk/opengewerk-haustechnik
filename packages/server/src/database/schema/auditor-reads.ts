@@ -1,6 +1,6 @@
 import { primaryId, tenantIsolation } from '@opengewerk/platform-server'
 import { memberships, tenantColumn } from '@opengewerk/platform-server/schema'
-import { foreignKey, index, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
+import { boolean, foreignKey, index, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
 
 /**
  * Every request of an auditor from outside (#339, section 4.3 of the concept:
@@ -8,7 +8,9 @@ import { foreignKey, index, pgTable, text, timestamp } from 'drizzle-orm/pg-core
  * by the route as it is declared and the path it named. Written before the
  * request is served, in a transaction of its own, so that nothing is read
  * that is not written down; a request whose line cannot be written is not
- * served.
+ * served. A request the guard refuses stands as well, marked as refused (#537).
+ * The log stays as long as the change log does, which is only ever added to
+ * (section 7 of the concept, decided on 22.10.2026).
  *
  * Only written and read, never changed or removed by the application: the
  * grant is SELECT and INSERT. The Leitung reads it under "Zugänge". No area:
@@ -27,6 +29,8 @@ export const auditorReads = pgTable(
     path: text('path').notNull(),
     /** What the request named beside its path, the choices of the register for one. */
     query: text('query'),
+    /** Whether the guard refused the request, for a right the auditor does not hold (#537). */
+    refused: boolean('refused').notNull().default(false),
   },
   (table) => [
     tenantIsolation(table.tenantId),

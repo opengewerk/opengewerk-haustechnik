@@ -42,7 +42,7 @@ import {
   VERSION,
 } from '@opengewerk/platform-server'
 
-import { AuditorReadsInterceptor } from '../limits/auditor-reads.js'
+import { AuditedExceptionFilter, AuditorReadsInterceptor } from '../limits/auditor-reads.js'
 import { tenantCatalogue } from '../own-kinds/catalogue.js'
 import { access } from '../authentication/access.js'
 import { CATALOGUE, shippedCatalogue } from '../catalogue.js'
@@ -64,7 +64,6 @@ import { authorization, AuthorizationGuard } from './authorization.js'
 import { BuildingsController } from './buildings.controller.js'
 import { BuildingClosuresController } from './closures.controller.js'
 import { contactRights, contactRoutes } from './contact-routes.js'
-import { DatabaseExceptionFilter } from './database-errors.js'
 import { DefectClassSettingsController, DefectsController } from './defects.controller.js'
 import { CircuitChartController } from './circuit-chart.controller.js'
 import { AssetEvidenceController, EvidenceController } from './evidence.controller.js'
@@ -523,8 +522,9 @@ export class ApiModule {
         { provide: APP_GUARD, useClass: SameOriginGuard },
         { provide: APP_GUARD, useClass: AuthorizationGuard },
         // A refusal of the database becomes an answer that gives nothing away
-        // about a row somebody may not see.
-        { provide: APP_FILTER, useClass: DatabaseExceptionFilter },
+        // about a row somebody may not see; a request of an auditor the guard
+        // refuses is written down before it is answered (#537).
+        { provide: APP_FILTER, useClass: AuditedExceptionFilter },
         // No answer says when a record last changed, who changed it or from
         // which device: that stays on the row and in the change log, which
         // only the Leitung reads (section 9 of the concept).
