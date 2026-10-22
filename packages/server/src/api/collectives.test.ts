@@ -899,7 +899,91 @@ describe('the report of a contractor for all its assets', () => {
   })
 })
 
+describe('the report of a contractor at a collective activity of the own people', () => {
+  it('is refused, and nothing is written (#550)', async () => {
+    const r = await extinguishersIn('Haus R', 2)
+    const collective = (await compose(planOf(r.duties, { buildingId: r.building })).expect(201))
+      .body.id as string
+    const byAsset = new Map((await partsOf(collective)).map((part) => [part.asset_id, part.id]))
+    const parts = r.assets.map((asset) => byAsset.get(asset) ?? '')
+
+    expect(
+      (
+        await http()
+          .post(`/collectives/${collective}/report`)
+          .set(testIdentityHeader, by('u-site'))
+          .send({
+            performedOn: yesterday,
+            examiner: 'Klaus Berger',
+            examinerOrganisation: 'Brandschutz Beispiel GmbH',
+            contractorId: null,
+            file: {
+              sha256: fileSha,
+              fileName: 'bericht.pdf',
+              sizeBytes: 2048,
+              previewSha256: null,
+            },
+            parts: parts.map((activityId) => ({
+              activityId,
+              result: 'without_defects',
+              resultReason: null,
+              defects: [],
+            })),
+          })
+          .expect(409)
+      ).body.message,
+    ).toBe(
+      'Den Bericht einer Fremdfirma nimmt ein Sammelvorgang nicht an, den die eigenen Leute ausführen.',
+    )
+    expect(
+      await one('select count(*)::int as n from evidence where duty_id = any($1)', [r.duties]),
+    ).toEqual({ n: 0 })
+    expect(await one(`select performer::text from activities where id = $1`, [collective])).toEqual(
+      { performer: 'own_staff' },
+    )
+  })
+})
+
 describe('the database', () => {
+  it('keeps the answers of a part once its collective activity is signed (#551)', async () => {
+    const s = await extinguishersIn('Haus S', 2)
+    const collective = (await compose(planOf(s.duties, { buildingId: s.building })).expect(201))
+      .body.id as string
+    const [part] = await partsOf(collective)
+    const answer = await one<{ id: string }>(
+      `insert into activity_answers (tenant_id, property_id, area_id, activity_id, field_key, value)
+       select tenant_id, property_id, area_id, id, 'note', 'Plombe geprüft' from activities where id = $1
+       returning id`,
+      [part?.id],
+    )
+
+    await admin.query(
+      `insert into activity_signatures (tenant_id, property_id, area_id, activity_id, signed_by, role, signed_at,
+                                        typed_name, page_fingerprint)
+       select tenant_id, property_id, area_id, id, 'u-tech', 'signer', now(), 'Tobias Wendt', $2
+         from activities where id = $1`,
+      [collective, 'c'.repeat(64)],
+    )
+
+    await expect(
+      admin.query(`update activity_answers set value = 'anders' where id = $1`, [answer.id]),
+    ).rejects.toMatchObject({ code: 'HT007' })
+  })
+
+  it('gives a collective activity no duty of its own (#551)', async () => {
+    const t = await extinguishersIn('Haus T', 1)
+    const collective = (await compose(planOf(t.duties, { buildingId: t.building })).expect(201))
+      .body.id as string
+
+    await expect(
+      admin.query(
+        `insert into activity_duties (tenant_id, property_id, area_id, activity_id, duty_id)
+         select a.tenant_id, a.property_id, a.area_id, a.id, $2 from activities a where a.id = $1`,
+        [collective, t.duties[0]],
+      ),
+    ).rejects.toMatchObject({ code: 'HT020' })
+  })
+
   it('lets an activity be a part of a collective activity and of nothing else', async () => {
     const p = await extinguishersIn('Haus P', 2)
     const first = await singleFor(p.duties[0] as string)
