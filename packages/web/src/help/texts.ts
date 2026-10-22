@@ -50,7 +50,7 @@ export const manualOrder = [
   'update',
   'sicherung',
   'betreiber-anlegen',
-  'massnahmen-und-signatur',
+  'signatur',
 ] as const
 
 /** The texts of the screens on site, in the order of its tabs and then its menu. */
