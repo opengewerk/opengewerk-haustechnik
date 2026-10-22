@@ -600,6 +600,14 @@ describe("an asset kind of the operator's own", () => {
       ).body.message,
     ).toBe(wanted)
 
+    // Nor does it change the sort of a field: what holds a value of it is counted in every area.
+    expect(
+      (await patch(`/own-kinds/fields/${flow.id}`, narrow, { sort: 'date' }).expect(403)).body
+        .message,
+    ).toBe(
+      'Die Sorte einer eigenen Angabe ändert nur, wer alle Bereiche sieht: Anlagen in jedem Bereich können einen Wert von ihr haben.',
+    )
+
     // What takes nothing away stays with it.
     await patch(`/own-kinds/fields/${pumps.id}`, narrow, {
       options: ['Einzelanlage', 'Doppelanlage', 'Dreifachanlage'],

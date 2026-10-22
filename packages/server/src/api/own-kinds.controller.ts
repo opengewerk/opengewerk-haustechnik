@@ -58,6 +58,10 @@ const fieldGone = 'Diese eigene Angabe gibt es nicht.'
 const everyAreaWanted =
   'Eine eigene Anlagenart, eine eigene Angabe oder eine Auswahl daran entfernen kann nur, wer alle Bereiche sieht: Anlagen in jedem Bereich können sie tragen.'
 
+/** The same for the sort of a field, which changes only while no asset in any area holds a value of it (#529). */
+const sortWanted =
+  'Die Sorte einer eigenen Angabe ändert nur, wer alle Bereiche sieht: Anlagen in jedem Bereich können einen Wert von ihr haben.'
+
 /** How many assets carry each own kind and hold a value of each own field. */
 interface Uses {
   readonly assets: ReadonlyMap<string, number>
@@ -429,6 +433,11 @@ export class OwnKindsController {
       // (section 2.5 of the concept, #529): a value of another sort would stand
       // at an asset that cannot read it any more.
       if (resorted) {
+        // Counted past the areas of the person, so only for whoever sees them all (#474).
+        if (!(await seesEveryAreaNow(tx))) {
+          throw new ForbiddenException(sortWanted)
+        }
+
         const held = (await usesOf(tx, true)).values.get(field.key)?.held ?? 0
 
         if (held > 0) {
