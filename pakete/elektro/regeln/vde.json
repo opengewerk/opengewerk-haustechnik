@@ -1,5 +1,5 @@
 {
-  "note": "Die Grenzwerte der Messungen je Stromkreis bei der Erstprüfung nach DIN VDE 0100-600 und der wiederkehrenden Prüfung der elektrischen Anlage, dieselben Werte und Fundstellen wie im Paket Elektro der Handwerkersoftware OpenGewerk. Der Grenzwert der Schleifenimpedanz wird aus der Nennspannung und dem Faktor der Auslösekennlinie des Leitungsschutzschalters berechnet, der des Auslösestroms aus dem Bemessungsdifferenzstrom; beide nennt das Stromkreisverzeichnis für den Stromkreis. Alle gelten ab dem 01.06.2017, dem Ausgabedatum von DIN VDE 0100-600:2017-06; ein früheres Prüfdatum bekommt keinen Grenzwert statt eines erfundenen. Bis zur fachkundigen Abnahme ist jeder Wert eine Hilfe beim Ablesen und keine Freigabe.",
+  "note": "Die Grenzwerte der Messungen je Stromkreis bei der Erstprüfung nach DIN VDE 0100-600 und der wiederkehrenden Prüfung der elektrischen Anlage, dieselben Werte wie im Paket Elektro der Handwerkersoftware OpenGewerk. Jede Regel nennt Norm, Ausgabe und Abschnitt. Der Grenzwert der Schleifenimpedanz wird aus der Nennspannung und dem Faktor der Auslösekennlinie des Leitungsschutzschalters berechnet, der des Auslösestroms aus dem Bemessungsdifferenzstrom; beide nennt das Stromkreisverzeichnis für den Stromkreis. Alle gelten ab dem 01.06.2017, dem Ausgabedatum von DIN VDE 0100-600:2017-06; ein früheres Prüfdatum bekommt keinen Grenzwert statt eines erfundenen. Bis zur fachkundigen Abnahme ist jeder Wert eine Hilfe beim Ablesen und keine Freigabe.",
   "records": [
     {
       "key": "insulation_minimum_up_to_500v",
@@ -17,9 +17,9 @@
       "validUntil": null,
       "unit": "factor",
       "value": 5,
-      "source": "DIN EN 60898-1 (VDE 0641-11), unverzögerte Auslösung Typ B über 3 bis 5 In",
+      "source": "DIN EN 60898-1 (VDE 0641-11):2020-11, 5.3.5 mit Tabelle 2, unverzögerte Auslösung Typ B über 3 bis 5 In",
       "origin": "private_standard",
-      "note": "Ia ist das obere Ende des Bereichs, das der Schalter erreichen muss."
+      "note": "Ia ist das obere Ende des Bereichs, das der Schalter erreichen muss. Ausgabe und Abschnitt sind nach dem Inhaltsverzeichnis von IEC 60898-1:2015 gesetzt, auf der diese Ausgabe beruht, und noch nicht am Text der deutschen Ausgabe geprüft."
     },
     {
       "key": "loop_factor_c",
@@ -27,8 +27,9 @@
       "validUntil": null,
       "unit": "factor",
       "value": 10,
-      "source": "DIN EN 60898-1 (VDE 0641-11), unverzögerte Auslösung Typ C über 5 bis 10 In",
-      "origin": "private_standard"
+      "source": "DIN EN 60898-1 (VDE 0641-11):2020-11, 5.3.5 mit Tabelle 2, unverzögerte Auslösung Typ C über 5 bis 10 In",
+      "origin": "private_standard",
+      "note": "Ausgabe und Abschnitt sind nach dem Inhaltsverzeichnis von IEC 60898-1:2015 gesetzt, auf der diese Ausgabe beruht, und noch nicht am Text der deutschen Ausgabe geprüft."
     },
     {
       "key": "loop_factor_d",
@@ -36,8 +37,9 @@
       "validUntil": null,
       "unit": "factor",
       "value": 20,
-      "source": "DIN EN 60898-1 (VDE 0641-11), unverzögerte Auslösung Typ D über 10 bis 20 In",
-      "origin": "private_standard"
+      "source": "DIN EN 60898-1 (VDE 0641-11):2020-11, 5.3.5 mit Tabelle 2, unverzögerte Auslösung Typ D über 10 bis 20 In",
+      "origin": "private_standard",
+      "note": "Ausgabe und Abschnitt sind nach dem Inhaltsverzeichnis von IEC 60898-1:2015 gesetzt, auf der diese Ausgabe beruht, und noch nicht am Text der deutschen Ausgabe geprüft."
     },
     {
       "key": "loop_nominal_voltage",
@@ -55,9 +57,9 @@
       "validUntil": null,
       "unit": "basis_points",
       "value": 10000,
-      "source": "DIN EN 61008-1 (VDE 0664-10), Auslösung zwischen 0,5 IΔn und IΔn",
+      "source": "DIN EN 61008-1 (VDE 0664-10):2018-03, 5.3.4 und 8.5, Auslösung zwischen 0,5 IΔn und IΔn",
       "origin": "private_standard",
-      "note": "Höchstens der Bemessungsdifferenzstrom, den das Stromkreisverzeichnis für den Stromkreis nennt."
+      "note": "Höchstens der Bemessungsdifferenzstrom, den das Stromkreisverzeichnis für den Stromkreis nennt. Ausgabe und Abschnitt sind nach dem Inhaltsverzeichnis von IEC 61008-1:2010 gesetzt, auf der diese Ausgabe beruht, und noch nicht am Text der deutschen Ausgabe geprüft."
     },
     {
       "key": "rcd_trip_time_maximum",
@@ -65,9 +67,9 @@
       "validUntil": null,
       "unit": "milliseconds",
       "value": 300,
-      "source": "DIN EN 61008-1 (VDE 0664-10) und DIN EN 61009-1 (VDE 0664-20), Höchstwert der Abschaltzeit bei IΔn",
+      "source": "DIN EN 61008-1 (VDE 0664-10):2018-03, 5.3.12 mit Tabelle 1, und DIN EN 61009-1 (VDE 0664-20):2023-08, 5.3.8 mit Tabelle 2, Höchstwert der Abschaltzeit bei IΔn",
       "origin": "private_standard",
-      "note": "Für Fehlerstrom-Schutzeinrichtungen ohne Verzögerung. Eine selektive (S) darf länger brauchen; die Messung unterscheidet sie in dieser Fassung noch nicht."
+      "note": "Für Fehlerstrom-Schutzeinrichtungen ohne Verzögerung. Eine selektive (S) darf länger brauchen; die Messung unterscheidet sie in dieser Fassung noch nicht. Ausgabe und Abschnitt sind nach den Inhaltsverzeichnissen von IEC 61008-1:2010 und IEC 61009-1:2010 gesetzt, auf denen diese Ausgaben beruhen, und noch nicht am Text der deutschen Ausgaben geprüft."
     }
   ]
 }

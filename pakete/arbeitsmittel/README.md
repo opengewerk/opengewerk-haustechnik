@@ -109,6 +109,8 @@ Prüfbescheinigung als Bericht.
 | `shelving_inspector` | Befähigte Person für die Prüfung von Regalen | befähigte Person |
 | `pressure_vessel_inspector` | Befähigte Person für die Prüfung von Druckbehältern | befähigte Person |
 
+Ohne Art bleibt die Wartung der Aufzugsanlage (`elevator_maintenance`, Fachkraft): die Quelle verlangt eine Fachfirma für Aufzugsanlagen und nennt keine Qualifikation einer Person. Wer sie ausführt, legt der Betreiber fest; die Stufe steht an der Pflichtart, und eine Art wird erst eingetragen, wenn eine Quelle sie nennt.
+
 ## Was das Paket nicht abdeckt
 
 - Die Prüfungen vor der ersten Inbetriebnahme und nach einer prüfpflichtigen Änderung (Anhang 2

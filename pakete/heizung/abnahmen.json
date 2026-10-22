@@ -226,6 +226,22 @@
     {
       "key": "heat_pump_inspector",
       "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "chimney_sweep",
+      "checkedOn": "2026-10-22"
+    },
+    {
+      "key": "district_chimney_sweep",
+      "checkedOn": "2026-10-22"
+    },
+    {
+      "key": "registered_gas_installer",
+      "checkedOn": "2026-10-22"
+    },
+    {
+      "key": "heating_inspector",
+      "checkedOn": "2026-10-22"
     }
   ]
 }

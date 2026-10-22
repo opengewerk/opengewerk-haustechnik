@@ -7,6 +7,51 @@
       "requiredFor": [
         "heat_pump_check"
       ]
+    },
+    {
+      "key": "chimney_sweep",
+      "label": "Schornsteinfegerin oder Schornsteinfeger",
+      "level": "skilled_person",
+      "requiredFor": [
+        "chimney_sweeping",
+        "flue_gas_first_measurement",
+        "flue_gas_measurement_gas",
+        "flue_gas_measurement_gas_older",
+        "flue_gas_measurement_gas_self_calibrating",
+        "flue_gas_measurement_oil",
+        "flue_gas_measurement_oil_older",
+        "flue_gas_measurement_oil_self_calibrating",
+        "flue_gas_measurement_solid"
+      ]
+    },
+    {
+      "key": "district_chimney_sweep",
+      "label": "Bevollmächtigte Bezirksschornsteinfegerin oder bevollmächtigter Bezirksschornsteinfeger",
+      "level": "skilled_person",
+      "requiredFor": [
+        "fireplace_inspection"
+      ],
+      "covers": [
+        "chimney_sweep"
+      ]
+    },
+    {
+      "key": "registered_gas_installer",
+      "label": "Fachkraft eines Installationsunternehmens im Installateurverzeichnis eines Gasnetzbetreibers",
+      "level": "skilled_person",
+      "requiredFor": [
+        "gas_installation_maintenance",
+        "gas_installation_serviceability_test"
+      ]
+    },
+    {
+      "key": "heating_inspector",
+      "label": "Fachkundige Person für die Heizungsprüfung nach § 60a Abs. 3",
+      "level": "skilled_person",
+      "requiredFor": [
+        "heating_check",
+        "heating_check_before_2009"
+      ]
     }
   ]
 }

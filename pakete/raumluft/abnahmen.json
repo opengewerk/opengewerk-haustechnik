@@ -406,6 +406,10 @@
     {
       "key": "energy_inspector",
       "checkedOn": "2026-10-18"
+    },
+    {
+      "key": "ventilation_hygiene_inspector",
+      "checkedOn": "2026-10-22"
     }
   ]
 }

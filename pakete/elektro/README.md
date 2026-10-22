@@ -11,7 +11,7 @@ Fachkundig abgenommen hat das Paket der Maintainer am 16.10.2026 (Abschnitt 15),
 mit der Prüfsumme dessen, was abgenommen wurde. Wird ein Eintrag geändert, fällt seine Abnahme
 weg, und die Oberfläche kennzeichnet ihn wieder, bis er erneut abgenommen ist. Die Einträge, die mit
 den Fassungen 1.3.0 und 1.4.0 dazukamen, sind noch nicht abgenommen und bis dahin gekennzeichnet; die vier
-der Fassung 1.5.0 hat der Maintainer am 21.10.2026 abgenommen.
+der Fassung 1.5.0 hat der Maintainer am 21.10.2026 abgenommen. Die Fassung 1.5.1 (#547) nennt für fünf Grenzwerte dazu Ausgabe und Abschnitt der Norm; sie bleiben wie die übrigen Grenzwerte bis zur Abnahme gekennzeichnet.
 
 ## Anlagenarten
 
@@ -73,6 +73,18 @@ Sicherheitsbeleuchtung und Notaggregate hält der Arbeitgeber instand und lässt
 Abständen auf ihre Funktionsfähigkeit prüfen (§ 4 Abs. 3 ArbStättV). Eine Frist nennt die Verordnung
 nicht; der Betreiber legt sie fest.
 
+## Arten der Qualifikation
+
+| Schlüssel | Art | Stufe |
+| --- | --- | --- |
+| `electrically_skilled_person` | Elektrofachkraft, deckt die unterwiesene Person ab | Fachkraft |
+| `electrically_instructed_person` | Elektrotechnisch unterwiesene Person | unterwiesene Person |
+
+Ohne Art bleiben die Prüftaste der Fehlerstrom-Schutzeinrichtung (`rcd_test_button_dguv_v3`,
+`rcd_test_button_dguv_v4`), die nach der Durchführungsanweisung betätigt, wer die Anlage benutzt, und die Prüfung
+von Sicherheitsbeleuchtung und Sicherheitsstromversorgung (`safety_lighting_check`, `safety_power_supply_check`),
+für die die Arbeitsstättenverordnung keine Stufe nennt. Wer sie ausführt, legt der Betreiber fest; die Stufe steht an der Pflichtart, und eine Art wird erst eingetragen, wenn eine Quelle sie nennt.
+
 ## Formulare
 
 Die Formulare, die ohne Stromkreis auskommen (Entscheidung vom 04.10.2026):
@@ -99,8 +111,8 @@ Ihre Gruppe "Messen je Stromkreis" hat einen Block für jeden Stromkreis der Anl
 Stromkreisverzeichnis und keinen weiteren: Schutzleiter RPE, Isolationswiderstand Riso,
 Schleifenimpedanz Zs, Auslösestrom IΔ und Auslösezeit tΔ, dazu der Prüfpunkt "Stromkreis in
 Ordnung" und eine Bemerkung. Vor der Unterschrift braucht jeder Stromkreis seinen Prüfpunkt. Die
-Grenzwerte stehen in `regeln/vde.json`, mit denselben Werten und Fundstellen wie im Paket Elektro
-der Handwerkersoftware OpenGewerk: der Isolationswiderstand mindestens 1 MΩ, die Auslösezeit höchstens
+Grenzwerte stehen in `regeln/vde.json`, mit denselben Werten wie im Paket Elektro der Handwerkersoftware
+OpenGewerk und je Regel mit Norm, Ausgabe und Abschnitt: der Isolationswiderstand mindestens 1 MΩ, die Auslösezeit höchstens
 300 ms. Die Schleifenimpedanz und der Auslösestrom werden aus dem Stromkreis berechnet, die
 Schleifenimpedanz aus der Nennspannung und dem Auslösestrom der Charakteristik B, C oder D bei
 seinem Nennstrom, der Auslösestrom aus seinem Bemessungsdifferenzstrom. Ein Messwert außerhalb seines

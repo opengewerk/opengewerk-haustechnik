@@ -71,6 +71,14 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   unter „Konto“ ohne ein Recht (#543), wie Abschnitt 7 des Konzepts es sagt: es sind ihre eigenen Daten. Bisher
   verlangte der Server „Vorgänge ansehen“ und „Pflichten ansehen“, und wer das Recht verlor, verlor auch seine
   Ausfertigung. Das Fundament hat dafür Routen für ein Mitglied ohne Recht (`RequiresMembership`).
+- Fünf Grenzwerte des Pakets Elektro nennen Ausgabe und Abschnitt ihrer Norm (#547), wie Abschnitt 5 des Konzepts
+  es für einen Grenzwert verlangt: die Auslösebereiche B, C und D nach DIN EN 60898-1, Auslösestrom und
+  Abschaltzeit der Fehlerstrom-Schutzeinrichtung nach DIN EN 61008-1 und 61009-1 (Paket Elektro 1.5.1). Bis der
+  Maintainer sie am Normtext prüft, bleiben sie als nicht abgenommen gekennzeichnet. Wo die Quelle einer
+  Pflichtart eine Qualifikation nennt, fordert die Pflichtart jetzt deren Art (#553): Schornsteinfeger und
+  Bezirksschornsteinfeger, das Installateurverzeichnis Gas und die fachkundige Person nach § 60a Abs. 3 im Paket
+  Heizung 1.2.0, die nach VDI 6022 geschulte Person im Paket Raumluft und Kälte 1.5.0. Bei den übrigen 15 bleibt die
+  Stufe offen, und das README ihres Pakets sagt es; ein Test hält beides.
 
 ## [0.2.2] - 2026-10-22
 

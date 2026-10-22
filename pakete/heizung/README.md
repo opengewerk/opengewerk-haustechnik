@@ -135,6 +135,23 @@ Eine staatliche wiederkehrende Prüfung der Gasleitungen gibt es auf Bundesebene
 Anschlussnehmer für die Instandhaltung verantwortlich, nach den anerkannten Regeln der Technik, und die
 stehen in der TRGI. Deren Abstände kommen nach der rechtlichen Prüfung.
 
+## Arten der Qualifikation
+
+| Schlüssel | Art | Stufe | Quelle |
+| --- | --- | --- | --- |
+| `heat_pump_inspector` | Fachkundige Person für die Betriebsprüfung von Wärmepumpen | Fachkraft | § 60a GEG |
+| `chimney_sweep` | Schornsteinfegerin oder Schornsteinfeger | Fachkraft | § 2 SchfHwG, § 14 und § 15 der 1. BImSchV |
+| `district_chimney_sweep` | Bevollmächtigte Bezirksschornsteinfegerin oder bevollmächtigter Bezirksschornsteinfeger, deckt `chimney_sweep` ab | Fachkraft | § 14 SchfHwG |
+| `registered_gas_installer` | Fachkraft eines Installationsunternehmens im Installateurverzeichnis eines Gasnetzbetreibers | Fachkraft | § 13 Abs. 2 NDAV |
+| `heating_inspector` | Fachkundige Person für die Heizungsprüfung nach § 60a Abs. 3 | Fachkraft | § 60b Abs. 3 GModG |
+
+Die Arten seit der Fassung 1.2.0 (#547) nennen, wen die Quelle der Pflichtart nennt; abgenommen sind sie noch
+nicht. Die Überprüfung der Heizöllagerung durch Sachverständige hat keine Art: Sachverständige einer anerkannten
+Organisation sind Firmen. Ohne Art bleiben die Wartung der Heizung (`heating_maintenance`), für die fachkundig
+ist, wer die nötigen Kenntnisse und Fertigkeiten hat (§ 60 Abs. 2), die Sichtkontrolle der Gasinstallation durch
+den Betreiber oder eine eingewiesene Person (`gas_installation_visual_check`) und die Eigenkontrolle der
+Heizöllagerung (`oil_storage_self_check`), für die die Verordnung keine Stufe nennt. Wer sie ausführt, legt der Betreiber fest; die Stufe steht an der Pflichtart, und eine Art wird erst eingetragen, wenn eine Quelle sie nennt.
+
 ## Formulare
 
 | Formular | Wofür |

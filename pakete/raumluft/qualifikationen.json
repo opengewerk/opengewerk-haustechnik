@@ -32,6 +32,14 @@
         "ac_energy_inspection_large",
         "ventilation_energy_inspection"
       ]
+    },
+    {
+      "key": "ventilation_hygiene_inspector",
+      "label": "Nach VDI 6022 geschulte Person für Hygieneinspektionen",
+      "level": "skilled_person",
+      "requiredFor": [
+        "ventilation_hygiene_inspection"
+      ]
     }
   ]
 }
