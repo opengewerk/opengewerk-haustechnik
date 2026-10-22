@@ -65,7 +65,7 @@ export function deletionRules(facts: DeletionFacts): readonly DeletionRule[] {
   return [
     {
       key: 'evidence',
-      data: 'Ein Nachweis mit seinen Antworten, Messwerten, Unterschriften, dem Schriftzug und seinem PDF',
+      data: 'Ein Nachweis mit seinen Antworten, Messwerten, Unterschriften, dem Schriftzug, seinem PDF, den höher signierten PDFs und der Prüfbescheinigung eines Berichts',
       when: `nach Ablauf der Aufbewahrung, die seine Pflichtart nennt (Jahre, bis zur nächsten Prüfung oder solange die Anlage in Gebrauch ist)${facts.minimumYears === null ? '' : `, frühestens nach ${count(facts.minimumYears, 'Jahr', 'Jahren')}`}. Die Anwendung schlägt das Leeren vor, die Leitung bestätigt es; es bleibt eine leere Hülle mit Nummer und Tag.`,
       setting: 'Mindestjahre unter „Aufbewahrung“',
       proofs: ['B357', 'B358', 'B359', 'B361'],

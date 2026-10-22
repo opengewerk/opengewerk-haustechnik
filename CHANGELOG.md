@@ -47,6 +47,10 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Qualifikationen ansehen.
 - Eine Vorlage eines Rundgangs geht als Excel oder CSV hinaus, in den Spalten, die ihr Import liest (#558), sodass
   sie sich bearbeiten und wieder einlesen lässt.
+- Mit einem Nachweis, der nach Ablauf seiner Aufbewahrung geleert wird, gehen auch die Dateien seiner Drucke und
+  höher signierten PDFs aus dem Speicher (#522), ebenso die Prüfbescheinigung eines Berichts, die als Dokument an
+  der Anlage liegt (#552), solange kein Nachweis, der bleibt, oder ein anderes Dokument dieselbe Datei nennt.
+  Bisher blieben PDFs mit Schriftzug und Namen im Speicher, auch wenn sie niemand mehr erreichte.
 
 ## [0.2.2] - 2026-10-22
 

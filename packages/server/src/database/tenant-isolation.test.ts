@@ -249,6 +249,8 @@ describe('the tables', () => {
           'the page of a label takes a report from somebody without an account (#332), who is in no tenant: the code alone has to find the operator and the area of a valid label at a room or an asset whose operator switched the page on; handed out are those two ids, to the server and never further, and nothing for every other code',
         'contact_to_confirm(asked text)':
           'the address somebody without an account gave for an answer is confirmed over a link in a mail (S12 of the review of phase 2), opened by somebody who is in no tenant: the hash of the link alone has to find the operator and the area of the address not yet confirmed; handed out are those two ids, to the server and never further, and nothing for every other hash',
+        'print_takes_its_file()':
+          'a print or a PDF with a higher signature goes only with its emptied evidence or activity, which the lock of its table lets through, and takes its row in files along as a version of a document does (#522); the application role may not delete in files, so the trigger runs as the owner, names for the lock of files exactly the file of the row that went, of the same tenant, and leaves it where another record still names it',
       }),
     ).toEqual({
       unexplained: [],
