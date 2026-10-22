@@ -28,6 +28,10 @@ const template = [
   '## 3. Welche Daten über Beschäftigte wo stehen',
   '',
   '- Gleich für jeden Betreiber. [K9]',
+  '',
+  '## 7. Wie lange aufbewahrt wird',
+  '',
+  '- Ein Vorgang bleibt {{activity-years}}, ein Mangel {{defect-years}}, eine Aufgabe {{task-years}}; die Personen entfernt er {{people-years}}.',
 ].join('\n')
 
 const made = {
@@ -76,6 +80,33 @@ describe('the description of the processing from its template (#357)', () => {
     )
     expect(operator).toContain(
       '| Namen und Uhrzeiten der Ausführenden auf dem Leistungsnachweis | eingeschaltet |',
+    )
+  })
+
+  it('names in section 7 the years of the law, and those an operator set (#524)', () => {
+    expect(describeProcessing(template, null)).toContain(
+      '- Ein Vorgang bleibt sechs Jahre, ein Mangel fünf Jahre, eine Aufgabe ein Jahr; die Personen entfernt er drei Jahre danach.',
+    )
+
+    const longer = describeProcessing(template, {
+      ...made,
+      facts: {
+        ...made.facts,
+        recordYears: {
+          activity: 10,
+          defect: null,
+          task: 1,
+          reading_person: 15,
+          booking_person: 5,
+        },
+      },
+    })
+
+    expect(longer).toContain(
+      '- Ein Vorgang bleibt zehn Jahre, ein Mangel fünf Jahre, eine Aufgabe ein Jahr; die Personen entfernt er 15 Jahre nach der Ablesung, fünf Jahre nach Buchung oder Entnahme.',
+    )
+    expect(longer).toContain(
+      '| Aufbewahrung ohne Nachweis | Vorgang ohne Nachweis 10 Jahre, Mangel nach Beseitigung 5 Jahre, Erledigte Aufgabe 1 Jahr, Person am Zählerstand 15 Jahre, Person an der Buchung im Lager 5 Jahre; verlängert, wo es mehr sind als das Gesetz |',
     )
   })
 
@@ -135,6 +166,11 @@ describe('the description of the processing from its template (#357)', () => {
       {
         label: 'Nachweise mindestens aufbewahren',
         value: 'keine Zahl von Jahren; es gilt die Regel der Pflichtart',
+      },
+      {
+        label: 'Aufbewahrung ohne Nachweis',
+        value:
+          'Vorgang ohne Nachweis 6 Jahre, Mangel nach Beseitigung 5 Jahre, Erledigte Aufgabe 1 Jahr, Person am Zählerstand 3 Jahre, Person an der Buchung im Lager 3 Jahre; die gesetzlichen',
       },
       {
         label: 'Angaben eines beendeten Zugangs entfernen',

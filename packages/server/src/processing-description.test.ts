@@ -402,6 +402,34 @@ describe('appendix C of the description', () => {
     expect(rows.map((row) => row[0] ?? '').sort()).toEqual(answered)
     expect(rows.filter((row) => (row[1] ?? '') === '')).toEqual([])
   })
+
+  /**
+   * A new route under a first segment the table knows would pass the test
+   * above, one without a sign-in among them (#541). The list under the table
+   * names every route with its method, each under its first segment.
+   */
+  it('names every route with its method under its first segment, and no other (#541)', () => {
+    const start = lines.indexOf('### Jeder Weg')
+    const listed = lines
+      .slice(start + 1)
+      .filter((line) => line.startsWith('- `'))
+      .flatMap((line) => {
+        const segment = /^- `([^`]+)`:/.exec(line)?.[1] ?? ''
+
+        return [...line.matchAll(/`([A-Z]+ \/[^`]*)`/g)].map((found) => ({
+          segment,
+          name: found[1] ?? '',
+        }))
+      })
+
+    expect(start).toBeGreaterThan(lines.indexOf('## Anhang C: Adressen des Servers'))
+    expect(listed.map((route) => route.name).sort()).toEqual(
+      [...new Set(routesOf(controllers).map((route) => route.name))].sort(),
+    )
+    expect(
+      listed.filter((route) => route.name.split(' ')[1]?.split('/')[1] !== route.segment),
+    ).toEqual([])
+  })
 })
 
 /**

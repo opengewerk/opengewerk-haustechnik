@@ -8,17 +8,24 @@ import {
 import { deadlineKinds } from './deadlines.js'
 import { defaultFaultReportSettings } from './fault-report.js'
 import { membershipRemovalDays } from './membership-end.js'
+import {
+  recordRetentionKinds,
+  recordRetentionLabels,
+  type RecordRetentionSettings,
+  recordRetentionYearsOf,
+} from './record-retention.js'
 import { type Right, rightLabel, shippedRoles } from './rights.js'
 import { defaultWorkOrderSettings } from './service-report.js'
 
 // The description of the processing as the application makes it (#357,
 // section 9 of the concept): a template, written by hand like the description
 // before it, and what is switched on and set at one operator. The template
-// has four places the application fills: the title, the line "Erzeugt", a
-// paragraph of section 1 on how the document came about, and the part "Bei
-// diesem Betreiber" at the end of section 2. Everything else is the text of
-// the template, the same for every operator. The file in the repository is
-// the template with the defaults, for an operator before the installation.
+// has places the application fills: the title, the line "Erzeugt", a
+// paragraph of section 1 on how the document came about, the part "Bei
+// diesem Betreiber" at the end of section 2, and in section 7 the years of
+// what hangs on no evidence (#524). Everything else is the text of the
+// template, the same for every operator. The file in the repository is the
+// template with the defaults, for an operator before the installation.
 
 export type ProcessingDescriptionId = Id<'processing-description'>
 
@@ -59,6 +66,8 @@ export interface ProcessingFacts {
   readonly openByLabel: boolean
   /** The years every evidence stays at least, or none beyond the rule (#340). */
   readonly minimumYears: number | null
+  /** The years of what hangs on no evidence that the operator set, null per kind for the law (#412, #524). */
+  readonly recordYears: RecordRetentionSettings | null
   /** The days after the last day of an access before its data goes (#356). */
   readonly removalDays: number
   /** Whether the operator set up a mail server; without one no mail goes out. */
@@ -74,8 +83,21 @@ export interface ProcessingMade {
   readonly facts: ProcessingFacts
 }
 
-/** The places of the template the application fills, each standing once. */
-export const processingPlaces = ['for', 'made', 'how-made', 'at-this-operator'] as const
+/**
+ * The places of the template the application fills, each standing once: the
+ * four of #357, and in section 7 the years of what hangs on no evidence as
+ * they hold at the operator (#524).
+ */
+export const processingPlaces = [
+  'for',
+  'made',
+  'how-made',
+  'at-this-operator',
+  'activity-years',
+  'defect-years',
+  'task-years',
+  'people-years',
+] as const
 
 /** What an operator starts with: the shipped roles, nothing switched on, the leads of the kinds. */
 export const defaultProcessingFacts: ProcessingFacts = {
@@ -89,6 +111,7 @@ export const defaultProcessingFacts: ProcessingFacts = {
   namesAndTimes: defaultWorkOrderSettings.namesAndTimes,
   openByLabel: defaultFaultReportSettings.openByLabel,
   minimumYears: null,
+  recordYears: null,
   removalDays: membershipRemovalDays.standard,
   mailServer: false,
   reminders: deadlineKinds.map((kind) => ({
@@ -115,6 +138,29 @@ function listed(parts: readonly string[]): string {
   return parts.length <= 1
     ? (parts[0] ?? '')
     : `${parts.slice(0, -1).join(', ')} und ${parts[parts.length - 1] ?? ''}`
+}
+
+const numberWords = [
+  '',
+  'ein',
+  'zwei',
+  'drei',
+  'vier',
+  'fünf',
+  'sechs',
+  'sieben',
+  'acht',
+  'neun',
+  'zehn',
+  'elf',
+  'zwölf',
+]
+
+/** A number of years as the text of section 7 says it: "ein Jahr", "sechs Jahre", "15 Jahre". */
+export function yearsInWords(count: number): string {
+  const word = numberWords[count] ?? String(count)
+
+  return count === 1 ? `${word} Jahr` : `${word} Jahre`
 }
 
 /** The roles in one cell: the shipped ones by name, with their accesses where an operator is meant, then its own. */
@@ -150,6 +196,21 @@ export function processingFactLines(
         facts.minimumYears === null
           ? 'keine Zahl von Jahren; es gilt die Regel der Pflichtart'
           : `${String(facts.minimumYears)} ${facts.minimumYears === 1 ? 'Jahr' : 'Jahre'}, länger, wo die Regel der Pflichtart es sagt`,
+    },
+    {
+      // What hangs on no evidence (#412, #524), each with the years that hold at the operator.
+      label: 'Aufbewahrung ohne Nachweis',
+      value: `${recordRetentionKinds
+        .map((kind) => {
+          const years = recordRetentionYearsOf(facts.recordYears, kind)
+
+          return `${recordRetentionLabels[kind]} ${String(years)} ${years === 1 ? 'Jahr' : 'Jahre'}`
+        })
+        .join(', ')}${
+        recordRetentionKinds.some((kind) => (facts.recordYears?.[kind] ?? null) !== null)
+          ? '; verlängert, wo es mehr sind als das Gesetz'
+          : '; die gesetzlichen'
+      }`,
     },
     {
       label: 'Angaben eines beendeten Zugangs entfernen',
@@ -214,12 +275,35 @@ function atThisOperator(made: ProcessingMade | null): string {
   return lines.join('\n')
 }
 
+/**
+ * The years of section 7 as they hold at an operator (#524): of an activity
+ * without evidence, a remedied defect, a task done, and the people at a
+ * reading and a booking, one span where both are the same.
+ */
+function recordYearsIn(facts: ProcessingFacts) {
+  const years = (kind: (typeof recordRetentionKinds)[number]) =>
+    recordRetentionYearsOf(facts.recordYears, kind)
+  const reading = years('reading_person')
+  const booking = years('booking_person')
+
+  return {
+    'activity-years': yearsInWords(years('activity')),
+    'defect-years': yearsInWords(years('defect')),
+    'task-years': yearsInWords(years('task')),
+    'people-years':
+      reading === booking
+        ? `${yearsInWords(reading)} danach`
+        : `${yearsInWords(reading)} nach der Ablesung, ${yearsInWords(booking)} nach Buchung oder Entnahme`,
+  }
+}
+
 /** What the application fills in at each place of the template. */
 function filled(
   made: ProcessingMade | null,
 ): Readonly<Record<(typeof processingPlaces)[number], string>> {
   if (made === null) {
     return {
+      ...recordYearsIn(defaultProcessingFacts),
       for: '',
       made: 'mit den Vorgaben, für einen Betreiber vor der Installation',
       'how-made':
@@ -231,6 +315,7 @@ function filled(
   const operator = plainInMarkdown(made.operator)
 
   return {
+    ...recordYearsIn(made.facts),
     for: ` für ${operator}`,
     made: `am ${made.at} für ${operator}`,
     'how-made': `**Erzeugt für ${operator}.** Die Anwendung hat dieses Dokument aus einer Vorlage und aus dem erzeugt, was bei diesem Betreiber eingeschaltet und eingestellt war; wann, steht oben unter „Erzeugt“, und was eingestellt war, in Abschnitt 2 unter „Bei diesem Betreiber“. Jede erzeugte Fassung bleibt bei der Leitung unter „Einstellungen“, „Datenschutz“ mit ihrem Tag, damit sich nachlesen lässt, was sich geändert hat.`,

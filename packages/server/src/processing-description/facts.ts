@@ -8,6 +8,7 @@ import { deadlineSettingsOf, type TenantTransaction } from '@opengewerk/platform
 import { mailSettings } from '@opengewerk/platform-server/schema'
 
 import { workOrderSettingsOf } from '../activities/service-reports.js'
+import { recordRetentionOf } from '../api/record-retention.controller.js'
 import { minimumYearsOf } from '../api/retention.controller.js'
 import { rolesOf } from '../api/roles.controller.js'
 import { faultReportSettingsOf } from '../faults/reading.js'
@@ -35,6 +36,7 @@ export async function processingFactsOf(tx: TenantTransaction): Promise<Processi
     namesAndTimes: (await workOrderSettingsOf(tx)).namesAndTimes,
     openByLabel: (await faultReportSettingsOf(tx)).openByLabel,
     minimumYears: await minimumYearsOf(tx),
+    recordYears: await recordRetentionOf(tx),
     removalDays: await removalDaysOf(tx),
     mailServer: mailServer !== undefined,
     reminders: deadlineKinds.map((kind) => {
