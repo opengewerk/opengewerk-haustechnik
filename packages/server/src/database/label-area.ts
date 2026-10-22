@@ -42,6 +42,33 @@ export async function openLabel(database: Database, code: string): Promise<OpenL
 }
 
 /**
+ * The operator and the area of an address for an answer not yet confirmed,
+ * by the hash of the secret of its link (S12 of the review of phase 2);
+ * nothing for every other hash. Asked outside any operator, through the one
+ * function that looks past them for this, `contact_to_confirm`.
+ */
+export async function contactToConfirm(
+  database: Database,
+  sha256: string,
+): Promise<OpenLabel | null> {
+  const rows = await database.forInstance(
+    async (tx) =>
+      (
+        await tx.execute<{ tenant_id: string; area_id: string }>(
+          sql`select tenant_id, area_id from contact_to_confirm(${sha256})`,
+        )
+      ).rows,
+    undefined,
+    outsideReason,
+  )
+  const [found] = rows
+
+  return found === undefined
+    ? null
+    : { tenantId: found.tenant_id as TenantId, areaId: found.area_id }
+}
+
+/**
  * The work for a report without an account, inside the operator of its label
  * and in the area of that label alone (#332, ADR 0003).
  *

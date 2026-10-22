@@ -76,7 +76,7 @@ describe('every route', () => {
    * the one worth counting: adding one turns this test red, which makes it a
    * decision instead of a line in a diff nobody looked at twice.
    */
-  it('that answers without an identity is the health check, the first run, a one time link, the legal texts or the page of a label', () => {
+  it('that answers without an identity is the health check, the first run, a one time link, the legal texts, the page of a label or the link of its address', () => {
     const publicRoutes = routesOf(controllers)
       .filter((route) => route.isPublic)
       .map((route) => route.name)
@@ -89,6 +89,7 @@ describe('every route', () => {
       'GET /legal-texts',
       'GET /setup',
       'POST /fault-reports/by-label/:code',
+      'POST /fault-reports/by-label/address/confirmation',
       'POST /invitation/:token',
       'POST /setup',
       'PUT /fault-reports/by-label/:code/photo/:slip',
@@ -118,6 +119,13 @@ describe('every route', () => {
    * The photo follows its report once, with a slip its answer carried, so
    * that nothing is stored without a report it belongs to.
    *
+   * The confirmation of an address such a report gave for an answer (S12 of
+   * the review of phase 2) belongs to it: whoever opens the link from the
+   * mail has no account either. What stands in for authentication is the
+   * secret of the link, random bytes the server mailed to that address and
+   * keeps only as a hash, good once and gone with the report done; it writes
+   * the moment of the confirmation and nothing else.
+   *
    * A further entry here would be a public route that writes for some other
    * reason, and there is no other reason.
    */
@@ -129,6 +137,7 @@ describe('every route', () => {
 
     expect(writingAndPublic).toEqual([
       'POST /fault-reports/by-label/:code',
+      'POST /fault-reports/by-label/address/confirmation',
       'POST /invitation/:token',
       'POST /setup',
       'PUT /fault-reports/by-label/:code/photo/:slip',

@@ -51,6 +51,8 @@ export const roundRecords = pgTable(
     withinAreas(),
     withinLimits(table.propertyId, kindOfItsActivity(table.activityId)),
     unique('round_records_tenant_id_key').on(table.tenantId, table.id),
+    // What a print of it points at, over its property (#518).
+    unique('round_records_place').on(table.tenantId, table.id, table.propertyId),
     // One per handing in: a round opened again (#510) is written down anew,
     // which the database holds (`round_record_once_per_opening`).
     index('round_records_activity_idx').on(table.tenantId, table.activityId),
@@ -87,6 +89,12 @@ export const prints = pgTable(
     areaId: reference<'area'>('area_id').notNull(),
     evidenceId: reference<'evidence'>('evidence_id'),
     activityId: reference<'activity'>('activity_id'),
+    /**
+     * Of a round, the handing in it was made of (#518): a round opened again
+     * (#510) is written down anew and printed anew. Null on a print made
+     * before 0.2.2, which is of the first record of its round.
+     */
+    roundRecordId: reference<'round-record'>('round_record_id'),
     /** The service report of a work order (#324). */
     serviceReportId: reference<'service-report'>('service_report_id'),
     /** Printed with the declaration that the evidence or the service report is invalid. */
@@ -130,7 +138,17 @@ export const prints = pgTable(
       name: 'prints_in_a_file_of_the_tenant',
     }),
     uniqueIndex('prints_of_an_evidence_once').on(table.tenantId, table.evidenceId, table.voided),
-    uniqueIndex('prints_of_a_round_once').on(table.tenantId, table.activityId),
+    // A print of a round once per handing in (#518), and the one from before
+    // 0.2.2 once per round.
+    uniqueIndex('prints_of_a_round_record_once').on(table.tenantId, table.roundRecordId),
+    uniqueIndex('prints_of_a_round_once')
+      .on(table.tenantId, table.activityId)
+      .where(sql`${table.roundRecordId} is null`),
+    foreignKey({
+      columns: [table.tenantId, table.roundRecordId, table.propertyId],
+      foreignColumns: [roundRecords.tenantId, roundRecords.id, roundRecords.propertyId],
+      name: 'prints_of_a_round_record',
+    }).onUpdate('cascade'),
     uniqueIndex('prints_of_a_service_report_once').on(
       table.tenantId,
       table.serviceReportId,

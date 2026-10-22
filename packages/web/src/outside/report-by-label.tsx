@@ -1,5 +1,9 @@
 import {
+  addressConfirmedSentence,
   closedLabelSentence,
+  confirmationFirstSentence,
+  confirmationGoneSentence,
+  confirmationPath,
   type FaultCategory,
   faultReportLimits,
   labelCodeFromScan,
@@ -14,7 +18,7 @@ import { Gate, GateText, GateWaiting } from '@opengewerk/platform-web/gate'
 import { request, RequestRefused } from '@opengewerk/platform-web/sync'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Check, CircleCheck, DoorOpen, Lock, Plus } from 'lucide-react'
-import { type FormEvent, type ReactNode, useState } from 'react'
+import { type FormEvent, type ReactNode, useEffect, useState } from 'react'
 
 import { PhotoPreview } from '../site/reporting.js'
 
@@ -30,8 +34,7 @@ export const outsideWords = {
   descriptionHint: 'Was ist kaputt, und seit wann?',
   photo: 'Foto (freiwillig)',
   contact: 'E-Mail für eine Rückmeldung (freiwillig)',
-  contactHint:
-    'Dann bekommen Sie Bescheid, wenn die Meldung angenommen und wenn sie erledigt ist. Mit der Erledigung wird die Adresse gelöscht.',
+  contactHint: confirmationFirstSentence,
   noticeBefore:
     'Die Meldung geht an den Betreiber des Gebäudes. Nach Ihrem Namen wird nicht gefragt. Wie die Angaben verarbeitet werden, steht in den',
   privacy: 'Datenschutzhinweisen',
@@ -43,7 +46,10 @@ export const outsideWords = {
   done: 'Gemeldet',
   thanks: 'Danke. Der Betreiber sieht Ihre Meldung jetzt.',
   thanksWithAddress:
-    'Danke. Der Betreiber sieht Ihre Meldung jetzt. Weil Sie eine Adresse angegeben haben, schreibt er Ihnen, wenn sie angenommen und wenn sie erledigt ist.',
+    'Danke. Der Betreiber sieht Ihre Meldung jetzt. An Ihre Adresse geht gleich eine E-Mail mit einem Link. Bestätigen Sie damit die Adresse, dann schreibt er Ihnen, wenn die Meldung angenommen und wenn sie erledigt ist.',
+  confirming: 'Die Adresse wird bestätigt.',
+  confirmed: 'Adresse bestätigt',
+  notConfirmed: 'Nicht bestätigt',
   photoLost: 'Das Foto ist nicht angekommen. Die Meldung selbst ist angekommen, ohne Foto.',
   another: 'Noch eine Störung melden',
   unavailable: 'Gerade nicht möglich',
@@ -65,6 +71,11 @@ const privacyPath = '/rechtliches/datenschutz'
 export function signedOutPage(address: URL): ReactNode {
   if (address.searchParams.has('anmelden')) {
     return null
+  }
+
+  // The link of the mail that confirms an address for an answer (S12).
+  if (address.pathname === confirmationPath) {
+    return <ConfirmAddress secret={address.hash.slice(1)} />
   }
 
   const code = labelCodeFromScan(address.href)
@@ -177,6 +188,71 @@ export function ReportByLabel({ code }: { readonly code: string }) {
       form={answer.form}
       onSent={setSent}
     />
+  )
+}
+
+/**
+ * The page the link of the mail opens, boards "HT-Tor-Adresse-…" (S12 of the
+ * review of phase 2): it hands the secret from behind the "#" to the server
+ * once, says what came of it, and takes the secret out of the address.
+ */
+export function ConfirmAddress({ secret }: { readonly secret: string }) {
+  const confirming = useQuery({
+    queryKey: ['outside-address', secret],
+    queryFn: () =>
+      request<{ readonly confirmed: true }>('/fault-reports/by-label/address/confirmation', {
+        method: 'POST',
+        body: JSON.stringify({ link: secret }),
+      }),
+    retry: false,
+    staleTime: Number.POSITIVE_INFINITY,
+    gcTime: Number.POSITIVE_INFINITY,
+  })
+  const answered = !confirming.isPending
+
+  // The secret is spent either way: it does not stay in the address or its history.
+  useEffect(() => {
+    if (answered) {
+      globalThis.history.replaceState(null, '', confirmationPath)
+    }
+  }, [answered])
+
+  if (confirming.isPending) {
+    return <GateWaiting>{outsideWords.confirming}</GateWaiting>
+  }
+
+  if (confirming.isError) {
+    const refused = confirming.error instanceof RequestRefused
+
+    return (
+      <Gate title={refused ? outsideWords.notConfirmed : outsideWords.unavailable}>
+        <div className="flex items-start gap-3">
+          <Lock
+            size={24}
+            strokeWidth={2.1}
+            aria-hidden="true"
+            className="mt-0.5 shrink-0 text-ink-muted"
+          />
+          <GateText muted={false}>
+            {refused ? confirmationGoneSentence : outsideWords.offline}
+          </GateText>
+        </div>
+      </Gate>
+    )
+  }
+
+  return (
+    <Gate title={outsideWords.confirmed}>
+      <div className="flex items-start gap-3">
+        <CircleCheck
+          size={26}
+          strokeWidth={2.2}
+          aria-hidden="true"
+          className="mt-0.5 shrink-0 text-done"
+        />
+        <GateText muted={false}>{addressConfirmedSentence}</GateText>
+      </div>
+    </Gate>
   )
 }
 

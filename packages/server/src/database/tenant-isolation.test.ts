@@ -247,6 +247,8 @@ describe('the tables', () => {
           'a kind or a field the operator added goes only while no asset uses it, and an asset in an area of somebody else uses it as well (#62); handed out are counts and the codes of the choices of a choice, for the tenant of the transaction, never a text an asset holds and never an id',
         'label_open_to_reports(asked text)':
           'the page of a label takes a report from somebody without an account (#332), who is in no tenant: the code alone has to find the operator and the area of a valid label at a room or an asset whose operator switched the page on; handed out are those two ids, to the server and never further, and nothing for every other code',
+        'contact_to_confirm(asked text)':
+          'the address somebody without an account gave for an answer is confirmed over a link in a mail (S12 of the review of phase 2), opened by somebody who is in no tenant: the hash of the link alone has to find the operator and the area of the address not yet confirmed; handed out are those two ids, to the server and never further, and nothing for every other hash',
       }),
     ).toEqual({
       unexplained: [],

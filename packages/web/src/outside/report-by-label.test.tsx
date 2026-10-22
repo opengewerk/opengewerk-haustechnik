@@ -1,5 +1,8 @@
 import {
+  addressConfirmedSentence,
   closedLabelSentence,
+  confirmationGoneSentence,
+  confirmationPath,
   type OutsideLabelPage,
   outsideReportRules,
   tooManyReportsSentence,
@@ -271,5 +274,47 @@ describe('the page of a label without an account', () => {
     expect(asked.find((each) => each.method === 'PUT')?.path).toBe(
       `/fault-reports/by-label/${code}/photo/slip-1`,
     )
+  })
+})
+
+describe('the link that confirms an address (S12 of the review of phase 2)', () => {
+  const secret = 'A'.repeat(43)
+
+  function opened() {
+    const page = signedOutPage(new URL(`https://haustechnik.example${confirmationPath}#${secret}`))
+
+    return render(
+      <QueryClientProvider client={new QueryClient()}>
+        <ApplicationProvider application={application}>{page}</ApplicationProvider>
+      </QueryClientProvider>,
+    )
+  }
+
+  it('hands the secret from behind the hash sign to the server once and says the address is confirmed', async () => {
+    serverAnswers(() => ({ status: 200, body: { confirmed: true } }))
+
+    const replaced = vi.spyOn(globalThis.history, 'replaceState')
+
+    opened()
+
+    expect(await screen.findByRole('heading', { name: outsideWords.confirmed })).toBeTruthy()
+    expect(screen.getByText(addressConfirmedSentence)).toBeTruthy()
+    expect(asked).toEqual([
+      {
+        path: expect.stringContaining('/fault-reports/by-label/address/confirmation') as string,
+        method: 'POST',
+        body: { link: secret },
+      },
+    ])
+    // The secret does not stay in the address.
+    expect(replaced).toHaveBeenCalledWith(null, '', confirmationPath)
+  })
+
+  it('says alike of every link that confirms nothing', async () => {
+    serverAnswers(() => ({ status: 404, body: { message: confirmationGoneSentence } }))
+    opened()
+
+    expect(await screen.findByRole('heading', { name: outsideWords.notConfirmed })).toBeTruthy()
+    expect(screen.getByText(confirmationGoneSentence)).toBeTruthy()
   })
 })

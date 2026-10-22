@@ -8,6 +8,7 @@ import {
   addDays,
   catalogueOf,
   type IsoDate,
+  rightsOfRoles,
   type RoleKey,
   roundShowsFrom,
   shippedRoles,
@@ -1365,6 +1366,36 @@ describe('a round in the office', () => {
     expect(late.message).toBe(countersignedWords)
     // The database holds the same on every way.
     expect(await refusalOf('u-site', opening(round))).toBe(countersignedWords)
+  })
+
+  it('is opened again by a role that countersigns rounds without carrying them out, not by a signer who no longer does (S6)', async () => {
+    const round = await roundFor('u-tech')
+
+    await signedOnSite(round, 'u-tech')
+
+    const reopenedAs = (userId: string, role: RoleKey, without: string) =>
+      answered(
+        http()
+          .post(`/rounds/${round}/reopening`)
+          .set(
+            testIdentityHeader,
+            JSON.stringify({
+              userId,
+              tenantId: tenant,
+              roles: [role],
+              rights: [...rightsOfRoles([role])].filter((right) => right !== without),
+            }),
+          )
+          .send({}),
+      )
+    // Who signed it and no longer carries out activities.
+    const signer = await reopenedAs('u-tech', 'technician', 'activity.perform')
+
+    expect(signer.status).toBe(409)
+    expect(signer.message).toBe(
+      'Wieder öffnen darf, wer den Rundgang abgegeben hat, und wer Rundgänge gegenzeichnet.',
+    )
+    expect((await reopenedAs('u-site', 'site_management', 'activity.perform')).status).toBe(201)
   })
 
   it('is not opened again once a defect from it has a work order (#510)', async () => {

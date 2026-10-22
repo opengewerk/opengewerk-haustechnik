@@ -692,6 +692,7 @@ export const auditVocabulary: AuditVocabulary = {
       fields: {
         evidence_id: 'Nachweis',
         activity_id: 'Rundgang',
+        round_record_id: 'Abgabe des Rundgangs',
         service_report_id: 'Leistungsnachweis',
         voided: 'Mit der Ungültigerklärung',
         sha256: 'Datei',

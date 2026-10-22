@@ -946,6 +946,25 @@ describe('the answer by mail', () => {
     await admin.query("update activities set status = 'signed' where id = $1", [order.id])
   }
 
+  const origin = 'https://haustechnik.beispielstadt.example'
+
+  /** One pass for the addresses earlier tests gave, so that a test counts only its own mails. */
+  async function flushed(job: Parameters<typeof answerOutsideReports>[0], mails: OutgoingMail[]) {
+    await answerOutsideReports(job)
+    mails.length = 0
+  }
+
+  /** The link of a mail that confirms an address, handed in as its page does. */
+  function confirmed(text: string) {
+    const secret = new RegExp(`${origin}/rueckmeldung-bestaetigen#([A-Za-z0-9_-]{43})`).exec(
+      text,
+    )?.[1]
+
+    return http()
+      .post('/fault-reports/by-label/address/confirmation')
+      .send({ link: secret ?? '' })
+  }
+
   async function contactOf(id: string): Promise<{ accepted_mailed_at: Date | null } | undefined> {
     const { rows } = await admin.query<{ accepted_mailed_at: Date | null }>(
       'select accepted_mailed_at from fault_report_contacts where fault_report_id = $1',
@@ -959,14 +978,21 @@ describe('the answer by mail', () => {
     await switched(true).expect(200)
     await aMailServer(admin, operator, { from: 'haustechnik@beispielstadt.example' })
 
+    const { mails, transport } = recording()
+    const job = { database, connect: () => transport, key: testKey, origin }
+
+    await flushed(job, mails)
+
     const address = 'antwort@beispiel.example'
     const code = await labelOn(north, 'north', { room: north.room })
     const { id } = await reportedOver(code, { contact: address })
-    const { mails, transport } = recording()
-    const job = { database, connect: () => transport, key: testKey }
 
-    // Received: nothing to say yet.
+    // Received: the link that confirms the address, once, and nothing about the report.
+    expect(await answerOutsideReports(job)).toBe(1)
     expect(await answerOutsideReports(job)).toBe(0)
+    await confirmed(mails[0]?.text ?? '').expect(200)
+    // Good once.
+    await confirmed(mails[0]?.text ?? '').expect(404)
 
     const order = (await accept(id).expect(201)).body as WorkOrderDetails
 
@@ -979,6 +1005,7 @@ describe('the answer by mail', () => {
     expect(await answerOutsideReports(job)).toBe(1)
     expect(await contactOf(id)).toBeUndefined()
     expect(mails.map((mail) => [mail.to.address, mail.subject])).toEqual([
+      [address, 'Bitte bestätigen Sie Ihre Adresse'],
       [address, 'Ihre Störmeldung ist angenommen'],
       [address, 'Ihre Störmeldung ist erledigt'],
     ])
@@ -986,7 +1013,65 @@ describe('the answer by mail', () => {
       name: 'Liegenschaften Beispielstadt',
       address: 'haustechnik@beispielstadt.example',
     })
-    expect(mails[1]?.text).toContain('2.05 Lehrerzimmer')
+    expect(mails[2]?.text).toContain('2.05 Lehrerzimmer')
+  })
+
+  /**
+   * S12 of the review of phase 2: whoever types an address of somebody else
+   * makes the mail server of the operator send that address one link, which
+   * names no report, no building and no room, and nothing after it.
+   */
+  it('goes to an address not confirmed only as its link, and the address goes with the report done', async () => {
+    await switched(true).expect(200)
+    await aMailServer(admin, operator, { from: 'haustechnik@beispielstadt.example' })
+
+    const { mails, transport } = recording()
+    const job = { database, connect: () => transport, key: testKey, origin }
+
+    await flushed(job, mails)
+
+    const { id } = await reportedOver(await labelOn(north, 'north', { room: north.room }), {
+      contact: 'fremd@beispiel.example',
+    })
+
+    expect(await answerOutsideReports(job)).toBe(1)
+    expect(mails[0]?.subject).toBe('Bitte bestätigen Sie Ihre Adresse')
+    expect(mails[0]?.text).toContain('Liegenschaften Beispielstadt')
+    expect(mails[0]?.text).not.toContain('2.05 Lehrerzimmer')
+    expect(mails[0]?.text).not.toContain('Ihre Meldung vom')
+
+    // Its hash alone is kept, never the link.
+    const secret = /#([A-Za-z0-9_-]{43})/.exec(mails[0]?.text ?? '')?.[1] ?? ''
+    const { rows } = await admin.query<{ confirmation_sha256: string }>(
+      'select confirmation_sha256 from fault_report_contacts where fault_report_id = $1',
+      [id],
+    )
+
+    expect(rows[0]?.confirmation_sha256).toMatch(/^[0-9a-f]{64}$/)
+    expect(rows[0]?.confirmation_sha256).not.toContain(secret)
+
+    const order = (await accept(id).expect(201)).body as WorkOrderDetails
+
+    expect(await answerOutsideReports(job)).toBe(0)
+
+    await signed(order)
+
+    expect(await answerOutsideReports(job)).toBe(0)
+    expect(mails).toHaveLength(1)
+    expect(await contactOf(id)).toBeUndefined()
+    // And the link confirms nothing any more.
+    await confirmed(mails[0]?.text ?? '').expect(404)
+  })
+
+  it('confirms nothing with a link of the wrong shape or one never mailed', async () => {
+    await http()
+      .post('/fault-reports/by-label/address/confirmation')
+      .send({ link: 'zu-kurz' })
+      .expect(404)
+    await http()
+      .post('/fault-reports/by-label/address/confirmation')
+      .send({ link: 'A'.repeat(43) })
+      .expect(404)
   })
 
   it('removes the address of a rejected report without a mail', async () => {
@@ -1004,7 +1089,9 @@ describe('the answer by mail', () => {
       .send({ reason: 'Gehört zum Bauunterhalt der Stadt.' })
       .expect(201)
 
-    expect(await answerOutsideReports({ database, connect: () => transport, key: testKey })).toBe(0)
+    expect(
+      await answerOutsideReports({ database, connect: () => transport, key: testKey, origin }),
+    ).toBe(0)
     expect(mails).toEqual([])
     expect(await contactOf(id)).toBeUndefined()
   })

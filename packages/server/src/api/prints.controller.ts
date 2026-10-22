@@ -16,6 +16,7 @@ import {
   type EvidenceId,
   type IsoDate,
   readEvidenceState,
+  type RoundRecordId,
   type ServiceReportId,
   type StatedAnswer,
   type StatedCircuit,
@@ -38,7 +39,7 @@ import {
   type TenantTransaction,
 } from '@opengewerk/platform-server'
 import { files } from '@opengewerk/platform-server/schema'
-import { and, eq, inArray, isNull } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNull, or } from 'drizzle-orm'
 
 import {
   activities,
@@ -73,7 +74,12 @@ interface Response {
  */
 type PrintOf =
   | { readonly evidenceId: EvidenceId; readonly voided: boolean }
-  | { readonly activityId: ActivityId }
+  | {
+      readonly activityId: ActivityId
+      /** The handing in it is of (#518), and whether it is the first of the round. */
+      readonly roundRecordId: RoundRecordId
+      readonly first: boolean
+    }
   | { readonly serviceReportId: ServiceReportId; readonly voided: boolean }
 
 /** The sentence when the instance has no renderer: the page says so instead of failing. */
@@ -181,7 +187,7 @@ export class Printer {
             ? { evidenceId: of.evidenceId, voided: of.voided }
             : 'serviceReportId' in of
               ? { serviceReportId: of.serviceReportId, voided: of.voided }
-              : { activityId: of.activityId }),
+              : { activityId: of.activityId, roundRecordId: of.roundRecordId }),
           sha256: blob.sha256,
         })
         .onConflictDoNothing()
@@ -407,7 +413,11 @@ export class RoundPrintController {
       // A round the person sees: for the house technicians one given to them
       // or to nobody, as on its page.
       const [round] = await tx
-        .select({ id: activities.id, emptiedAt: activities.emptiedAt })
+        .select({
+          id: activities.id,
+          emptiedAt: activities.emptiedAt,
+          reopenedAt: activities.reopenedAt,
+        })
         .from(activities)
         .where(
           and(
@@ -429,12 +439,19 @@ export class RoundPrintController {
         )
       }
 
-      const [found] = await tx
+      // The record of its last handing in (#518): a round opened again has
+      // none until it is handed in again, and its record before is history.
+      const records = await tx
         .select()
         .from(roundRecords)
         .where(eq(roundRecords.activityId, round.id))
+        .orderBy(asc(roundRecords.createdAt))
+      const found = records.at(-1)
 
-      return found ?? null
+      return found === undefined ||
+        (round.reopenedAt !== null && found.createdAt <= round.reopenedAt)
+        ? null
+        : { record: found, first: records.length === 1 }
     })
 
     if (record === null) {
@@ -443,19 +460,20 @@ export class RoundPrintController {
       )
     }
 
+    const { record: written, first } = record
     const bytes = await this.printer.printed(
       identity,
-      { activityId: record.activityId },
-      { propertyId: record.propertyId, areaId: record.areaId },
+      { activityId: written.activityId, roundRecordId: written.id, first },
+      { propertyId: written.propertyId, areaId: written.areaId },
       async () =>
         roundPrintJob(
-          record.state,
-          record.fingerprint,
-          await this.printer.photosOf(record.state.answers),
+          written.state,
+          written.fingerprint,
+          await this.printer.photosOf(written.state.answers),
         ),
     )
 
-    return pdf(response, bytes, `Rundgang ${record.state.title}`)
+    return pdf(response, bytes, `Rundgang ${written.state.title}`)
   }
 }
 
@@ -546,7 +564,13 @@ async function keptPrint(tx: TenantTransaction, of: PrintOf): Promise<string | n
         ? and(eq(prints.evidenceId, of.evidenceId), eq(prints.voided, of.voided))
         : 'serviceReportId' in of
           ? and(eq(prints.serviceReportId, of.serviceReportId), eq(prints.voided, of.voided))
-          : eq(prints.activityId, of.activityId),
+          : and(
+              eq(prints.activityId, of.activityId),
+              // A print from before 0.2.2 names no record and is of the first.
+              of.first
+                ? or(eq(prints.roundRecordId, of.roundRecordId), isNull(prints.roundRecordId))
+                : eq(prints.roundRecordId, of.roundRecordId),
+            ),
     )
 
   return row?.sha256 ?? null

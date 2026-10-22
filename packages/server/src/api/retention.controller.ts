@@ -40,7 +40,7 @@ import {
 } from '../database/schema/index.js'
 import { dayInGermany } from '../today.js'
 import { RequiresPermission } from './authorization.js'
-import { type Asking, fieldsOf } from './places.js'
+import { type Asking, changedInEveryArea, fieldsOf } from './places.js'
 
 /** The longer retention of the operator, or none. */
 export async function minimumYearsOf(tx: TenantTransaction): Promise<number | null> {
@@ -97,6 +97,8 @@ export class EvidenceRetentionController {
     const years = (minimumYears ?? null) as number | null
 
     return this.database.forTenant(identity, async (tx) => {
+      await changedInEveryArea(tx)
+
       await tx
         .insert(evidenceRetentionSettings)
         .values({ tenantId: identity.tenantId, minimumYears: years })

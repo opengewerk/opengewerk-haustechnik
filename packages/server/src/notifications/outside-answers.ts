@@ -1,4 +1,7 @@
+import { createHash, randomBytes } from 'node:crypto'
+
 import {
+  confirmationPath,
   type FaultReportState,
   faultPlaceLine,
   type TenantId,
@@ -25,7 +28,14 @@ export interface OutsideAnswersJob {
   readonly database: Database
   readonly connect: (configuration: MailConfiguration) => MailTransport
   readonly key: SecretKey
+  /** Where the instance is reached, for the link that confirms an address. */
+  readonly origin: string
   readonly now?: () => Date
+}
+
+/** The hash under which the secret of a link is kept, the same on its way in. */
+export function confirmationHash(secret: string): string {
+  return createHash('sha256').update(secret).digest('hex')
 }
 
 /**
@@ -46,6 +56,33 @@ function dayOf(at: Date): string {
     month: '2-digit',
     year: 'numeric',
   }).format(at)
+}
+
+/**
+ * The one mail an address gets before it is confirmed: who asks, and the
+ * link, no report, no building and no room. An address of somebody else
+ * learns from it that the operator has a page for reports, and nothing more.
+ */
+function confirmationOf(
+  link: string,
+  operator: string,
+): { readonly subject: string; readonly text: string } {
+  return {
+    subject: 'Bitte bestätigen Sie Ihre Adresse',
+    text: [
+      'Guten Tag,',
+      '',
+      `bei einer Störmeldung an ${operator} wurde diese Adresse für eine Rückmeldung angegeben. Wenn Sie das waren, bestätigen Sie die Adresse mit diesem Link:`,
+      '',
+      link,
+      '',
+      'Erst danach bekommen Sie Bescheid, wenn die Meldung angenommen und wenn sie erledigt ist.',
+      '',
+      'Waren Sie es nicht, müssen Sie nichts tun. Ohne Bestätigung kommt keine weitere Nachricht, und die Adresse wird mit der Erledigung der Meldung gelöscht.',
+      '',
+      operator,
+    ].join('\n'),
+  }
 }
 
 /** The two answers somebody without an account gets, in the words of the operator. */
@@ -83,11 +120,23 @@ function messageOf(
       }
 }
 
-/** What to do with one address, from the state its report follows. */
+/**
+ * What to do with one address, from the state its report follows. An address
+ * not confirmed gets its link once and nothing else, and goes with its
+ * report rejected or done, without a mail.
+ */
 function stepOf(
   state: FaultReportState,
   contact: ContactRow,
-): 'wait' | 'accepted' | 'done' | 'remove' {
+): 'wait' | 'confirm' | 'accepted' | 'done' | 'remove' {
+  if (contact.confirmedAt === null) {
+    if (state === 'rejected' || state === 'done') {
+      return 'remove'
+    }
+
+    return contact.confirmationMailedAt === null ? 'confirm' : 'wait'
+  }
+
   switch (state) {
     case 'rejected':
       return 'remove'
@@ -102,8 +151,10 @@ function stepOf(
 
 /**
  * The answers to somebody who reported without an account and gave an address
- * (section 4.7 of the concept, #332): one mail when the report is accepted,
- * one when it is done, each through the mail server of the operator, as a
+ * (section 4.7 of the concept, #332): first a link that confirms the address
+ * (S12 of the review of phase 2), and only to an address confirmed one mail
+ * when the report is accepted and one when it is done, each through the mail
+ * server of the operator, as a
  * report merged into another follows that one. The address goes with the
  * report done, after the mail, and with the report rejected, without one: a
  * rejection is answered to nobody, as with an account (#331).
@@ -200,8 +251,8 @@ async function answerIn(job: OutsideAnswersJob, tenantId: TenantId): Promise<num
       }
 
       if (connection?.state !== 'ready' || report === null) {
-        // Nothing can go out. An acceptance waits for a mail server; a report
-        // done takes the address with it.
+        // Nothing can go out. A link and an acceptance wait for a mail server;
+        // a report done takes the address with it.
         if (step === 'done' && (connection === null || report === null)) {
           await settle(job.database, actor, contact, 'remove')
         }
@@ -213,7 +264,11 @@ async function answerIn(job: OutsideAnswersJob, tenantId: TenantId): Promise<num
         transport ??= job.connect(connection.configuration)
 
         const operator = await inEveryArea(job.database, actor, operatorName)
-        const message = messageOf(step, report, operator)
+        const secret = step === 'confirm' ? randomBytes(32).toString('base64url') : null
+        const message =
+          secret === null
+            ? messageOf(step === 'confirm' ? 'accepted' : step, report, operator)
+            : confirmationOf(`${job.origin}${confirmationPath}#${secret}`, operator)
 
         await transport.send({
           from: { name: operator, address: connection.configuration.from },
@@ -224,7 +279,9 @@ async function answerIn(job: OutsideAnswersJob, tenantId: TenantId): Promise<num
           attachments: [],
         })
         sent += 1
-        await settle(job.database, actor, contact, step === 'done' ? 'remove' : 'accepted', now)
+        await (secret === null
+          ? settle(job.database, actor, contact, step === 'done' ? 'remove' : 'accepted', now)
+          : asked(job.database, actor, contact, confirmationHash(secret), now))
       } catch (error) {
         console.warn(
           `Eine Rückmeldung an jemanden ohne Konto ging für den Betreiber ${tenantId} nicht hinaus.`,
@@ -271,5 +328,26 @@ async function settle(
     await (how === 'remove'
       ? tx.delete(faultReportContacts).where(where)
       : tx.update(faultReportContacts).set({ acceptedMailedAt: now, updatedAt: now }).where(where))
+  })
+}
+
+/** Writes down that the link of an address went out, with its hash and never the link. */
+async function asked(
+  database: Database,
+  actor: { readonly tenantId: TenantId; readonly reason: string },
+  contact: ContactRow,
+  sha256: string,
+  now: Date,
+): Promise<void> {
+  await inEveryArea(database, actor, async (tx) => {
+    await tx
+      .update(faultReportContacts)
+      .set({ confirmationSha256: sha256, confirmationMailedAt: now, updatedAt: now })
+      .where(
+        and(
+          eq(faultReportContacts.id, contact.id),
+          eq(faultReportContacts.tenantId, contact.tenantId),
+        ),
+      )
   })
 }

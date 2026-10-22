@@ -439,20 +439,23 @@ export class ContractorsController {
         .select({ open: count() })
         .from(activities)
         .where(and(openActivity, eq(activities.contractorId, row.id)))
-      const written = await tx
-        .select({
-          id: evidence.id,
-          number: evidence.number,
-          performedOn: evidence.performedOn,
-          result: evidence.result,
-          examinerOrganisation: evidence.examinerOrganisation,
-          duty: duties,
-        })
-        .from(evidence)
-        .innerJoin(duties, eq(duties.id, evidence.dutyId))
-        .where(eq(evidence.contractorId, row.id))
-        .orderBy(desc(evidence.performedOn), desc(evidence.writtenAt))
-        .limit(contractorBounds.evidence)
+      // The evidence of the firm only for whoever reads the evidence (section 7).
+      const written = !isAllowed(identity, 'evidence.read')
+        ? []
+        : await tx
+            .select({
+              id: evidence.id,
+              number: evidence.number,
+              performedOn: evidence.performedOn,
+              result: evidence.result,
+              examinerOrganisation: evidence.examinerOrganisation,
+              duty: duties,
+            })
+            .from(evidence)
+            .innerJoin(duties, eq(duties.id, evidence.dutyId))
+            .where(eq(evidence.contractorId, row.id))
+            .orderBy(desc(evidence.performedOn), desc(evidence.writtenAt))
+            .limit(contractorBounds.evidence)
 
       return {
         contractor: row,

@@ -1120,6 +1120,56 @@ describe('the PDF of a round (#111)', () => {
       .expect(404, /sobald der Rundgang abgeschlossen ist/)
   })
 
+  it('is of the last handing in of a round opened again, and none while it is open (#518)', async () => {
+    const { asset } = await assetWithDuty()
+    const round = await roundAt(asset, [])
+    const pdfOfRound = () =>
+      http().get(`/rounds/${round}/pdf`).set(testIdentityHeader, by('u-tech'))
+    const tableOfRound = () =>
+      http()
+        .get(`/rounds/${round}/table`)
+        .query({ format: 'csv' })
+        .set(testIdentityHeader, by('u-tech'))
+    const before = rendered.length
+
+    await pdfOfRound().expect(200)
+    expect(rendered).toHaveLength(before + 1)
+
+    // Opened again: the record before is history, and there is no PDF until it is handed in again.
+    await admin.query(
+      "update activities set reopened_at = now(), status = 'started' where id = $1",
+      [round],
+    )
+    await pdfOfRound().expect(404, /sobald der Rundgang abgeschlossen ist/)
+    await tableOfRound().expect(404, /sobald der Rundgang abgeschlossen ist/)
+
+    const { rows } = await admin.query<{ state: RoundRecordState }>(
+      'select state from round_records where activity_id = $1',
+      [round],
+    )
+    const again: RoundRecordState = {
+      ...(rows[0]?.state as RoundRecordState),
+      title: 'Technikzentrale Schulhaus, wieder abgegeben',
+    }
+
+    await admin.query(
+      `insert into round_records (tenant_id, property_id, area_id, activity_id, state, fingerprint)
+       select tenant_id, property_id, area_id, activity_id, $2, $3
+         from round_records where activity_id = $1`,
+      [round, JSON.stringify(again), stateFingerprint(again)],
+    )
+
+    // Handed in again: a print of its own, made once and kept.
+    await pdfOfRound().expect(200)
+    expect(rendered).toHaveLength(before + 2)
+    expect(rendered.at(-1)?.html).toContain('Technikzentrale Schulhaus, wieder abgegeben')
+    await pdfOfRound().expect(200)
+    expect(rendered).toHaveLength(before + 2)
+    expect((await tableOfRound().expect(200)).headers['content-disposition']).toContain(
+      encodeURIComponent('wieder abgegeben'),
+    )
+  })
+
   it('keeps a frozen state and its PDF as they were, also in the database', async () => {
     const { asset } = await assetWithDuty()
     const round = await roundAt(asset, ['NW-1'])

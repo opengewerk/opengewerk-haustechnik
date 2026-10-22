@@ -118,7 +118,16 @@ import { dayInGermany } from '../today.js'
 import { candidatesIn, containing, inSight } from './activities.controller.js'
 import { RequiresPermission } from './authorization.js'
 import { checkContractor } from './contractor-checks.js'
-import { type Asking, fieldsOf, given, placeOf, refuse, type Target, targetOf } from './places.js'
+import {
+  type Asking,
+  changedInEveryArea,
+  fieldsOf,
+  given,
+  placeOf,
+  refuse,
+  type Target,
+  targetOf,
+} from './places.js'
 import { counted, said } from './register-question.js'
 import { wholeList, workOrderTable } from './office-tables.js'
 
@@ -1458,6 +1467,8 @@ export class WorkOrderSettingsController {
     const namesAndTimes = values.namesAndTimes as boolean
 
     return this.database.forTenant(identity, async (tx) => {
+      await changedInEveryArea(tx)
+
       await tx
         .insert(workOrderSettings)
         .values({ tenantId: identity.tenantId, namesAndTimes })
