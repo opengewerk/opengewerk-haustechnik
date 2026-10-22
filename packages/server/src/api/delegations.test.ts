@@ -145,8 +145,10 @@ async function signedByBoth(further: Readonly<Record<string, unknown>> = {}) {
 async function endedAll(): Promise<void> {
   await admin.query(
     `insert into duty_delegation_revocations (tenant_id, delegation_id, effective_on, reason, revoked_by, revoked_at)
-     select tenant_id, id, current_date - 1, 'Ende des Tests.', 'u-lead', now() from duty_delegations d
+     select tenant_id, id, $1::date - 1, 'Ende des Tests.', 'u-lead', now() from duty_delegations d
       where not exists (select 1 from duty_delegation_revocations r where r.delegation_id = d.id)`,
+    // The day in Germany, which the application counts in; the database counts in UTC.
+    [today],
   )
   await applyOn(today)
 }
@@ -427,8 +429,9 @@ describe('a delegation of duties', () => {
 
     // The access of the person it goes to ends today; tomorrow the duty has nobody.
     await admin.query(
-      "update memberships set last_day = current_date where tenant_id = $1 and user_id = 'u-duties'",
-      [tenant],
+      "update memberships set last_day = $2 where tenant_id = $1 and user_id = 'u-duties'",
+      // The day in Germany: between midnight and two in the morning UTC is still yesterday.
+      [tenant, today],
     )
 
     try {
