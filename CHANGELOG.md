@@ -9,6 +9,13 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Behoben
 
+- Die Dokumentation steht auf dem Stand von Phase 2 (#531). Die ADRs 0002 bis 0006 tragen nach, was beim Bau
+  entschieden wurde: Fremdfirmen, Verträge, Einweisung und Erlaubnisschein, die Tabellen ohne Bereich und die
+  Richtlinie `within_limits` des Prüfers, Soll-Dokumente, Gruppen je Stromkreis und eigene Anlagenarten im Katalog,
+  die Unterlagen für unterwegs und das Lager nach Recht. Der Funktionsumfang nennt 0.2.1 und 0.2.2 (#532). Die
+  Übersicht der Einstellungen nennt jeden Eintrag, die Hilfe zu „Datenschutz“ alle erzeugten Dokumente, und das
+  Handbuch der Instanz hat ein Kapitel zu Maßnahmen und Signatur (#528). Das Konzept zieht in v0.94 nach, was der
+  Abgleich gefragt hat und wo der Code richtig ist (#554), und das Löschkonzept sagt „Sitzungen“, wo es die meinte.
 - Ein Soll-Dokument gilt erst als vorhanden, wenn die Datei des Dokuments angekommen ist (#516). Bisher zählte
   auch ein Dokument, das vor Ort ohne Netz abgelegt wurde und dessen Datei nie ankam; Akte, Anlagenverzeichnis
   und Lagebild sagten dann „vorhanden“.

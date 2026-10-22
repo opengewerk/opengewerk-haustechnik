@@ -107,7 +107,7 @@ export function deletionRules(facts: DeletionFacts): readonly DeletionRule[] {
     },
     {
       key: 'access-data',
-      data: 'Die Geräte, Passkeys und Push-Geräte einer Person; wo ihr Konto für keinen anderen Betreiber mehr arbeitet, auch Adresse, zweiter Faktor, Passwort und Anmeldungen. Der Name bleibt bei dem, was sie unterschrieben hat.',
+      data: 'Die Geräte, Passkeys und Push-Geräte einer Person; wo ihr Konto für keinen anderen Betreiber mehr arbeitet, auch Adresse, zweiter Faktor, Passwort und ihre Sitzungen. Der Name bleibt bei dem, was sie unterschrieben hat.',
       when: `${count(facts.removalDays, 'Tag', 'Tage')} nach dem letzten Tag ihres Zugangs`,
       setting: 'Tage unter „Zugänge“',
       proofs: ['B392', 'B393'],
@@ -201,7 +201,7 @@ export const keptData: readonly { readonly data: string; readonly why: string }[
     why: 'Es wird nur ergänzt, damit es Nachweise belegt. Einen einzelnen Wert schwärzt die Leitung, mit Grund; die Kette bleibt dabei ganz.',
   },
   {
-    data: 'Zugehörigkeiten, Einladungen, Anmeldungen und Abmeldungen',
+    data: 'Zugehörigkeiten, Einladungen und die festgehaltenen An- und Abmeldungen',
     why: 'Sie belegen, wer wann Zugang hatte. Nach dem Ende eines Zugangs gehen seine Angaben nach Regel {access-data}, der Name bleibt.',
   },
   {
