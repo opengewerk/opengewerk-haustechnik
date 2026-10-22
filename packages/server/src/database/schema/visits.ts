@@ -58,6 +58,9 @@ export const briefings = pgTable(
     signedBy: text('signed_by').notNull(),
     signedAt: timestamp('signed_at', { withTimezone: true }).notNull(),
     deviceInfo: text('device_info'),
+    // The fingerprint of the page the person saw and signed (#545); none on a
+    // briefing from before it, and the application writes none without it.
+    pageFingerprint: text('page_fingerprint'),
     ...timestamps,
     ...syncColumns,
   },
@@ -100,6 +103,10 @@ export const briefings = pgTable(
     check(
       'briefings_device_info_shaped',
       optionalTrimmed(table.deviceInfo, briefingLimits.deviceInfo),
+    ),
+    check(
+      'briefings_page_fingerprint_shaped',
+      sql`${table.pageFingerprint} is null or ${table.pageFingerprint} ~ '^[0-9a-f]{64}$'`,
     ),
   ],
 )

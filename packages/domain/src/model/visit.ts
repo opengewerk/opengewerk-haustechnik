@@ -13,7 +13,7 @@ import type { ContractorId } from './contractor.js'
 import type { Problems } from './fields.js'
 import { type FormDefinition, forms } from './forms.js'
 import type { PropertyId } from './location.js'
-import { signatureLimits } from './signature.js'
+import { type SignedPage, signatureLimits } from './signature.js'
 
 /**
  * A contractor at work for the operator (section 4.11 of the concept, #330):
@@ -76,6 +76,42 @@ export interface Briefing extends Synced {
   /** The clock of the device at the moment the briefing was confirmed. */
   readonly signedAt: Date
   readonly deviceInfo: string | null
+  /**
+   * The fingerprint of the page the person saw and signed (#545), as the
+   * client's signature under a service report has one. Empty for a briefing
+   * from before it.
+   */
+  readonly pageFingerprint: string | null
+}
+
+/**
+ * The page a person signs a briefing under (#545): the order with its place,
+ * the firm they work for, their name and what they were briefed in. Worked
+ * out on the device from what it holds and on the server from what it holds,
+ * and the briefing is taken only where both are the same.
+ */
+export interface BriefingPage {
+  readonly order: { readonly id: string; readonly title: string }
+  readonly place: SignedPage['place']
+  readonly firm: string
+  readonly personName: string
+  readonly subject: string
+}
+
+/** The page of a briefing at an order, from the page of the order and what the briefing says. */
+export function briefingPageOf(
+  page: SignedPage,
+  firm: string,
+  personName: string,
+  subject: string,
+): BriefingPage {
+  return {
+    order: { id: page.activity.id, title: page.activity.title },
+    place: page.place,
+    firm,
+    personName: personName.trim(),
+    subject: subject.trim(),
+  }
 }
 
 /**

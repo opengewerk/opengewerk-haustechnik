@@ -2,6 +2,7 @@ import { randomBytes, randomUUID } from 'node:crypto'
 
 import {
   type ActivityId,
+  briefingPageOf,
   type Catalogue,
   hotWorkPermitForm,
   type Identity,
@@ -16,11 +17,13 @@ import { pageFingerprint, pageOf, takeSignature } from '../activities/signing.js
 import {
   activities,
   briefings,
+  contractors,
   labels,
   properties,
   serviceReports,
   workPermits,
 } from '../database/schema/index.js'
+import { stateFingerprint } from '../evidence/fingerprint.js'
 import { dayInGermany } from '../today.js'
 import { previewColleagues } from './preview-database.js'
 import type { BehindTheRoutes } from './sample-data.js'
@@ -143,6 +146,13 @@ export async function writeSampleStandings(
         throw new Error(`Den Auftrag ${visit.activityId} einer Fremdfirma gibt es nicht.`)
       }
 
+      // The page each person saw and signed, as the server works it out (#545).
+      const page = await pageOf(tx, row, catalogue)
+      const [firm] = await tx
+        .select({ name: contractors.name })
+        .from(contractors)
+        .where(eq(contractors.id, row.contractorId))
+
       for (const [index, personName] of sampleBriefed.entries()) {
         await tx.insert(briefings).values({
           tenantId: planter.tenantId,
@@ -156,6 +166,9 @@ export async function writeSampleStandings(
           signedBy: visit.leads,
           signedAt: new Date(at.getTime() - (30 - index * 4) * 60_000),
           deviceInfo: 'Telefon',
+          pageFingerprint: stateFingerprint(
+            briefingPageOf(page, firm?.name ?? '', personName, sampleSubject),
+          ),
         })
       }
 

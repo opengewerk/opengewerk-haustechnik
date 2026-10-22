@@ -1,9 +1,14 @@
 import 'fake-indexeddb/auto'
 
-import type { CatalogueBundle } from '@opengewerk/haustechnik-domain'
+import {
+  briefingPageOf,
+  type CatalogueBundle,
+  type SignedPage,
+} from '@opengewerk/haustechnik-domain'
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 
+import { fingerprintOf, pageOnDevice } from '../../app/signing.js'
 import { servingCatalogue, testCatalogue, unacceptedReview } from '../../app/test-catalogue.js'
 import {
   afterEachSiteTest,
@@ -241,11 +246,23 @@ describe('a firm at work at a work order on site', () => {
     goOnline(server)
     await client.synchronise()
 
+    const shown = pageOnDevice(client, order.id)
+
+    expect(shown).not.toBeNull()
     expect(queued(server).find((each) => each.entity === 'briefings')?.values).toMatchObject({
       activityId: order.id,
       contractorId: heating.id,
       personName: 'Marco Petri',
       subject: 'Fluchtwege, Brandmeldeanlage im Heizraum',
+      // The page the person saw, the firm and what they were briefed in on it (#545).
+      pageFingerprint: await fingerprintOf(
+        briefingPageOf(
+          shown as SignedPage,
+          heating.name,
+          'Marco Petri',
+          'Fluchtwege, Brandmeldeanlage im Heizraum',
+        ),
+      ),
     })
   })
 
