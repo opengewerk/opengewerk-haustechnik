@@ -39,7 +39,7 @@ import {
 } from '../database/schema/index.js'
 import { dayInGermany } from '../today.js'
 import { RequiresPermission } from './authorization.js'
-import { type Asking, fieldsOf } from './places.js'
+import { type Asking, changedInEveryArea, fieldsOf } from './places.js'
 
 /** The years the operator set per kind, null for the law. */
 export async function recordRetentionOf(tx: TenantTransaction): Promise<RecordRetentionSettings> {
@@ -124,6 +124,8 @@ export class RecordRetentionController {
     }
 
     return this.database.forTenant(identity, async (tx) => {
+      await changedInEveryArea(tx)
+
       await tx
         .insert(recordRetentionSettings)
         .values({ tenantId: identity.tenantId, ...values })

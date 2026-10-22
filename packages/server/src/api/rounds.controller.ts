@@ -614,8 +614,10 @@ export class RoundsController {
    * site. Its answers stay; its signature counts no more, what it made is
    * removed, and an evidence written from it is declared invalid.
    */
+  // Seeing the round is enough for the route: who may open it, the one who
+  // signed or whoever countersigns, `reopeningOf` decides (S6).
   @Post(':id/reopening')
-  @RequiresPermission('activity.perform')
+  @RequiresPermission('activity.read')
   async reopen(
     @CurrentIdentity() identity: Asking,
     @Param('id') id: string,

@@ -382,6 +382,30 @@ export const closedLabelSentence =
 export const tooManyReportsSentence =
   'Über dieses Etikett oder von diesem Anschluss kamen in kurzer Zeit viele Meldungen. Versuchen Sie es in einer Stunde noch einmal.'
 
+/**
+ * The secret of a link that confirms an address for an answer (S12 of the
+ * review of phase 2): 32 random bytes in base64url, as the mail carries it.
+ */
+export const confirmationSecretShape = /^[A-Za-z0-9_-]{43}$/
+
+/**
+ * The page the link opens. The secret goes after the "#", so that it reaches
+ * no log of a web server; the page hands it to the server itself.
+ */
+export const confirmationPath = '/rueckmeldung-bestaetigen'
+
+/** What the page of the link says once the address is confirmed. */
+export const addressConfirmedSentence =
+  'Danke, Ihre Adresse ist bestätigt. Sie bekommen Bescheid, wenn die Meldung angenommen und wenn sie erledigt ist. Mit der Erledigung wird die Adresse gelöscht.'
+
+/** What it says of a link that confirms nothing: used, unknown, or of a report since done, alike. */
+export const confirmationGoneSentence =
+  'Dieser Link bestätigt keine Adresse. Entweder ist sie schon bestätigt, oder die Meldung ist erledigt und die Adresse gelöscht.'
+
+/** What the page of a label says of an address given: a link comes first. */
+export const confirmationFirstSentence =
+  'Dann bekommen Sie zuerst eine E-Mail mit einem Link. Bestätigen Sie damit die Adresse, und Sie bekommen Bescheid, wenn die Meldung angenommen und wenn sie erledigt ist. Mit der Erledigung wird die Adresse gelöscht.'
+
 /** What the page says of a form that was open too long, or before the server last started. */
 export const staleFormSentence =
   'Die Seite war zu lange offen. Laden Sie sie neu und melden Sie noch einmal.'

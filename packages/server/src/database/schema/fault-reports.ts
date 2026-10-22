@@ -18,6 +18,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core'
 
 import { workOrders } from './activities.js'
@@ -271,6 +272,15 @@ export const faultReportContacts = pgTable(
     propertyId: reference<'property'>('property_id').notNull(),
     areaId: reference<'area'>('area_id').notNull(),
     address: text('address').notNull(),
+    /**
+     * The confirmation of the address (S12 of the review of phase 2): one
+     * mail with a link goes to it, and an answer about the report only once
+     * the link was opened, so that an address of somebody else learns no
+     * building and no room. The hash of the link alone is kept.
+     */
+    confirmationSha256: text('confirmation_sha256'),
+    confirmationMailedAt: timestamp('confirmation_mailed_at', { withTimezone: true }),
+    confirmedAt: timestamp('confirmed_at', { withTimezone: true }),
     acceptedMailedAt: timestamp('accepted_mailed_at', { withTimezone: true }),
     ...timestamps,
   },
@@ -278,6 +288,8 @@ export const faultReportContacts = pgTable(
     tenantIsolation(table.tenantId),
     withinAreas(),
     withinLimits(table.propertyId, onNoAsset()),
+    // For `contact_to_confirm`, which looks for a link past the operators (S12).
+    readableByTheOwner(),
     unique('fault_report_contacts_once').on(table.tenantId, table.faultReportId),
     foreignKey({
       columns: [table.tenantId, table.faultReportId, table.areaId],
@@ -289,6 +301,16 @@ export const faultReportContacts = pgTable(
       foreignColumns: [faultReports.tenantId, faultReports.id, faultReports.propertyId],
       name: 'fault_report_contacts_of_a_report_of_their_property',
     }).onUpdate('cascade'),
+    check(
+      'fault_report_contacts_confirmation_shaped',
+      sql`${table.confirmationSha256} is null or ${table.confirmationSha256} ~ '^[0-9a-f]{64}$'`,
+    ),
+    // A link is mailed with its hash kept, and opened only once it was mailed.
+    check(
+      'fault_report_contacts_confirmed_after_mail',
+      sql`(${table.confirmationSha256} is null) = (${table.confirmationMailedAt} is null) and (${table.confirmedAt} is null or ${table.confirmationMailedAt} is not null)`,
+    ),
+    uniqueIndex('fault_report_contacts_confirmation_once').on(table.confirmationSha256),
     check(
       'fault_report_contacts_address_shaped',
       sql`length(${table.address}) <= 254 and ${table.address} ~ '^[^@[:space:]]+@[^@[:space:]]+[.][^@[:space:]]+$'`,

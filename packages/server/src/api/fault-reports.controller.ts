@@ -94,7 +94,7 @@ import {
 } from '../faults/reading.js'
 import { dayInGermany } from '../today.js'
 import { RequiresPermission } from './authorization.js'
-import { type Asking, fieldsOf, placeOf, refuse } from './places.js'
+import { type Asking, changedInEveryArea, fieldsOf, placeOf, refuse } from './places.js'
 
 const missing = 'Diese Störmeldung gibt es nicht oder nicht in Ihren Bereichen.'
 const missingCategory = 'Diese Kategorie gibt es nicht oder nicht mehr.'
@@ -863,6 +863,8 @@ export class FaultCategorySettingsController {
     refuse(faultCategoryProblems(values))
 
     return this.database.forTenant(identity, async (tx) => {
+      await changedInEveryArea(tx)
+
       await ensureCategories(tx, identity.tenantId)
       await this.refuseTwice(tx, String(values.name), null)
 
@@ -892,6 +894,8 @@ export class FaultCategorySettingsController {
     refuse(faultCategoryProblems(values))
 
     return this.database.forTenant(identity, async (tx) => {
+      await changedInEveryArea(tx)
+
       await this.held(tx, id)
       await this.refuseTwice(tx, String(values.name), id)
       await tx
@@ -911,6 +915,8 @@ export class FaultCategorySettingsController {
     @Param('id') id: string,
   ): Promise<readonly FaultCategory[]> {
     return this.database.forTenant(identity, async (tx) => {
+      await changedInEveryArea(tx)
+
       await this.held(tx, id)
 
       if ((await categoriesOf(tx)).length <= 1) {
@@ -991,6 +997,8 @@ export class FaultReportSettingsController {
     const openByLabel = values.openByLabel as boolean
 
     return this.database.forTenant(identity, async (tx) => {
+      await changedInEveryArea(tx)
+
       await tx
         .insert(faultReportSettings)
         .values({ tenantId: identity.tenantId, openByLabel })

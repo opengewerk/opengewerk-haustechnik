@@ -90,7 +90,11 @@ export async function reopeningOf(
     return words.countersigned
   }
 
-  if (signer.signedBy !== asking.userId && !asking.rights.includes('activity.accept')) {
+  // Whoever countersigns rounds, also without carrying them out (S6 of the
+  // review of phase 2), and whoever gave the signature while they still do.
+  const signedIt = signer.signedBy === asking.userId && asking.rights.includes('activity.perform')
+
+  if (!signedIt && !asking.rights.includes('activity.accept')) {
     return words.person
   }
 

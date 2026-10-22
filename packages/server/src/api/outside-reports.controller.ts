@@ -17,6 +17,8 @@ import {
 } from '@nestjs/common'
 import {
   closedLabelSentence,
+  confirmationGoneSentence,
+  confirmationSecretShape,
   fileSizeProblem,
   type OutsideLabelPage,
   type OutsideReportReceipt,
@@ -24,6 +26,7 @@ import {
   outsideReportRules,
   roomTitle,
   staleFormSentence,
+  type TenantId,
   tooManyReportsSentence,
 } from '@opengewerk/haustechnik-domain'
 import {
@@ -43,7 +46,7 @@ import {
 } from '@opengewerk/platform-server'
 import { and, eq, isNull } from 'drizzle-orm'
 
-import { inLabelArea, type OpenLabel, openLabel } from '../database/label-area.js'
+import { contactToConfirm, inLabelArea, type OpenLabel, openLabel } from '../database/label-area.js'
 import {
   assets,
   faultCategories,
@@ -55,6 +58,7 @@ import {
 import { categoriesOf } from '../faults/reading.js'
 import { OUTSIDE_REPORTS, type OutsideReports } from '../faults/outside-gate.js'
 import { PublicRoute } from './authorization.js'
+import { confirmationHash } from '../notifications/outside-answers.js'
 import { fieldsOf, refuse } from './places.js'
 
 /** The request a body is read from, as the foundation reads it, with its address. */
@@ -330,6 +334,63 @@ export class OutsideReportsController {
           ? this.gate.promisePhoto({ ...labelOf(label), reportId, code })
           : null,
     }
+  }
+
+  /**
+   * The link that confirms an address for an answer (S12 of the review of
+   * phase 2), which the page the mail opens hands in from behind its "#".
+   * Counted against the address of the request like a page; a link that
+   * confirms nothing, unknown, used, or of a report since done, is answered
+   * alike. Only the hash of the secret is looked for, and only it is kept.
+   */
+  @Post('address/confirmation')
+  @PublicRoute()
+  @HttpCode(HttpStatus.OK)
+  async confirm(
+    @Body() body: unknown,
+    @Req() request: BodyRequest,
+  ): Promise<{ readonly confirmed: true }> {
+    if (!this.gate.openPage(addressForLimits(request))) {
+      throw tooMany()
+    }
+
+    const { link } = fieldsOf(body, ['link'])
+
+    if (typeof link !== 'string' || !confirmationSecretShape.test(link)) {
+      throw new NotFoundException(confirmationGoneSentence)
+    }
+
+    const sha256 = confirmationHash(link)
+    const contact = await contactToConfirm(this.database, sha256)
+
+    if (contact === null) {
+      throw new NotFoundException(confirmationGoneSentence)
+    }
+
+    const confirmed = await inLabelArea(
+      this.database,
+      { tenantId: contact.tenantId as TenantId, areaId: contact.areaId },
+      async (tx) => {
+        const now = new Date()
+
+        return tx
+          .update(faultReportContacts)
+          .set({ confirmedAt: now, updatedAt: now })
+          .where(
+            and(
+              eq(faultReportContacts.confirmationSha256, sha256),
+              isNull(faultReportContacts.confirmedAt),
+            ),
+          )
+          .returning({ id: faultReportContacts.id })
+      },
+    )
+
+    if (confirmed.length === 0) {
+      throw new NotFoundException(confirmationGoneSentence)
+    }
+
+    return { confirmed: true }
   }
 
   /**

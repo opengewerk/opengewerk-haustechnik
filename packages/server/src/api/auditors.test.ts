@@ -17,7 +17,7 @@ import {
   shippedRoles,
   type TenantId,
 } from '@opengewerk/haustechnik-domain'
-import { Database, FileStore, newId } from '@opengewerk/platform-server'
+import { Database, FileStore, newId, type TenantTransaction } from '@opengewerk/platform-server'
 import { routesOf } from '@opengewerk/platform-server/testing'
 import type { Pool } from 'pg'
 import request from 'supertest'
@@ -660,5 +660,77 @@ describe('the limits of an access', () => {
           .expect(400)
       ).body.message,
     ).toBe('Diese Liegenschaft gibt es nicht in den Bereichen des Zugangs.')
+  })
+})
+
+describe('an auditor limited to kinds of assets (S10 of the review of phase 2)', () => {
+  /**
+   * Section 7 of the concept: with a limit to kinds of assets an auditor
+   * "sieht nichts, was an keiner Anlage hängt". Of the places that leaves the
+   * way to an asset of the kinds: its property, its building, its floor and
+   * its room, and no other, which the database holds.
+   */
+  it('sees of the places only those on the way to an asset of its kinds', async () => {
+    const made = async (path: string, body: object): Promise<string> =>
+      (await http().post(path).set(testIdentityHeader, by('u-duties')).send(body).expect(201)).body
+        .id
+    const hall = await made('/properties', {
+      name: 'Sporthalle Am Lindenhain',
+      street: 'Probeweg 3',
+      postalCode: '68535',
+      city: 'Edingen-Neckarhausen',
+      federalState: 'DE-BW',
+    })
+    const building = await made(`/properties/${hall}/buildings`, {
+      name: 'Halle',
+      kinds: ['school'],
+    })
+    const ground = await made(`/buildings/${building}/floors`, { name: 'Erdgeschoss', level: 0 })
+    const upper = await made(`/buildings/${building}/floors`, { name: 'Empore', level: 1 })
+    const technik = await made(`/floors/${ground}/rooms`, { number: '0.01', name: 'Technik' })
+    const stand = await made(`/floors/${upper}/rooms`, { number: '1.01', name: 'Tribüne' })
+
+    await made(`/buildings/${building}/assets`, {
+      kind: 'probe.water_meter',
+      name: 'Wasserzähler Halle',
+      roomId: technik,
+      meterNumber: '9WAT7654321',
+      meterUnit: 'cubic_metres',
+    })
+    await made(`/buildings/${building}/assets`, {
+      kind: 'probe.elevator',
+      name: 'Aufzug Tribüne',
+      roomId: stand,
+    })
+    await limit('u-auditor', [], ['probe.water_meter'])
+
+    const ids = async (tx: TenantTransaction, table: string) =>
+      (await tx.execute<{ id: string }>(`select id from ${table} order by id`)).rows.map(
+        (row) => row.id,
+      )
+    const seen = await database.forTenant(
+      { tenantId: tenant, userId: 'u-auditor' },
+      async (tx) => ({
+        properties: await ids(tx, 'properties'),
+        buildings: await ids(tx, 'buildings'),
+        floors: await ids(tx, 'floors'),
+        rooms: await ids(tx, 'rooms'),
+      }),
+    )
+    const { rows: buildings } = await admin.query<{ id: string; property_id: string }>(
+      'select id, property_id from buildings where tenant_id = $1',
+      [tenant],
+    )
+
+    // The school with its water meter and the hall; not the depot with its elevator alone.
+    expect(seen.properties).toEqual([place.school, hall].sort())
+    expect(seen.buildings).toEqual(
+      buildings
+        .filter((each) => each.property_id === place.school || each.property_id === hall)
+        .map((each) => each.id)
+        .sort(),
+    )
+    expect(seen.floors).toEqual([ground])
+    expect(seen.rooms).toEqual([technik])
   })
 })

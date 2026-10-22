@@ -1,9 +1,14 @@
 import { Controller, Get, Inject } from '@nestjs/common'
-import type { Catalogue, CatalogueBundle } from '@opengewerk/haustechnik-domain'
-import { CurrentIdentity, Database } from '@opengewerk/platform-server'
+import {
+  type Catalogue,
+  type CatalogueBundle,
+  isAllowed,
+  isLimited,
+} from '@opengewerk/haustechnik-domain'
+import { CurrentIdentity, Database, type TenantTransaction } from '@opengewerk/platform-server'
 
 import { CATALOGUE } from '../catalogue.js'
-import { tenantCatalogue } from '../own-kinds/catalogue.js'
+import { catalogueOfThePerson } from '../own-kinds/catalogue.js'
 import { RequiresPermission } from './authorization.js'
 import type { Asking } from './places.js'
 
@@ -22,7 +27,10 @@ import type { Asking } from './places.js'
  * The right is the one of syncing and not the one of reading duties: an asset
  * is recorded with the fields of its kind and a protocol is filled in with
  * its form, by people a tenant may not let read the register of duties.
- * Everybody who works on a device has it.
+ * Everybody who works on a device has it. What the operator added goes only
+ * to whoever sees its assets (`catalogueOfThePerson`): a Melder gets the
+ * catalogue of the build and nothing of the operator, also not on the device
+ * (section 7), and an auditor from outside the kinds of its assets.
  */
 @Controller('catalogue')
 export class CatalogueController {
@@ -37,7 +45,7 @@ export class CatalogueController {
   whole(@CurrentIdentity() identity: Asking): Promise<CatalogueBundle> {
     return this.database.forTenant(
       identity,
-      async (tx) => (await tenantCatalogue(tx, this.catalogue)).bundle,
+      async (tx) => (await this.ofThePerson(tx, identity)).bundle,
     )
   }
 
@@ -46,7 +54,14 @@ export class CatalogueController {
   @RequiresPermission('sync.read')
   checksum(@CurrentIdentity() identity: Asking): Promise<{ readonly sha256: string }> {
     return this.database.forTenant(identity, async (tx) => ({
-      sha256: (await tenantCatalogue(tx, this.catalogue)).sha256,
+      sha256: (await this.ofThePerson(tx, identity)).sha256,
     }))
+  }
+
+  private ofThePerson(tx: TenantTransaction, identity: Asking): Promise<Catalogue> {
+    return catalogueOfThePerson(tx, this.catalogue, {
+      seesAssets: isAllowed(identity, 'asset.read'),
+      onlyWhatDutiesHangOn: isLimited(identity.roles),
+    })
   }
 }

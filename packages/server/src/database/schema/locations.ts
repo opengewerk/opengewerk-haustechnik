@@ -25,7 +25,11 @@ import {
 } from 'drizzle-orm/pg-core'
 
 import { areaFromPropertyColumn, areas, withinAreas, withinAreasOrABuilding } from './areas.js'
-import { withinLimits } from './limit-policies.js'
+import {
+  floorHoldsAnAssetOfTheKinds,
+  holdsAnAssetOfTheKinds,
+  withinLimits,
+} from './limit-policies.js'
 
 // The place, the one half of the data model (section 2.2 of the concept,
 // ADR 0002): a property, its buildings, their floors and the rooms on a
@@ -79,8 +83,9 @@ export const properties = pgTable(
     tenantIsolation(table.tenantId),
     // Seen also by whoever holds only the area of a building on it (#306).
     ...withinAreasOrABuilding('properties', 'id'),
-    // Only the properties an access from outside is limited to (#339).
-    withinLimits(table.id),
+    // Only the properties an access from outside is limited to (#339), and
+    // with a limit to kinds only those with an asset of the kinds.
+    withinLimits(table.id, holdsAnAssetOfTheKinds('property_id', table.id)),
     unique('properties_tenant_id_key').on(table.tenantId, table.id),
     // What every row with a place points at: the property and its area
     // together, so that the area of the row follows the property.
@@ -130,8 +135,9 @@ export const buildings = pgTable(
   (table) => [
     tenantIsolation(table.tenantId),
     withinAreas(),
-    // Only in the properties an access from outside is limited to (#339).
-    withinLimits(table.propertyId),
+    // Only in the properties an access from outside is limited to (#339), and
+    // with a limit to kinds only one with an asset of the kinds.
+    withinLimits(table.propertyId, holdsAnAssetOfTheKinds('building_id', table.id)),
     unique('buildings_tenant_id_key').on(table.tenantId, table.id),
     // What a row that hangs on it points at for its area (ADR 0003, addendum of #306).
     unique('buildings_area_key').on(table.tenantId, table.id, table.areaId),
@@ -196,8 +202,9 @@ export const floors = pgTable(
   (table) => [
     tenantIsolation(table.tenantId),
     withinAreas(),
-    // Only in the properties an access from outside is limited to (#339).
-    withinLimits(table.propertyId),
+    // Only in the properties an access from outside is limited to (#339), and
+    // with a limit to kinds only one with a room that holds an asset of the kinds.
+    withinLimits(table.propertyId, floorHoldsAnAssetOfTheKinds(table.id)),
     unique('floors_tenant_id_key').on(table.tenantId, table.id),
     // What a room points at: the floor in its building on its property.
     unique('floors_place').on(table.tenantId, table.id, table.buildingId, table.propertyId),
@@ -247,8 +254,9 @@ export const rooms = pgTable(
   (table) => [
     tenantIsolation(table.tenantId),
     withinAreas(),
-    // Only in the properties an access from outside is limited to (#339).
-    withinLimits(table.propertyId),
+    // Only in the properties an access from outside is limited to (#339), and
+    // with a limit to kinds only one that holds an asset of the kinds.
+    withinLimits(table.propertyId, holdsAnAssetOfTheKinds('room_id', table.id)),
     unique('rooms_tenant_id_key').on(table.tenantId, table.id),
     // What a row that hangs on it points at for its area (ADR 0003, addendum of #306).
     unique('rooms_area_key').on(table.tenantId, table.id, table.areaId),

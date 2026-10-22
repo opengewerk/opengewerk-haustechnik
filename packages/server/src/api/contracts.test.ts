@@ -412,6 +412,47 @@ describe('a contract', () => {
     expect((await read('management')).contract.assets).toBe(2)
     expect((await read('site_management')).contract.assets).toBe(1)
   })
+
+  it('names the duties it fulfils and the assets it covers only to whoever reads them (section 7)', async () => {
+    const contractorId = await firm('Wartung Beispiel GmbH')
+    const kept = await contract(contractorId)
+    const at = await placeIn()
+
+    await cover(kept.id, { assetId: at.asset }).expect(201)
+    await made('/duties', {
+      propertyId: at.property,
+      label: 'Wartung der Aufzugsanlage',
+      basis: 'own_decision',
+      sourceNote: 'Wartungsvertrag, Anlage 1',
+      task: 'inspection',
+      intervalMonths: 12,
+      counting: 'from_performance',
+      performer: 'contractor',
+      contractorId,
+      contractId: kept.id,
+    })
+
+    const read = async (header: string) =>
+      (await http().get(`/contracts/${kept.id}`).set(testIdentityHeader, header).expect(200))
+        .body as ContractPage
+
+    expect(await read(by('management'))).toMatchObject({
+      items: [expect.objectContaining({ kind: 'asset', assetId: at.asset })],
+      duties: [expect.objectContaining({ title: 'Wartung der Aufzugsanlage' })],
+    })
+
+    // A role of the operator's own that reads the contracts, but neither the duties nor the assets.
+    const narrow = JSON.stringify({
+      userId: people.management,
+      tenantId: small,
+      roles: ['management'],
+      rights: [...rightsOfRoles(['management'])].filter(
+        (right) => right !== 'duty.read' && right !== 'asset.read',
+      ),
+    })
+
+    expect(await read(narrow)).toMatchObject({ items: [], duties: [] })
+  })
 })
 
 describe('a duty on a contract', () => {

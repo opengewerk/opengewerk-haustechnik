@@ -34,6 +34,7 @@ import {
   contractTermProblems,
   dayInWords,
   type IsoDate,
+  isAllowed,
   noticeBy,
   noticeWords,
   termEnd,
@@ -388,7 +389,10 @@ export class ContractsController {
         )
         .where(eq(contractItems.contractId, row.contract.id))
         .limit(contractBounds.items)
+      // An asset it covers only for whoever sees the assets (section 7).
+      const seesAssets = isAllowed(identity, 'asset.read')
       const named: ContractItem[] = items
+        .filter((item) => seesAssets || item.assetId === null)
         .map((item): ContractItem => {
           const asset = item.assetId !== null
 
@@ -411,8 +415,11 @@ export class ContractsController {
             Number(left.kind === 'asset') - Number(right.kind === 'asset') ||
             byNameIn(left.name, right.name),
         )
-      const fulfilled =
-        (await registeredEntries(tx, this.catalogue, today, { contractId: row.contract.id })) ?? []
+      // The duties it fulfils only for whoever reads the duties (section 7).
+      const fulfilled = isAllowed(identity, 'duty.read')
+        ? ((await registeredEntries(tx, this.catalogue, today, { contractId: row.contract.id })) ??
+          [])
+        : []
 
       return {
         contract: entryOf(row.contract, row.contractorName, covered.get(row.contract.id), today),

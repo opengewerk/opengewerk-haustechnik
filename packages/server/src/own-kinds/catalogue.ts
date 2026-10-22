@@ -11,7 +11,7 @@ import {
 import type { TenantTransaction } from '@opengewerk/platform-server'
 import { asc, isNull } from 'drizzle-orm'
 
-import { ownAssetFields, ownAssetKinds } from '../database/schema/index.js'
+import { assets, ownAssetFields, ownAssetKinds } from '../database/schema/index.js'
 import { dayInGermany } from '../today.js'
 
 /**
@@ -100,4 +100,33 @@ export async function tenantCatalogue(tx: TenantTransaction, base: Catalogue): P
   const { kinds, fields } = await ownOf(tx)
 
   return catalogueWithOwn(base, kinds, fields)
+}
+
+/**
+ * The catalogue as it goes to the device of one person (section 7 of the
+ * concept): the kinds and fields an operator keeps of its own describe its
+ * assets, so only whoever sees the assets gets them. An auditor from outside
+ * (#339) gets those of the kinds its assets carry, which the database keeps
+ * to the limits of the access; whoever sees no asset, a Melder (#331) for
+ * one, gets the catalogue of the build and nothing of the operator.
+ */
+export async function catalogueOfThePerson(
+  tx: TenantTransaction,
+  base: Catalogue,
+  person: { readonly seesAssets: boolean; readonly onlyWhatDutiesHangOn: boolean },
+): Promise<Catalogue> {
+  if (person.onlyWhatDutiesHangOn) {
+    const { kinds, fields } = await ownOf(tx)
+    const carried = new Set(
+      (await tx.selectDistinct({ kind: assets.kind }).from(assets)).map((row) => row.kind),
+    )
+
+    return catalogueWithOwn(
+      base,
+      kinds.filter((kind) => carried.has(kind.key)),
+      fields.filter((field) => carried.has(field.assetKind)),
+    )
+  }
+
+  return person.seesAssets ? tenantCatalogue(tx, base) : base
 }

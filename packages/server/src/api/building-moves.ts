@@ -123,6 +123,8 @@ export const holdingTheBuilding: Readonly<Record<string, string>> = {
     'eine Störmeldung mit dem Mangel, der aus ihr gemeldet wurde',
   evidence_replaces_one_of_its_duty: 'ein Nachweis mit dem, den er berichtigt',
   meter_points_under_a_meter_of_their_property: 'ein Zähler mit seinem Hauptzähler',
+  // The PDF of a round with the handing in it was printed from (#518).
+  prints_of_a_round_record: 'ein PDF mit der Abgabe des Rundgangs, aus der es gedruckt wurde',
   meter_readings_correct_a_reading_here: 'ein Zählerstand mit dem, den er berichtigt',
   meter_readings_of_an_activity_of_their_property:
     'ein Zählerstand mit dem Rundgang, in dem er abgelesen wurde',

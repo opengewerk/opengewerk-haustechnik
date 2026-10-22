@@ -692,6 +692,7 @@ export const auditVocabulary: AuditVocabulary = {
       fields: {
         evidence_id: 'Nachweis',
         activity_id: 'Rundgang',
+        round_record_id: 'Abgabe des Rundgangs',
         service_report_id: 'Leistungsnachweis',
         voided: 'Mit der Ungültigerklärung',
         sha256: 'Datei',
@@ -1148,6 +1149,8 @@ export const auditVocabulary: AuditVocabulary = {
     replaces_evidence_id: 'evidence',
     // The service report a frozen state and a print are of (#324).
     service_report_id: 'service_reports',
+    // The handing in a print of a round was made of (#518).
+    round_record_id: 'round_records',
     // What the stores hold (#325).
     store_id: 'stores',
     article_id: 'articles',

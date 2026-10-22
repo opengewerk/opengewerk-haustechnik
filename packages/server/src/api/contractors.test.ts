@@ -23,6 +23,11 @@ import {
   resetToMigrated,
   testIdentityHeader,
 } from '../database/test-database.js'
+import {
+  writtenColumnNames,
+  writtenPlaceholders,
+  writtenValues,
+} from '../database/test-evidence.js'
 import { ApiModule } from './api.module.js'
 import { as, testIdentities } from './test-identity.js'
 
@@ -276,6 +281,36 @@ describe('a duty a contractor carries out', () => {
     ).body as ContractorPage
 
     expect(page).toMatchObject({ openDuties: 2, openActivities: 0, evidence: [] })
+  })
+
+  it('names its evidence on its page only to whoever reads the evidence (section 7)', async () => {
+    const kept = await made({ name: 'Aufzugsprüfung Mitte GmbH' })
+    const dutyId = (await duty({ performer: 'contractor', contractorId: kept.id }, 201)).body
+      .id as string
+    const performedOn = '2026-09-01'
+
+    await admin.query(
+      `insert into evidence (tenant_id, property_id, area_id, duty_id, performed_on, result,
+                             contractor_id, ${writtenColumnNames})
+       select tenant_id, property_id, area_id, id, $2::date, 'without_defects', $3,
+              ${writtenPlaceholders(4)}
+         from duties where id = $1`,
+      [dutyId, performedOn, kept.id, ...writtenValues('u-duties', performedOn, 'without_defects')],
+    )
+
+    const pageFor = async (header: string) =>
+      (await http().get(`/contractors/${kept.id}`).set(testIdentityHeader, header).expect(200))
+        .body as ContractorPage
+    // The Haustechnik as a role of the operator's own would have it, without "Nachweise ansehen".
+    const withoutEvidence = JSON.stringify({
+      userId: 'u-tech',
+      tenantId: small,
+      roles: ['technician'],
+      rights: [...rightsOfRoles(['technician'])].filter((right) => right !== 'evidence.read'),
+    })
+
+    expect((await pageFor(by('u-tech'))).evidence).toHaveLength(1)
+    expect(await pageFor(withoutEvidence)).toMatchObject({ evidence: [] })
   })
 })
 

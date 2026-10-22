@@ -75,7 +75,15 @@ import {
 import { dayInGermany, timeInGermany } from '../today.js'
 import { RequiresPermission } from './authorization.js'
 import { defectTable, wholeList } from './office-tables.js'
-import { type Asking, fieldsOf, given, placeOf, refuse, targetOf } from './places.js'
+import {
+  type Asking,
+  changedInEveryArea,
+  fieldsOf,
+  given,
+  placeOf,
+  refuse,
+  targetOf,
+} from './places.js'
 import { pdf, Printer } from './prints.controller.js'
 
 const missing = 'Diesen Mangel gibt es nicht oder nicht mehr.'
@@ -556,6 +564,8 @@ export class DefectClassSettingsController {
     }
 
     return this.database.forTenant(identity, async (tx) => {
+      await changedInEveryArea(tx)
+
       if (days === null) {
         await tx.delete(defectClassTerms).where(eq(defectClassTerms.defectClass, key))
       } else {

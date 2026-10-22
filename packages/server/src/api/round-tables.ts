@@ -9,13 +9,24 @@ import {
   roundTableRows,
 } from '@opengewerk/haustechnik-domain'
 import { type Database, isUuid, tableAnswer, tableFormatOf } from '@opengewerk/platform-server'
-import { and, eq, isNull } from 'drizzle-orm'
+import { and, eq, gt, isNull, or } from 'drizzle-orm'
 
 import { activities, roundPlans, roundRecords } from '../database/schema/index.js'
 import { dayInGermany } from '../today.js'
 import { inSight } from './activities.controller.js'
 import type { Asking } from './places.js'
 import { said } from './register-question.js'
+
+/**
+ * The record of a round as it stands (#518): the one of its last handing in.
+ * A round opened again (#510) keeps the record before it as its history and
+ * has none until it is handed in again; the database takes one record per
+ * opening (`round_record_once_per_opening`).
+ */
+export const recordOfTheLastHandingIn = or(
+  isNull(activities.reopenedAt),
+  gt(roundRecords.createdAt, activities.reopenedAt),
+)
 
 const missingRound = 'Diesen Rundgang gibt es nicht oder nicht mehr.'
 const missingPlan = 'Diesen Plan gibt es nicht oder nicht mehr.'
@@ -67,7 +78,10 @@ export function roundTable(
     const [found] = await tx
       .select({ state: roundRecords.state })
       .from(activities)
-      .innerJoin(roundRecords, eq(roundRecords.activityId, activities.id))
+      .innerJoin(
+        roundRecords,
+        and(eq(roundRecords.activityId, activities.id), recordOfTheLastHandingIn),
+      )
       .where(
         and(
           eq(activities.id, id as ActivityId),
@@ -136,7 +150,10 @@ export function planTable(
     const found = await tx
       .select({ state: roundRecords.state })
       .from(activities)
-      .innerJoin(roundRecords, eq(roundRecords.activityId, activities.id))
+      .innerJoin(
+        roundRecords,
+        and(eq(roundRecords.activityId, activities.id), recordOfTheLastHandingIn),
+      )
       .where(
         and(
           eq(activities.roundPlanId, plan.id),

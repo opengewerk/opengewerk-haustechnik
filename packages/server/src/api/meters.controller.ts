@@ -78,7 +78,7 @@ import {
 import { dayInGermany } from '../today.js'
 import { RequiresPermission } from './authorization.js'
 import { meterTable } from './office-tables.js'
-import { type Asking, fieldsOf, refuse } from './places.js'
+import { type Asking, changedInEveryArea, fieldsOf, refuse } from './places.js'
 import { said } from './register-question.js'
 
 const missing = 'Diese Messstelle gibt es nicht oder nicht mehr.'
@@ -970,6 +970,8 @@ export class MeterSettingsController {
     const keyDay = values.keyDay as number
 
     return this.database.forTenant(identity, async (tx) => {
+      await changedInEveryArea(tx)
+
       await tx
         .insert(meterSettings)
         .values({ tenantId: identity.tenantId, keyDay })

@@ -7,6 +7,35 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+### Behoben
+
+- PDF und Tabelle eines wieder geöffneten Rundgangs zeigen den Stand der letzten Abgabe (#518). Bisher lieferten
+  beide nach dem Wiederöffnen den alten, von der Instanz signierten Stand mit einer Unterschrift, die nicht mehr
+  zählt; solange der Rundgang wieder offen ist, gibt es jetzt kein PDF und keine Tabelle, und die neue Abgabe
+  bekommt ein PDF für sich. Ein Druck hängt dafür an der Abgabe, nicht mehr am Rundgang.
+- Einen abgegebenen Rundgang öffnet auch eine eigene Rolle wieder, die Rundgänge gegenzeichnet, aber keine
+  Vorgänge ausführt. Bisher bekam sie 403, enger als das Konzept; wer ihn abgegeben hat, öffnet ihn, solange die
+  Person Vorgänge ausführt.
+
+### Sicherheit
+
+- Der Abgleich von Phase 2 mit dem Code hat sechs Stellen gefunden, an denen jemand mehr sah oder änderte, als
+  das Konzept ihm gibt. Bis auf die erste betreffen alle nur eigene Rollen oder den Prüfer:
+  - Die Adresse für die Rückmeldung einer Störmeldung ohne Konto bekommt zuerst eine E-Mail mit einem Link, der sie
+    bestätigt. Erst danach nennt eine Mail die Meldung, das Gebäude und den Raum. Bisher konnte jemand eine fremde
+    Adresse eintragen, und diese bekam über den Mailserver des Betreibers mitgeteilt, wo etwas gemeldet war.
+  - Eine Einstellung, die für alle Bereiche gilt (Seite ohne Konto, Kategorien der Störungen, Vorgaben der
+    Mängelklassen, Stichtag der Zähler, Aufbewahrung, Leistungsnachweis), ändert nur, wer alle Bereiche sieht.
+    Bisher genügte „Einstellungen ändern“, das eine eigene Rolle auch in einem Bereich haben kann.
+  - Der Melder bekommt den Katalog ohne die eigenen Anlagenarten und Felder des Betreibers, der Prüfer nur die der
+    Anlagen, die er sieht. Bisher kamen sie mit dem Katalog auf jedes Gerät.
+  - Die Seite einer Fremdfirma nennt Nachweise nur mit „Nachweise ansehen“, die Seite eines Vertrags Pflichten nur
+    mit „Pflichten ansehen“ und Anlagen nur mit „Anlagen ansehen“.
+  - Qualifikationen sieht man nur von Personen, die in einem eigenen Bereich arbeiten, alle nur, wer alle Bereiche
+    sieht; die Datenbank hält das. Bisher sah jede Person mit „Qualifikationen ansehen“ die aller Beschäftigten.
+  - Ein Prüfer mit Beschränkung auf Anlagenarten sieht von den Orten nur die, in denen eine Anlage dieser Arten
+    steht; bisher sah er alle Orte seiner Liegenschaften.
+
 ## [0.2.1] - 2026-10-21
 
 Zwei Meldungen aus dem Pilotbetrieb, beide vom Tag, an dem 0.2.0 erschien.

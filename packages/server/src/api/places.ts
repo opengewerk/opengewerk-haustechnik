@@ -139,6 +139,25 @@ export async function seesEveryAreaNow(tx: TenantTransaction): Promise<boolean> 
   return rows[0]?.every === true
 }
 
+/** What a change of a setting of every area answers whoever sees some areas only (section 7). */
+export const settingOfEveryArea =
+  'Diese Einstellung gilt in allen Bereichen. Ändern kann sie nur, wer alle Bereiche sieht.'
+
+/**
+ * Refuses the change of a setting that holds in every area to whoever does
+ * not see all of them (section 7 of the concept): the page without an
+ * account, the categories of the faults, the defaults of the classes of
+ * defects, the key day of the meters, the retention of the evidence and of
+ * the rest, what a work order shows. A role of the operator's own with the
+ * right to change the settings does not do it otherwise. Called first in the
+ * transaction of the change.
+ */
+export async function changedInEveryArea(tx: TenantTransaction): Promise<void> {
+  if (!(await seesEveryAreaNow(tx))) {
+    throw new ForbiddenException(settingOfEveryArea)
+  }
+}
+
 /**
  * The area a new property goes into: the one the body names, or, while the
  * tenant has a single area, that one. A small tenant never names an area.

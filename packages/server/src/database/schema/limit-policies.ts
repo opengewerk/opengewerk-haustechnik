@@ -46,6 +46,23 @@ export function kindOfItsActivityOrEvidence(activity: PgColumn, evidence: PgColu
   return sql`(${limitKinds} IS NULL OR (${activity} IS NOT NULL AND EXISTS (SELECT 1 FROM public.activities a WHERE a.id = ${activity})) OR (${evidence} IS NOT NULL AND EXISTS (SELECT 1 FROM public.evidence e WHERE e.id = ${evidence})))`
 }
 
+/**
+ * A place an access limited to kinds of assets sees (#339; section 7 of the
+ * concept: "sieht nichts, was an keiner Anlage hängt"): one on the way to an
+ * asset of the kinds, the property, the building or the room it stands in.
+ */
+export function holdsAnAssetOfTheKinds(
+  column: 'property_id' | 'building_id' | 'room_id',
+  place: PgColumn,
+): SQL {
+  return sql`(${limitKinds} IS NULL OR EXISTS (SELECT 1 FROM public.assets a WHERE a.${sql.raw(column)} = ${place} AND a.kind = ANY (${limitKinds}::text[])))`
+}
+
+/** A floor on the way to an asset of the kinds: one of its rooms holds one. */
+export function floorHoldsAnAssetOfTheKinds(floor: PgColumn): SQL {
+  return sql`(${limitKinds} IS NULL OR EXISTS (SELECT 1 FROM public.rooms r JOIN public.assets a ON a.tenant_id = r.tenant_id AND a.room_id = r.id WHERE r.floor_id = ${floor} AND a.kind = ANY (${limitKinds}::text[])))`
+}
+
 /** A row that hangs on no asset: outside a limit to kinds, inside a limit to properties alone. */
 export function onNoAsset(): SQL {
   return sql`(${limitKinds} IS NULL)`

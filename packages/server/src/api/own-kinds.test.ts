@@ -369,6 +369,48 @@ describe("an asset kind of the operator's own", () => {
     })
   })
 
+  it('comes only to a device of whoever sees the assets: a Melder none, an auditor those its assets carry (section 7)', async () => {
+    const tenant = await tenantWith()
+    const { kind } = await liftingStation(tenant)
+    const lead = by('management', tenant)
+    const second = (
+      await post('/own-kinds', lead, { label: 'Rolltor Tiefgarage', costGroup: '461' }).expect(201)
+    ).body as Made
+    const building = await buildingOf(tenant)
+    const whole = await bundleOf(tenant)
+
+    expect(whole.own?.assetKinds.map((entry) => entry.key).sort()).toEqual(
+      [kind.key, second.key].sort(),
+    )
+
+    // A Melder sees nothing of the operator, also not on the device.
+    const reporter = by('reporter', tenant)
+    const ofTheReporter = (await get('/catalogue', reporter).expect(200)).body as CatalogueBundle
+
+    expect(ofTheReporter).toEqual(probeCatalogueBundle)
+    expect((await get('/catalogue/checksum', reporter).expect(200)).body).toEqual({
+      sha256: probeCatalogueBundle.sha256,
+    })
+
+    // An auditor gets no kind no asset of theirs carries, and one that one carries.
+    const auditor = by('auditor', tenant)
+
+    expect((await get('/catalogue', auditor).expect(200)).body).toEqual(probeCatalogueBundle)
+
+    await post(`/buildings/${building}/assets`, by('technician', tenant), {
+      kind: kind.key,
+      name: 'Hebeanlage Keller',
+      values: {},
+    }).expect(201)
+
+    const ofTheAuditor = (await get('/catalogue', auditor).expect(200)).body as CatalogueBundle
+
+    expect(ofTheAuditor.own?.assetKinds.map((entry) => entry.key)).toEqual([kind.key])
+    expect((await get('/catalogue/checksum', auditor).expect(200)).body).toEqual({
+      sha256: ofTheAuditor.sha256,
+    })
+  })
+
   it('goes, with its fields, only while no asset carries it, and a field only while no asset holds a value of it', async () => {
     const tenant = await tenantWith()
     const lead = by('management', tenant)

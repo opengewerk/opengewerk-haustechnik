@@ -644,3 +644,61 @@ describe('a kind that covers another (#406)', () => {
     expect(offered.hints?.['u-third']?.check).toBe('missing')
   })
 })
+
+describe('whose qualifications a person sees (S9 of the review of phase 2)', () => {
+  /**
+   * A qualification has no area, the person it is of works in some: section 7
+   * of the concept gives a right in the areas of the person, so the
+   * Objektleitung of one area sees those of the people there and its own,
+   * and whoever sees every area all of them. The database holds it.
+   */
+  it('are those of the people in the areas of the person, and all of them for whoever sees every area', async () => {
+    await cleared()
+    await entered({ userId: 'u-tech' })
+    await entered({ userId: 'u-third' })
+
+    const { rows } = await admin.query<{ id: string }>(
+      `insert into areas (tenant_id, name) values ($1, 'Süd') returning id`,
+      [tenant],
+    )
+    const south = rows[0]?.id ?? ''
+    const { rows: held } = await admin.query<{ area_id: string }>(
+      `select area_id from member_areas where tenant_id = $1 and user_id = 'u-third'`,
+      [tenant],
+    )
+
+    await admin.query(
+      `update member_areas set area_id = $2 where tenant_id = $1 and user_id = 'u-third'`,
+      [tenant, south],
+    )
+
+    try {
+      const people = async (header: string) =>
+        (await listOf(header)).qualifications.map((entry) => entry.userId).sort()
+
+      expect(await people(by('u-duties'))).toEqual(['u-tech', 'u-third'])
+      expect(await people(by('u-site'))).toEqual(['u-tech'])
+
+      // The own ones also for somebody whose areas are not named yet.
+      await admin.query(`delete from member_areas where tenant_id = $1 and user_id = 'u-third'`, [
+        tenant,
+      ])
+
+      const mine = await listOf(by('u-third'), '/qualifications/mine')
+
+      expect(mine.qualifications.map((entry) => entry.userId)).toEqual(['u-third'])
+    } finally {
+      await admin.query(
+        `insert into member_areas (tenant_id, user_id, area_id)
+         select $1, 'u-third', $2 where not exists (
+           select 1 from member_areas where tenant_id = $1 and user_id = 'u-third')`,
+        [tenant, south],
+      )
+      await admin.query(
+        `update member_areas set area_id = $2 where tenant_id = $1 and user_id = 'u-third'`,
+        [tenant, held[0]?.area_id],
+      )
+      await admin.query('delete from areas where id = $1', [south])
+    }
+  })
+})
