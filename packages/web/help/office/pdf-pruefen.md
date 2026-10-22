@@ -2,7 +2,7 @@
 
 Hier prüfen Sie ein PDF, das Ihnen jemand vorlegt, etwa ein Prüfer oder eine Behörde: ob es ein Druck ist, den diese Instanz aufbewahrt, und ob es seit der Signatur der Instanz unverändert ist. Die Datei wird nur gelesen und nicht gespeichert.
 
-Jedes PDF mit einer Unterschrift darin signiert die Instanz, wenn es entsteht: Nachweis, Rundgang, Leistungsnachweis, Pflichtenübertragung, Auskunft über eine Person und Anlagenbuch und Nachweisverzeichnis mit den Nachweisen dahinter. Wird es danach geändert, zeigt jedes PDF-Programm die Signatur als ungültig, und diese Seite sagt es auch.
+Jedes PDF mit einer Unterschrift darin signiert die Instanz, wenn es entsteht: Nachweis, Rundgang, Leistungsnachweis, Pflichtenübertragung, Auskunft über eine Person und Anlagenbuch und Nachweisverzeichnis mit den Nachweisen dahinter. Die Signatur zertifiziert das PDF, und es trägt Rechte: ein PDF-Programm, das beides beachtet, lässt es nur drucken, kopieren, ausfüllen und weiter signieren. Wer die Datei hat, kann ihre Bytes trotzdem ändern. Ein Programm, das Signaturen prüft, zeigt das, eines, das keine prüft, zeigt nichts; diese Seite sagt es in jedem Fall.
 
 Das Ergebnis hat zwei Teile:
 

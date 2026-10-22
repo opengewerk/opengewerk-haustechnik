@@ -1,6 +1,7 @@
 import { PDFDocument } from '@cantoo/pdf-lib'
 import { describe, expect, it } from 'vitest'
 
+import { makeSigner } from '../evidence/test-signed-pdf.js'
 import {
   type AttachedPages,
   attachmentLimit,
@@ -8,6 +9,7 @@ import {
   type EvidenceAttachment,
   withEvidenceBehind,
 } from './evidence-bundle.js'
+import { signPdf } from './pades.js'
 
 /** A PDF of empty pages, as the renderer or a contractor might send one. */
 async function pdfOf(pages: number): Promise<Uint8Array> {
@@ -62,6 +64,15 @@ describe('the evidence behind the register (#338)', () => {
       total: 8,
       unattached: 0,
     })
+  })
+
+  it('takes a print the instance signed and encrypted, with all its pages (#561)', async () => {
+    const signed = await signPdf(await pdfOf(2), makeSigner('ecdsa', 'Instanz', 'Probe'))
+    const whole = await PDFDocument.load(
+      await withEvidenceBehind([{ key: 'e-1', print: signed, files: [] }], () => pdfOf(1)),
+    )
+
+    expect(whole.getPageCount()).toBe(1 + 2)
   })
 
   it('makes the list again while its own length moves the pages behind it', async () => {

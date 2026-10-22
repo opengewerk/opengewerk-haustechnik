@@ -61,11 +61,13 @@ type Part =
 
 async function readPdf(bytes: Uint8Array): Promise<PDFDocument | null> {
   try {
-    const document = await PDFDocument.load(bytes, { updateMetadata: false })
+    // A print of the instance is encrypted without a password to open it
+    // (#561); the empty one opens it, and a PDF without encryption ignores it.
+    const document = await PDFDocument.load(bytes, { updateMetadata: false, password: '' })
 
     return document.getPageCount() === 0 ? null : document
   } catch {
-    // Encrypted or not a PDF after all: the evidence still hands it out.
+    // Locked with a password or not a PDF after all: the evidence still hands it out.
     return null
   }
 }

@@ -1,3 +1,5 @@
+import { randomBytes } from 'node:crypto'
+
 import {
   PDFArray,
   PDFDict,
@@ -5,6 +7,10 @@ import {
   PDFHexString,
   PDFName,
   PDFNumber,
+  type PDFObject,
+  PDFRawStream,
+  PDFRef,
+  PDFStream,
   PDFString,
 } from '@cantoo/pdf-lib'
 import { signDetached, type SigningKey } from '@opengewerk/platform-server'
@@ -15,11 +21,24 @@ import { signDetached, type SigningKey } from '@opengewerk/platform-server'
  * reads it. The PDF gets an invisible signature field on its first page and
  * a signature dictionary whose `/ByteRange` covers the whole file but its own
  * `/Contents`; there stands the CMS signature of the instance over those
- * bytes. Every PDF program then shows the signature as broken once a byte of
- * the file changes.
+ * bytes. A program that checks signatures shows it as broken once a byte of
+ * the file changes, and "PDF prüfen" says so in any case.
+ *
+ * Since #561 the signature certifies the document (DocMDP, `/P 2`): after it,
+ * filling in fields and further signatures are allowed, as a higher signature
+ * outside (#341) is, and every other change breaks the certification. The
+ * file carries rights as well, encrypted with AES-256 under an owner password
+ * made for it and kept nowhere, and without a password to open it: printing,
+ * copying, filling in and signing, and neither changing nor assembling. A
+ * program that heeds rights or certifications refuses to edit it; the bytes
+ * themselves can be changed by whoever has the file, which the signature
+ * shows.
  *
  * The file is written anew, not appended to: the instance signs a PDF when it
  * makes it, and nothing stands before the signature that was signed already.
+ * It is encrypted first and signed after, as ISO 32000-1, 7.6.1 has it: the
+ * `/Contents` of the signature stays as it is, every other string and stream
+ * is encrypted.
  */
 
 /** Room for the signature in `/Contents`, in bytes; the file holds twice as many hexadecimal digits. */
@@ -30,8 +49,23 @@ const unknown = '**********'
 
 export class PdfSigningError extends Error {}
 
+/**
+ * What a program that heeds rights lets a reader do with a PDF of the
+ * instance (#561): print, copy, fill in and sign; not change, annotate or
+ * assemble.
+ */
+const rights = {
+  printing: 'highResolution',
+  modifying: false,
+  copying: true,
+  annotating: false,
+  fillingForms: true,
+  contentAccessibility: true,
+  documentAssembly: false,
+} as const
+
 /** The signature dictionary and the field that shows it, on the first page and in the form of the document. */
-function placeholderIn(document: PDFDocument, at: Date): void {
+function placeholderIn(document: PDFDocument, at: Date): PDFRef {
   const { context } = document
   const range = PDFArray.withContext(context)
 
@@ -49,6 +83,14 @@ function placeholderIn(document: PDFDocument, at: Date): void {
       Contents: PDFHexString.of('0'.repeat(room * 2)),
       M: PDFString.fromDate(at),
       Reason: PDFHexString.fromText('Erzeugt und signiert von dieser Instanz'),
+      // A certifying signature (#561): after it, filling in and signing only.
+      Reference: [
+        {
+          Type: 'SigRef',
+          TransformMethod: 'DocMDP',
+          TransformParams: { Type: 'TransformParams', P: 2, V: '1.2' },
+        },
+      ],
     }),
   )
   const page = document.getPage(0)
@@ -88,6 +130,68 @@ function placeholderIn(document: PDFDocument, at: Date): void {
   } else {
     document.catalog.set(PDFName.of('AcroForm'), context.obj({ SigFlags: 3, Fields: [field] }))
   }
+
+  document.catalog.set(PDFName.of('Perms'), context.obj({ DocMDP: signature }))
+
+  return signature
+}
+
+/**
+ * Every string of the document encrypted for its object, as a reader that
+ * decrypts it expects: the library encrypts the streams as it writes them, and
+ * leaves the strings as they are. Not the encryption dictionary, and not the
+ * `/Contents` of the signature, which stands in the file as it is.
+ */
+function encryptStrings(document: PDFDocument, signature: PDFRef): void {
+  const { context } = document
+  const security = context.security
+
+  if (security === undefined) {
+    throw new PdfSigningError('The PDF is not encrypted.')
+  }
+
+  const encryption = context.trailerInfo.Encrypt
+
+  for (const [ref, object] of context.enumerateIndirectObjects()) {
+    if (encryption instanceof PDFRef && ref === encryption) {
+      continue
+    }
+
+    const encrypt = security.getEncryptFn(ref.objectNumber, ref.generationNumber)
+    const sealed = (value: PDFString | PDFHexString): PDFHexString =>
+      PDFHexString.of(Buffer.from(encrypt(value.asBytes())).toString('hex'))
+    const walk = (value: PDFObject, inSignature: boolean): PDFObject => {
+      if (value instanceof PDFString || value instanceof PDFHexString) {
+        return sealed(value)
+      }
+
+      if (value instanceof PDFArray) {
+        for (let index = 0; index < value.size(); index += 1) {
+          value.set(index, walk(value.get(index), false))
+        }
+
+        return value
+      }
+
+      if (value instanceof PDFDict) {
+        for (const [key, entry] of value.entries()) {
+          if (!(inSignature && key === PDFName.of('Contents'))) {
+            value.set(key, walk(entry, false))
+          }
+        }
+
+        return value
+      }
+
+      if (value instanceof PDFStream || value instanceof PDFRawStream) {
+        walk(value.dict, false)
+      }
+
+      return value
+    }
+
+    walk(object, ref === signature)
+  }
 }
 
 /** The PDF `bytes` signed by the instance with `key`, at the moment `at`. */
@@ -97,8 +201,16 @@ export async function signPdf(
   at: Date = new Date(),
 ): Promise<Uint8Array> {
   const document = await PDFDocument.load(bytes, { updateMetadata: false })
+  const signatureRef = placeholderIn(document, at)
 
-  placeholderIn(document, at)
+  document.encrypt({
+    algorithm: 'AES-256',
+    userPassword: '',
+    // Made for this file and kept nowhere: nobody lifts the rights with it.
+    ownerPassword: randomBytes(32).toString('base64url'),
+    permissions: rights,
+  })
+  encryptStrings(document, signatureRef)
 
   // Without object streams, so that the dictionary stands in the file as written.
   const file = Buffer.from(await document.save({ useObjectStreams: false }))

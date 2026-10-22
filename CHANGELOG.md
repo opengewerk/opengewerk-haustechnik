@@ -97,6 +97,13 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   mehr (#539), wie schon in allem mit Bereich. Der Lauf der Fristen weist sich aus, wenn er Aufgaben und Personen
   nach ihrer Aufbewahrung entfernt (#542), statt dass jede Transaktion ohne Person es dürfte. Warum die Anwendung
   zehn Spalten eines Nachweises ändern darf, sagt ADR 0004 jetzt selbst (#535).
+- Ein PDF, das die Instanz signiert, ist zertifiziert und trägt Rechte (#561): nach der Signatur sind nur Ausfüllen
+  und weitere Signaturen erlaubt, etwa eine höhere Signatur von außen, und die Rechte erlauben Drucken, Kopieren,
+  Ausfüllen und Signieren, nicht Ändern und Zusammenstellen, verschlüsselt mit AES-256 und ohne Passwort zum Öffnen.
+  Programme, die nur eines von beidem beachten, verweigern damit das Bearbeiten; bisher ließen sich die PDFs etwa
+  mit OnlyOffice bearbeiten. Der Satz zu 0.2.0, nach einer Änderung zeige jedes PDF-Programm die Signatur als
+  ungültig, stimmt so nicht: ein Programm, das keine Signaturen prüft, zeigt nichts. „PDF prüfen“ zeigt jede
+  Änderung. Was schon aufbewahrt ist, bleibt, wie es ist.
 
 ## [0.2.2] - 2026-10-22
 
