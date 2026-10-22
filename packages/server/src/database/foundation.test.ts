@@ -98,6 +98,8 @@ describe('the foundation in this database', () => {
           ),
           'inverters.on_a_photovoltaic_installation',
           ...['inverters', 'pv_strings'].map((table) => `${table}.structure_follows_deletion`),
+          // A role of the operator's own neither leads nor holds a right of the Leitung (#534).
+          'tenant_roles.tenant_roles_lead_alone',
         ],
         columns: [
           'deadlines.duty_id',
@@ -246,6 +248,10 @@ describe('the foundation in this database', () => {
           'contacts.within_limits',
           'deadlines.within_limits',
           'attachment_versions.within_areas_of_their_file',
+          // After the last day of an access, the rows at a contractor too (#539).
+          'attachments.within_access',
+          'contacts.within_access',
+          'deadlines.within_access',
           ...structure.flatMap((table) => [`${table}.within_areas`, `${table}.within_limits`]),
         ],
       }),

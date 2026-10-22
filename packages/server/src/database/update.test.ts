@@ -4426,10 +4426,14 @@ describe('a tenant whose roles are from before a right', () => {
     expect(await applicationMay()).toEqual({ change: true, remove: true })
     // Whoever leads confirms a deletion after the end of the retention (#340)
     // and blacks out a value of the log (#355): read too. The triggers read
-    // only the row they are given and give none a right.
+    // only the row they are given and give none a right. Since #534 one more
+    // reads the roles of a tenant, to keep a second row from leading it and
+    // a row that does not lead from a right of the Leitung; it refuses, and
+    // gives none a right.
     expect(await functionsNamingRoles()).toEqual([
       'audit_redaction_checked',
       'session_leads',
+      'tenant_role_leads_alone',
       'tenants_with_leads',
     ])
   })
