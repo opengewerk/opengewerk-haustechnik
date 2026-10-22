@@ -13,6 +13,7 @@ import {
   queued,
   school,
   schoolServer,
+  boilerRoom,
   storeRoom,
 } from '../test-site.js'
 
@@ -416,6 +417,33 @@ describe('the boards of a building on site', () => {
       kind: 'create',
       values: { assetId: installation.id, buildingId: gym.id, designation: 'UV Bühne' },
     })
+  })
+})
+
+describe('the boards of a room on site', () => {
+  it('stand on the page of the room they stand in, and on no other (#570)', async () => {
+    const held = server()
+
+    held.put('distribution_boards', { ...uv1, roomId: storeRoom.id })
+
+    await mountSite(`/raeume/${storeRoom.id}`, { server: held })
+    const block = within(await screen.findByRole('region', { name: 'Verteiler' }))
+
+    await waitFor(() => {
+      expect(block.getAllByRole('link').map((link) => link.textContent)).toEqual([
+        expect.stringContaining('UV 1'),
+      ])
+    })
+    expect(block.getByRole('link').getAttribute('href')).toBe(
+      `/m/anlagen/${installation.id}/verteiler/${uv1.id}`,
+    )
+  })
+
+  it('show no panel of boards in a room where none stands (#570)', async () => {
+    await mountSite(`/raeume/${boilerRoom.id}`, { server: server() })
+    await screen.findByRole('region', { name: 'Steht hier' })
+
+    expect(screen.queryByRole('region', { name: 'Verteiler' })).toBeNull()
   })
 })
 

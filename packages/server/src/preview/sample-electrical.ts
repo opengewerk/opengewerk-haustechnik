@@ -14,6 +14,7 @@ import {
   distributionBoards,
   duties,
   equipment,
+  rooms,
 } from '../database/schema/index.js'
 import { dayInGermany } from '../today.js'
 
@@ -63,6 +64,19 @@ export async function giveSampleElectrical(database: Database, planter: Identity
       throw new Error(`Die Anlage „${sampleInstallation}“ der Beispieldaten gibt es nicht.`)
     }
 
+    // The main distribution stands in a room of the building, so that a room
+    // on site names a board (#570): the room of the installation, or else the
+    // first of its building.
+    const [firstRoom] =
+      installation.buildingId === null
+        ? []
+        : await tx
+            .select({ id: rooms.id })
+            .from(rooms)
+            .where(and(eq(rooms.buildingId, installation.buildingId), isNull(rooms.deletedAt)))
+            .orderBy(rooms.name)
+            .limit(1)
+    const mainRoom = installation.roomId ?? firstRoom?.id ?? null
     const place = {
       tenantId: planter.tenantId,
       assetId: installation.id,
@@ -81,6 +95,7 @@ export async function giveSampleElectrical(database: Database, planter: Identity
           .values({
             ...place,
             buildingId: installation.buildingId,
+            roomId: kind === 'main_distribution' ? mainRoom : null,
             kind,
             designation,
             location,

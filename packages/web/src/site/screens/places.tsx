@@ -64,6 +64,9 @@ function buildingLine(building: RecordState): string {
 const SiteBuildingBoardsBlock = lazy(async () => ({
   default: (await import('./boards-block.js')).SiteBuildingBoardsBlock,
 }))
+const SiteRoomBoardsBlock = lazy(async () => ({
+  default: (await import('./boards-block.js')).SiteRoomBoardsBlock,
+}))
 
 /** The buildings of a property as rows that lead to their pages. */
 function BuildingRows({ buildings }: { readonly buildings: readonly RecordState[] }) {
@@ -354,6 +357,9 @@ export function SiteFloorScreen() {
 export function SiteRoomScreen() {
   const { roomId } = useParams({ strict: false }) as { roomId?: string }
   const room = useRecord('rooms', roomId)
+  const boardsInRoom = useRecords('distribution_boards').some(
+    (board) => board['roomId'] === roomId && !board['deletedAt'],
+  )
   const floor = useRecord('floors', maybeText(room, 'floorId') ?? undefined)
   const building = useRecord('buildings', maybeText(room, 'buildingId') ?? undefined)
   const property = useRecord('properties', maybeText(room, 'propertyId') ?? undefined)
@@ -465,6 +471,12 @@ export function SiteRoomScreen() {
             </SiteRows>
           </Panel>
         )}
+        {/* The boards that stand in this room, of whichever installation (#495, #570). */}
+        {boardsInRoom ? (
+          <Suspense fallback={null}>
+            <SiteRoomBoardsBlock roomId={roomId} />
+          </Suspense>
+        ) : null}
         <OpenDefects
           defects={open}
           empty="Kein offener Mangel in diesem Raum."
