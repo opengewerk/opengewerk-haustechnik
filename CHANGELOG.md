@@ -7,6 +7,26 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+### Behoben
+
+- Ein Soll-Dokument gilt erst als vorhanden, wenn die Datei des Dokuments angekommen ist (#516). Bisher zählte
+  auch ein Dokument, das vor Ort ohne Netz abgelegt wurde und dessen Datei nie ankam; Akte, Anlagenverzeichnis
+  und Lagebild sagten dann „vorhanden“.
+- Wer eine Störung gemeldet hat, die in eine schon länger angenommene Meldung geführt wird, bekommt den Push
+  „angenommen“ einmal (#517). Bisher kam er nur, wenn die Annahme der anderen Meldung keine 48 Stunden her war.
+- Die Auswertung der Mängel zählt keine entfernten Mängel mehr mit (#521), etwa die an einer entfernten
+  Anlage; die Zahl stimmt jetzt mit der Liste überein, zu der sie führt.
+- Das Änderungsprotokoll nennt bei einer Unterschrift nur noch, dass sie gesetzt wurde, auch in seiner
+  Tabelle (#523). Bisher standen die ersten 300 Zeichen des Linienzugs in XLSX und CSV.
+- Ein Paket heißt nicht „eigen“ (#529): so heißen die eigenen Anlagenarten eines Betreibers, und der Lader
+  weist ein solches Paket ab. Die Sorte einer eigenen Angabe lässt sich ändern, solange keine Anlage einen Wert
+  von ihr hat, wie 2.5 des Konzepts es sagt. Damit keine Anlage in einer zweiten Transaktion zur selben Zeit
+  einen Wert der alten Sorte nimmt, wartet eine solche Änderung auf alle, die die eigenen Angaben gerade lesen,
+  und hält die nächsten an, bis sie gezählt hat; das gilt ebenso für eine entfernte Auswahl, Angabe oder Art.
+- Tests für fünf Zusagen aus Phase 2, die bisher keiner ganz hielt (#530): einen Lieferanten entfernen, die
+  Zeiten der Störmeldungen, eine Pflichtenübertragung nach dem letzten Tag eines Zugangs, dass eine Auskunft
+  keine Spur hinterlässt, und die Tests des Fundaments zum Ende eines Zugangs in der Verfahrensbeschreibung.
+
 ## [0.2.2] - 2026-10-22
 
 Eine Fassung mit den Lücken, die der Abgleich von Phase 2 mit Konzept und Code gefunden hat, und dem

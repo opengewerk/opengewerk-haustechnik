@@ -350,6 +350,18 @@ export function documentsAt(
  * counts by its newest version, whose id is minted when it is made, on a
  * device as much as on the server.
  */
+/**
+ * The documents among these that have a version, so a file (#516): a document
+ * filed without a network keeps its row when its file never arrives, and that
+ * one fulfils no expected document.
+ */
+export function withAFile(
+  documents: readonly RecordState[],
+  versions: ReadonlyMap<string, readonly RecordState[]>,
+): readonly RecordState[] {
+  return documents.filter((document) => (versions.get(String(document['id']))?.length ?? 0) > 0)
+}
+
 export function newestFirst(
   documents: readonly RecordState[],
   versions: ReadonlyMap<string, readonly RecordState[]>,

@@ -226,11 +226,13 @@ async function defectAt(asset: string, status: string): Promise<void> {
 /**
  * A document of a kind at an asset or a building, straight into the table:
  * what the register reads to say which expected documents are there (#347).
+ * With its first version and its file, unless the file never arrived (#516).
  */
 async function documentAt(
   home: 'asset_id' | 'building_id',
   id: string,
   kind: string | null,
+  arrived = true,
 ): Promise<string> {
   const { rows } = await admin.query<{ id: string }>(
     `insert into attachments (tenant_id, property_id, area_id, ${home}, title, kind)
@@ -239,8 +241,29 @@ async function documentAt(
      returning id`,
     [id, kind],
   )
+  const document = rows[0]?.id ?? ''
 
-  return rows[0]?.id ?? ''
+  if (arrived) {
+    await versionOf(document)
+  }
+
+  return document
+}
+
+/** The first version of a document, and its file. */
+async function versionOf(document: string): Promise<void> {
+  const file = document.replaceAll('-', '').repeat(2)
+
+  await admin.query(
+    `insert into files (tenant_id, sha256, size_bytes, media_type)
+     select tenant_id, $2, 1, 'application/pdf' from attachments where id = $1`,
+    [document, file],
+  )
+  await admin.query(
+    `insert into attachment_versions (tenant_id, attachment_id, sha256, file_name, media_type, size_bytes)
+     select tenant_id, id, $2, 'unterlage.pdf', 'application/pdf', 1 from attachments where id = $1`,
+    [document, file],
+  )
 }
 
 /** A page of the register as somebody reads it. */
@@ -536,6 +559,22 @@ describe('the documents an asset lacks (#347)', () => {
     await admin.query('update attachments set deleted_at = now() where id = $1', [plan])
 
     expect(await lackingIn(building)).toEqual({ Aufzug: ['Notfallplan, required'] })
+  })
+
+  it('are missing while the file of the document of their kind never arrived, and there with its first version (#516)', async () => {
+    const { building } = await placeIn()
+    const lift = await named(building, 'Aufzug')
+
+    await documentAt('asset_id', lift, 'permit')
+
+    // Filed on site without a network: the row came, its file did not.
+    const plan = await documentAt('asset_id', lift, 'concept', false)
+
+    expect(await lackingIn(building)).toEqual({ Aufzug: ['Notfallplan, required'] })
+
+    await versionOf(plan)
+
+    expect(await lackingIn(building)).toEqual({ Aufzug: [] })
   })
 
   it('narrow the register to the assets lacking any, or one that is required, and nothing else', async () => {

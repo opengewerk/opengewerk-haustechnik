@@ -12,6 +12,7 @@ import {
   type TenantId,
 } from '@opengewerk/haustechnik-domain'
 import { Database, newId } from '@opengewerk/platform-server'
+import { sql } from 'drizzle-orm'
 import type { Pool } from 'pg'
 import request from 'supertest'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -22,6 +23,7 @@ import {
   resetToMigrated,
   testIdentityHeader,
 } from '../database/test-database.js'
+import { tenantCatalogue } from '../own-kinds/catalogue.js'
 import { ApiModule } from './api.module.js'
 import { as, testIdentities } from './test-identity.js'
 import { tableReaders } from './test-tables.js'
@@ -465,6 +467,103 @@ describe("an asset kind of the operator's own", () => {
     expect((await get('/own-kinds', lead).expect(200)).body).toEqual({ kinds: [], fields: [] })
   })
 
+  it('changes the sort of a field only while no asset holds a value of it (section 2.5, #529)', async () => {
+    const tenant = await tenantWith()
+    const lead = by('management', tenant)
+    const { kind, flow, pumps } = await liftingStation(tenant)
+    const building = await buildingOf(tenant)
+
+    await post(`/buildings/${building}/assets`, by('technician', tenant), {
+      kind: kind.key,
+      name: 'Hebeanlage Keller',
+      values: { eigen_pumpen: 'o1' },
+    }).expect(201)
+
+    // The pumps are held at an asset: their sort stays.
+    expect(
+      (await patch(`/own-kinds/fields/${pumps.id}`, lead, { sort: 'text' }).expect(409)).body
+        .message,
+    ).toBe(
+      '1 Anlage hält einen Wert dieser Angabe. Ihre Sorte ändert sich nur, solange keine Anlage einen Wert hat.',
+    )
+
+    // Nobody holds the flow: a number becomes a choice, and its unit goes.
+    await patch(`/own-kinds/fields/${flow.id}`, lead, { sort: 'choice' }).expect(400)
+    expect(
+      (
+        await patch(`/own-kinds/fields/${flow.id}`, lead, {
+          sort: 'choice',
+          options: ['klein', 'groß'],
+        }).expect(200)
+      ).body,
+    ).toMatchObject({
+      sort: 'choice',
+      unit: null,
+      options: [
+        { value: 'o1', label: 'klein' },
+        { value: 'o2', label: 'groß' },
+      ],
+    })
+    expect(
+      (await patch(`/own-kinds/fields/${flow.id}`, lead, { sort: 'date' }).expect(200)).body,
+    ).toMatchObject({ sort: 'date', unit: null, options: [] })
+  })
+
+  it('changes the sort of a field only once whatever read it to write an asset is done (#529)', async () => {
+    const tenant = await tenantWith()
+    const { kind, pumps } = await liftingStation(tenant)
+    const building = await buildingOf(tenant)
+    const asset = (
+      await post(`/buildings/${building}/assets`, by('technician', tenant), {
+        kind: kind.key,
+        name: 'Hebeanlage Keller',
+        values: {},
+      }).expect(201)
+    ).body as { id: string }
+
+    let read = (): void => undefined
+    let write = (): void => undefined
+    const reading = new Promise<void>((resolve) => {
+      read = resolve
+    })
+    const writable = new Promise<void>((resolve) => {
+      write = resolve
+    })
+    // An asset written in a transaction of its own: it read the pumps as a
+    // choice, and takes a value of them once the change below is under way.
+    const writing = database.forTenant(
+      { tenantId: tenant, userId: people.technician },
+      async (tx) => {
+        await tenantCatalogue(tx, catalogueOf(probeCatalogueBundle))
+        read()
+        await writable
+        await tx.execute(
+          sql`update assets set "values" = "values" || ${JSON.stringify({ eigen_pumpen: 'o1' })}::jsonb where id = ${asset.id}`,
+        )
+      },
+    )
+
+    await reading
+
+    let answered = false
+    const changing = patch(`/own-kinds/fields/${pumps.id}`, by('management', tenant), {
+      sort: 'text',
+    }).then((response) => {
+      answered = true
+
+      return response
+    })
+
+    await new Promise((resolve) => setTimeout(resolve, 300))
+    expect(answered).toBe(false)
+
+    write()
+    await writing
+
+    // The change waited, and then counted the value the asset took.
+    expect((await changing).status).toBe(409)
+  })
+
   it('counts what carries a kind and holds a field past the areas of whoever asks', async () => {
     const tenant = await tenantWith()
     const { kind } = await liftingStation(tenant)
@@ -557,6 +656,14 @@ describe("an asset kind of the operator's own", () => {
         }).expect(403)
       ).body.message,
     ).toBe(wanted)
+
+    // Nor does it change the sort of a field: what holds a value of it is counted in every area.
+    expect(
+      (await patch(`/own-kinds/fields/${flow.id}`, narrow, { sort: 'date' }).expect(403)).body
+        .message,
+    ).toBe(
+      'Die Sorte einer eigenen Angabe ändert nur, wer alle Bereiche sieht: Anlagen in jedem Bereich können einen Wert von ihr haben.',
+    )
 
     // What takes nothing away stays with it.
     await patch(`/own-kinds/fields/${pumps.id}`, narrow, {

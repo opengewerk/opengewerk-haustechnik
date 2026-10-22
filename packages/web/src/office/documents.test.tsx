@@ -433,6 +433,24 @@ describe('the documents the kind of an asset expects (#347)', () => {
     ).toBe('/dokumente/d-manual')
   })
 
+  it('are not there with a document of their kind whose file never arrived (#516)', async () => {
+    // Filed on site without a network: the document came, its file did not.
+    server.put('attachments', {
+      ...ofItsKind,
+      id: '00000000-0000-7000-8000-000000000516',
+      title: 'Notfallplan Aufzug',
+      kind: 'concept',
+    })
+    await mount(at, 'technician', [], answers)
+    await screen.findByRole('heading', { level: 1, name: 'Aufzug Schulhaus' })
+    await screen.findByRole('region', { name: 'Unterlagen' })
+
+    expect(said()[1]).toBe(
+      'NotfallplanKonzept · verlangt, BetrSichV Anhang 1 Nummer 4.1FehltHochladen',
+    )
+    expect(within(expected()).getByText('1 von 2')).toBeTruthy()
+  })
+
   it('files a missing one with its kind chosen, at the asset', async () => {
     const { client } = await mount(at, 'technician', [], answers)
 

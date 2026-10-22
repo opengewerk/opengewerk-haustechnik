@@ -389,6 +389,15 @@ describe('the figures over time', () => {
       status: 'verified',
       checkedOn: '2020-08-15',
     })
+    // Marked removed with a removed asset or place: in neither the list nor the figure (#521).
+    await admin.query(
+      `insert into defects (tenant_id, property_id, area_id, asset_id, description, found_on, due_on,
+                            status, deleted_at)
+       select tenant_id, property_id, area_id, id, 'Notleuchte entfernt', '2020-09-01', '2020-10-01',
+              'found', now()
+         from assets where id = $1`,
+      [places.north.asset],
+    )
 
     const shown = await figures<DefectFigures>('defects', { areaId: areas.north }, by('u-lead'))
     const list = (
@@ -442,6 +451,75 @@ describe('the figures over time', () => {
     ])
     expect(shown.byCategory.map((row) => [row.label, row.received, row.rejected])).toEqual([
       ['Elektro', 2, 1],
+    ])
+  })
+
+  it('give the median days to the acceptance and to the signature under the work order (#530)', async () => {
+    const { property, building } = await buildingIn('north', 'Haus Zeiten')
+    const place = { ...places.north, property, building }
+    const answered = async (
+      receivedAt: string,
+      acceptedAfterDays: number,
+      signedAfterDays: number,
+    ) => {
+      const report = await faultAt(place, areas.north, receivedAt)
+      const { rows } = await admin.query<{ id: string; order: string }>(
+        `with made as (
+           insert into activities (tenant_id, property_id, area_id, building_id, kind, title, status)
+           values ($1, $2, $3, $4, 'work_order', 'Heizung', 'open') returning id
+         ), ordered as (
+           insert into work_orders (tenant_id, property_id, area_id, activity_id, number, kind)
+           select $1, $2, $3, id, 'AU-' || substr(md5(random()::text), 1, 8), 'fault' from made
+           returning id, activity_id
+         )
+         select activity_id as id, id as "order" from ordered`,
+        [tenant, place.property, areas.north, building],
+      )
+      const order = rows[0]
+
+      await admin.query(
+        `update fault_reports set work_order_id = $1,
+                accepted_at = received_at + ($2 || ' days')::interval where id = $3`,
+        [order?.order, String(acceptedAfterDays), report],
+      )
+      await admin.query(
+        `insert into activity_signatures (tenant_id, property_id, area_id, activity_id, signed_by, role,
+                                          signed_at, path, page_fingerprint)
+         select $1, $2, $3, $4, 'u-tech', 'signer', received_at + ($5 || ' days')::interval,
+                'M10,10L200,300', $6
+           from fault_reports where id = $7`,
+        [
+          tenant,
+          place.property,
+          areas.north,
+          order?.id,
+          String(signedAfterDays),
+          'c'.repeat(64),
+          report,
+        ],
+      )
+      await admin.query("update activities set status = 'signed' where id = $1", [order?.id])
+    }
+
+    await answered('2026-05-04T08:00:00+02:00', 1, 3)
+    await answered('2026-05-05T08:00:00+02:00', 2, 6)
+    await answered('2026-05-06T08:00:00+02:00', 4, 8)
+
+    const shown = await figures<FaultFigures>(
+      'faults',
+      { areaId: areas.north, buildingId: building, from: '2026-05', to: '2026-05' },
+      by('u-lead'),
+    )
+
+    expect(shown.byBuilding).toEqual([
+      expect.objectContaining({
+        key: building,
+        received: 3,
+        accepted: 3,
+        done: 3,
+        daysToAcceptance: 2,
+        daysToDone: 6,
+      }),
     ])
   })
 

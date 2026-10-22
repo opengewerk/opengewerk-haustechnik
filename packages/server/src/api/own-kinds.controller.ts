@@ -42,7 +42,7 @@ import { and, eq, isNull, sql } from 'drizzle-orm'
 
 import { CATALOGUE } from '../catalogue.js'
 import { ownAssetFields, ownAssetKinds } from '../database/schema/index.js'
-import { ownOf, tenantCatalogue } from '../own-kinds/catalogue.js'
+import { changingOwnKinds, ownOf, tenantCatalogue } from '../own-kinds/catalogue.js'
 import { dayInGermany } from '../today.js'
 import { RequiresPermission } from './authorization.js'
 import { type Asking, fieldsOf, refuse, seesEveryAreaNow } from './places.js'
@@ -57,6 +57,10 @@ const fieldGone = 'Diese eigene Angabe gibt es nicht.'
  */
 const everyAreaWanted =
   'Eine eigene Anlagenart, eine eigene Angabe oder eine Auswahl daran entfernen kann nur, wer alle Bereiche sieht: Anlagen in jedem Bereich können sie tragen.'
+
+/** The same for the sort of a field, which changes only while no asset in any area holds a value of it (#529). */
+const sortWanted =
+  'Die Sorte einer eigenen Angabe ändert nur, wer alle Bereiche sieht: Anlagen in jedem Bereich können einen Wert von ihr haben.'
 
 /** How many assets carry each own kind and hold a value of each own field. */
 interface Uses {
@@ -302,6 +306,9 @@ export class OwnKindsController {
   @RequiresPermission('kind.write')
   remove(@CurrentIdentity() identity: Asking, @Param('id') id: string): Promise<void> {
     return this.database.forTenant(identity, async (tx) => {
+      // Before it reads anything, so that no asset takes the kind meanwhile (#529).
+      await changingOwnKinds(tx)
+
       const kind = await this.kindAt(tx, id)
 
       if (!(await seesEveryAreaNow(tx))) {
@@ -412,23 +419,53 @@ export class OwnKindsController {
     @Param('id') id: string,
     @Body() body: unknown,
   ): Promise<OwnAssetField> {
-    const said = fieldsOf(body, ['label', 'unit', 'options'] as const, ['unit'])
+    const said = fieldsOf(body, ['label', 'sort', 'unit', 'options'] as const, ['unit'])
 
     if (Object.keys(said).length === 0) {
       throw new BadRequestException('Es wurde nichts geändert.')
     }
 
     return this.database.forTenant(identity, async (tx) => {
-      const field = await this.fieldAt(tx, id)
+      // Before it reads the field, so that no asset takes a value of the sort
+      // or the choice it may leave meanwhile (#529).
+      await changingOwnKinds(tx)
 
-      refuse(ownFieldProblems({ ...said, sort: field.sort }))
+      const field = await this.fieldAt(tx, id)
+      const sort = (said.sort ?? field.sort) as OwnAssetField['sort']
+      const resorted = sort !== field.sort
+
+      refuse(ownFieldProblems({ ...said, sort }))
+
+      // Its sort changes only while no asset holds a value of it, in any area
+      // (section 2.5 of the concept, #529): a value of another sort would stand
+      // at an asset that cannot read it any more.
+      if (resorted) {
+        // Counted past the areas of the person, so only for whoever sees them all (#474).
+        if (!(await seesEveryAreaNow(tx))) {
+          throw new ForbiddenException(sortWanted)
+        }
+
+        const held = (await usesOf(tx, true)).values.get(field.key)?.held ?? 0
+
+        if (held > 0) {
+          throw new ConflictException(
+            `${assetsWords(held)} ${held === 1 ? 'hält' : 'halten'} einen Wert dieser Angabe. Ihre Sorte ändert sich nur, solange keine Anlage einen Wert hat.`,
+          )
+        }
+
+        if (sort === 'choice' && said.options === undefined) {
+          throw new BadRequestException('Eine Auswahl nennt ihre Möglichkeiten.')
+        }
+      }
 
       const options =
         said.options === undefined
-          ? undefined
+          ? resorted
+            ? []
+            : undefined
           : choicesFrom(
               (said.options as string[]).map((each) => each.trim()),
-              field.options,
+              resorted ? [] : field.options,
             )
 
       if (options !== undefined) {
@@ -454,7 +491,12 @@ export class OwnKindsController {
         .update(ownAssetFields)
         .set({
           ...(said.label === undefined ? {} : { label: said.label as string }),
-          ...(said.unit === undefined ? {} : { unit: said.unit as string | null }),
+          ...(resorted ? { sort } : {}),
+          ...(said.unit === undefined
+            ? resorted && sort !== 'number'
+              ? { unit: null }
+              : {}
+            : { unit: said.unit as string | null }),
           ...(options === undefined ? {} : { options }),
           updatedAt: sql`now()`,
         })
@@ -471,6 +513,9 @@ export class OwnKindsController {
   @RequiresPermission('kind.write')
   removeField(@CurrentIdentity() identity: Asking, @Param('id') id: string): Promise<void> {
     return this.database.forTenant(identity, async (tx) => {
+      // Before it reads the field, so that no asset takes a value of it meanwhile (#529).
+      await changingOwnKinds(tx)
+
       const field = await this.fieldAt(tx, id)
 
       if (!(await seesEveryAreaNow(tx))) {

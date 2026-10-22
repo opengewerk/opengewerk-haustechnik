@@ -1063,6 +1063,36 @@ describe('a fault that is reported', () => {
     ).toEqual(['u-melder', 'u-tech'])
   })
 
+  it('tells whoever reported one merged into a report accepted long before, once (#517)', async () => {
+    const first = await aReport('u-melder')
+    const order = await anActivity({ kind: 'work_order' })
+
+    await admin.query(
+      "update fault_reports set work_order_id = $1, accepted_at = now() - interval '5 days' where id = $2",
+      [order.order, first],
+    )
+
+    const merged = await aReport('u-tech')
+
+    await admin.query(
+      'update fault_reports set merged_into_id = $1, updated_at = now() where id = $2',
+      [first, merged],
+    )
+
+    const accepted = await answeredFaults(database, operator, new Date())
+
+    // The acceptance before the window is told to nobody again; the merge now is told.
+    expect(accepted.map((each) => `${each.faultReportId}:${each.step}`)).toEqual([
+      `${merged}:accepted`,
+    ])
+
+    for (const each of accepted) {
+      await notifyPush(database, operator, each, { now: new Date() })
+    }
+
+    expect(await answeredFaults(database, operator, new Date())).toEqual([])
+  })
+
   it('tells nobody who switched it off, whose order was not performed, or who no longer works here', async () => {
     const off = await aReport('u-melder')
     const notPerformed = await aReport('u-tech')

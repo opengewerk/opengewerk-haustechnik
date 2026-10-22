@@ -147,7 +147,14 @@ export async function defectFigures(
     .from(defects)
     .leftJoin(assets, eq(assets.id, defects.assetId))
     .leftJoin(rooms, eq(rooms.id, defects.roomId))
-    .where(and(ne(defects.status, 'verified'), placeCondition(filter, defects)))
+    // A removed defect, at a removed asset or place, is not in the list either (#521).
+    .where(
+      and(
+        isNull(defects.deletedAt),
+        ne(defects.status, 'verified'),
+        placeCondition(filter, defects),
+      ),
+    )
   const byClass = new Map<
     string | null,
     { bands: Record<DefectAgeBand, number>; open: number; overdue: number }

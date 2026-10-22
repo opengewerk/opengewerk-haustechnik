@@ -85,6 +85,7 @@ const everything = [
   'asset_lifecycle',
   'asset_supplies',
   'attachments',
+  'attachment_versions',
 ] as const
 
 const register = 'Anlagen mit Anlagenart, Standort, Zustand und Lebenszyklus'
@@ -815,6 +816,22 @@ describe('the assets of a building by cost group', () => {
     server.put('attachments', filed('d-2', 'a-1', 'concept'))
     server.put('attachments', filed('d-3', 'a-2', 'operating_manual'))
     server.put('attachments', filed('d-4', 'a-4', 'concept'))
+    // Filed without a network, its file never came: it fulfils nothing (#516).
+    server.put('attachments', filed('d-5', 'a-2', 'concept'))
+
+    for (const [order, document] of ['d-1', 'd-2', 'd-3', 'd-4'].entries()) {
+      server.put('attachment_versions', {
+        id: `00000000-0000-7000-8000-00000000004${String(order)}`,
+        attachmentId: document,
+        sha256: String(order).padEnd(64, 'b'),
+        fileName: `${document}.pdf`,
+        mediaType: 'application/pdf',
+        sizeBytes: 1000,
+        previewSha256: null,
+        createdBy: 'u-kraemer',
+        createdAt: '2026-10-01T09:00:00.000Z',
+      })
+    }
 
     await mount(`/gebaeude/${house.id}`, {})
 

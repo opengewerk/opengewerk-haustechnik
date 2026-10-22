@@ -237,7 +237,8 @@ export function OwnKindDialog({
 /**
  * "Angabe ergänzen" at a kind, or with the kind to choose among those of the
  * packages, and the same to change a field: its label, the unit of a number
- * and the choices of a choice. The sort is chosen once.
+ * and the choices of a choice. The sort changes while no asset holds a value
+ * of the field (section 2.5 of the concept, #529).
  */
 export function OwnFieldDialog({
   field,
@@ -263,6 +264,8 @@ export function OwnFieldDialog({
   )
   const [problems, setProblems] = useState<Readonly<Record<string, string>>>({})
   const { working, trouble, run } = useOwnKindRoute(onClose)
+  // A new field, or one no asset holds a value of: its sort is still open.
+  const sortOpen = field === undefined || field.values === 0
   const problemOf = (name: string) =>
     problems[name] === undefined ? {} : { problem: problems[name] }
 
@@ -289,7 +292,10 @@ export function OwnFieldDialog({
 
     void (field?.id === undefined || field.id === null
       ? run('POST', ownKindRoutes.fields, { ...values, assetKind: kind, sort })
-      : run('PATCH', ownKindRoutes.field(field.id), values))
+      : run('PATCH', ownKindRoutes.field(field.id), {
+          ...values,
+          ...(sortOpen && sort !== field.sort ? { sort } : {}),
+        }))
   }
 
   return (
@@ -329,7 +335,7 @@ export function OwnFieldDialog({
             setLabel(event.target.value)
           }}
         />
-        {field === undefined ? (
+        {sortOpen ? (
           <div className="flex flex-col gap-1.5">
             <span className="text-[13px] font-medium text-ink">Sorte</span>
             <Segmented
@@ -344,7 +350,7 @@ export function OwnFieldDialog({
           </div>
         ) : (
           <p className="text-[13px] text-ink-muted">
-            Sorte: {ownFieldSortLabel[field.sort]}. {ownKindWords.sortStays}
+            Sorte: {ownFieldSortLabel[field?.sort ?? sort]}. {ownKindWords.sortStays}
           </p>
         )}
         {sort === 'number' ? (

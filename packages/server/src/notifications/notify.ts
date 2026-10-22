@@ -19,7 +19,7 @@ import {
   stillOpen,
   type TenantTransaction,
 } from '@opengewerk/platform-server'
-import { and, desc, eq, gte, inArray, isNull, lte, type SQL, sql } from 'drizzle-orm'
+import { and, desc, eq, gte, inArray, isNotNull, isNull, lte, or, type SQL, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 
 import { application } from '../configuration.js'
@@ -1074,8 +1074,19 @@ export async function answeredFaults(
   )
 
   return inEveryArea(database, actorOf(tenantId), async (tx) => {
+    // Accepted lately, or merged lately into a report accepted long before:
+    // the person who reported is told once either way (#517). A report keeps
+    // still once merged, so the moment of its last change is that of the merge.
     const accepted = await answeredRows(tx).where(
-      and(reached('accepted'), gte(followed.acceptedAt, from), told('accepted'), takes),
+      and(
+        reached('accepted'),
+        or(
+          gte(followed.acceptedAt, from),
+          and(isNotNull(faultReports.mergedIntoId), gte(faultReports.updatedAt, from)),
+        ),
+        told('accepted'),
+        takes,
+      ),
     )
     const done = await answeredRows(tx).where(
       and(

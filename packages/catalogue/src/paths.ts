@@ -8,6 +8,8 @@
  * is named in English in the code.
  */
 
+import { ownPackage } from '@opengewerk/haustechnik-domain'
+
 /** A package is named like its folder: small letters, digits and hyphens. */
 export const packageNamePattern = /^[a-z][a-z0-9-]*$/
 
@@ -79,6 +81,16 @@ export function classify(path: string): PackagePath {
     return {
       kind: 'unknown',
       reason: 'Ein Paket heißt wie sein Ordner, mit kleinen Buchstaben, Ziffern und Bindestrichen.',
+    }
+  }
+
+  // The asset kinds of an operator's own are called `eigen.<key>` (#62, ADR
+  // 0005, point 2): a package of that name would make its kinds the own ones
+  // of every operator (#529).
+  if (packageName === ownPackage) {
+    return {
+      kind: 'unknown',
+      reason: `Ein Paket heißt nicht „${ownPackage}“: so heißen die eigenen Anlagenarten eines Betreibers.`,
     }
   }
 
