@@ -463,7 +463,7 @@ describe('what a template may hold', () => {
 
 describe('a template as a list (#558)', () => {
   it('goes out in the columns the import reads, and comes in again as the same template', () => {
-    const list = [
+    const list: readonly Readonly<Record<string, string>>[] = [
       { template: round, chapter: 'Heizraum', point: 'Dichtheit', hint: 'Sichtprüfung am Flansch' },
       {
         template: round,

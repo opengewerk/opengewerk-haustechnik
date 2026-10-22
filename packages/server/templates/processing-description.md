@@ -315,7 +315,7 @@ Anhang B nennt jedes Feld der Datenbank, das auf eine Person zeigt. Dieser Absch
 - **Zusage:** Der letzte Tag einer Qualifikation ist eine Frist der Leitung. Die Frist nennt die Art; wessen Qualifikation es ist, nennt die Liste „Fristen“ mit dem Namen des Kontos nur, wer Qualifikationen ansieht, auch in ihrer Tabelle, und eine Push-Nachricht nennt niemanden (Abschnitt 3.15). [K2.4, K4.3, B340, B344]
 - **Zusage:** Die eigenen Qualifikationen sieht jede Person unter „Konto“, mit dem Nachweis. Den Nachweis einer anderen Person bekommt nur, wer Qualifikationen ansieht; er liegt an der Qualifikation und nicht in der Ablage, die jede Rolle liest. [K4.3, K7, B341]
 - **Zusage:** Auf das Gerät einer Person kommen nur ihre eigenen Qualifikationen, auch bei der Leitung, deren Gerät sonst den ganzen Betreiber hält. [K2.7, K4.3, B342]
-- **Zusage:** Wer eine Prüfung, eine Wartung oder einen Auftrag zuteilt und Qualifikationen ansieht, bekommt zu jeder Person den Hinweis, wenn ihr die Art fehlt, die die Pflichtart fordert, oder sie abgelaufen ist. Gespeichert wird trotzdem. Wer ohne dieses Recht zuteilt, bekommt den Hinweis nicht. Vor Ort sieht die Person selbst denselben Hinweis aus ihren eigenen Qualifikationen, wenn sie das Protokoll beginnt. [K4.3, K4.4, K7, B343, B345]
+- **Zusage:** Wer eine Prüfung, eine Wartung, einen Sammelvorgang oder einen Auftrag zuteilt, einen Sammelvorgang zusammenstellt oder die Rundgänge einer Woche zuteilt und Qualifikationen ansieht, bekommt zu jeder Person den Hinweis, wenn ihr die Art fehlt, die die Pflichtart fordert, oder sie abgelaufen ist. Gespeichert wird trotzdem. Wer ohne dieses Recht zuteilt, bekommt den Hinweis nicht. Vor Ort sieht die Person selbst denselben Hinweis aus ihren eigenen Qualifikationen, wenn sie das Protokoll beginnt. [K4.3, K4.4, K7, B343, B345, B475]
 - Welche Art eine Pflichtart fordert, sagt das Paket in `qualifikationen.json`. Eine Pflichtart, deren Quelle eine Firma nennt (Überwachungsstelle, Sachverständiger, Labor) oder die Stufe offenlässt, fordert keine, und dann gibt es keinen Hinweis. [K2.3, K4.3]
 
 ### 3.20 Prüfer von außen
@@ -1024,6 +1024,7 @@ Pfade ohne Vorsatz liegen im Repository `opengewerk/opengewerk-haustechnik`. Pfa
 | B472 | Test | `upstream/opengewerk/packages/platform/server/src/authentication/administration.test.ts` | `takes the address, the passkeys, the second factor and the password of an account that works nowhere else, and keeps its name` |
 | B473 | Test | `packages/server/src/api/delegations.test.ts` | `counts no longer the day after the last day of the access of its person (#356, #530)` |
 | B474 | Test | `packages/server/src/sync/sync.test.ts` | `takes nothing more of a round handed on from the device of the person before, and all from the person after (#559)` |
+| B475 | Test | `packages/server/src/api/qualifications.test.ts` | `note it as well for a collective, where it is put together and planned, and for the rounds of a plan (#515)` |
 
 ---
 
