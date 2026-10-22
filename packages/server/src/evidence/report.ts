@@ -347,6 +347,14 @@ export async function writeCollectiveReport(
     throw new EvidenceRefusal('Diesen Sammelvorgang gibt es nicht.')
   }
 
+  // The report of a contractor settles what a contractor carries out; a
+  // collective activity of the own people is signed on site (#550).
+  if (collective.performer === 'own_staff') {
+    throw new EvidenceRefusal(
+      'Den Bericht einer Fremdfirma nimmt ein Sammelvorgang nicht an, den die eigenen Leute ausführen.',
+    )
+  }
+
   const parts = await partsOf(tx, collective.id as ActivityId, true)
 
   if (collective.status !== 'open' || parts.some((part) => part.status !== 'open')) {

@@ -22,6 +22,10 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 - Ein Soll-Dokument gilt erst als vorhanden, wenn die Datei des Dokuments angekommen ist (#516). Bisher zählte
   auch ein Dokument, das vor Ort ohne Netz abgelegt wurde und dessen Datei nie ankam; Akte, Anlagenverzeichnis
   und Lagebild sagten dann „vorhanden“.
+- Den Bericht einer Fremdfirma nimmt ein Sammelvorgang der eigenen Leute nicht mehr an (#550); bisher erledigte er ihn
+  und machte aus den eigenen Leuten eine Fremdfirma. Die Datenbank sperrt die Antworten einer Anlage im
+  Sammelvorgang, sobald der Sammelvorgang unterschrieben ist, und gibt einem Sammelvorgang keine eigene Pflicht
+  (#551); beides hielten bisher nur Server und Abgleich.
 - Wer eine Störung gemeldet hat, die in eine schon länger angenommene Meldung geführt wird, bekommt den Push
   „angenommen“ einmal (#517). Bisher kam er nur, wenn die Annahme der anderen Meldung keine 48 Stunden her war.
 - Die Auswertung der Mängel zählt keine entfernten Mängel mehr mit (#521), etwa die an einer entfernten

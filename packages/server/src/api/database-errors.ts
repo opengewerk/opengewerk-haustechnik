@@ -67,6 +67,8 @@ export const applicationConflicts: Readonly<Record<string, string>> = {
   // A role of the operator's own that would lead it or hold a right that
   // stays with the Leitung (#534).
   HT019: 'Eine eigene Rolle führt den Betreiber nicht und hält kein Recht, das der Leitung bleibt.',
+  // A duty of a collective activity itself, which has none of its own (#551).
+  HT020: 'Ein Sammelvorgang trägt keine eigene Pflicht; jede Anlage darin trägt ihre.',
 }
 
 export const { answerFor, DatabaseExceptionFilter } = databaseErrors(applicationConflicts)
