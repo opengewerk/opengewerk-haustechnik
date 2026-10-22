@@ -3,6 +3,7 @@ import { usePushRefresh, useRight } from '@opengewerk/platform-web/session'
 import { useEffect } from 'react'
 
 import { useKeepCatalogue } from '../sync/catalogue.js'
+import { useKeepForTheRoad } from '../sync/travel.js'
 import { BackupBar } from './screens/backup.js'
 import { useOfficeHelp } from './help.js'
 import { useNavigation } from './navigation.js'
@@ -21,7 +22,10 @@ import { useOfficeSearch } from './search-source.js'
  * foot alone.
  *
  * The frame is also where the device sees to it that it holds the catalogue
- * of its server (`useKeepCatalogue`): every screen under it may ask one.
+ * of its server (`useKeepCatalogue`): every screen under it may ask one. And
+ * that it holds the files of the places marked for the road as the frame on
+ * site does (`useKeepForTheRoad`, #536): a device that is only opened in the
+ * office afterwards lets go of the files of an area or a right it lost.
  *
  * The search in its header is the foundation's field with the sources of this
  * application (#125, ADR 0010): what it finds, how its kinds are called and
@@ -45,6 +49,7 @@ export function OfficeShell() {
   const help = useOfficeHelp()
 
   useKeepCatalogue()
+  useKeepForTheRoad()
   usePushRefresh('office')
 
   return (
