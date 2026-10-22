@@ -35,6 +35,18 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   öffnen“.
 - Die Liste der Störungen lässt sich als XLSX und CSV ausgeben, mit dem, was ihr Filter zeigt (#527); die
   Tabelle nennt niemanden, der gemeldet hat, und keine Adresse.
+- Ein begonnener Rundgang lässt sich einer anderen Person zuteilen, bis er abgegeben ist (#559), etwa wenn seine
+  Person mitten in der Woche krank wird. Was der Server vom Rundgang hat, bleibt bei ihm, und die neue Person geht von
+  dort weiter. Vom Gerät der Person davor nimmt der Server zu diesem Rundgang nichts mehr an; es zeigt dafür eine
+  Karte unter „Konflikte“. Einen Grund für das Umverteilen hält die Anwendung nicht fest.
+- Ein Mangel aus einem Punkt „nicht in Ordnung“ trägt die Fotos dieses Punkts (#519), im Büro, im Mängelbericht und
+  beim Auftrag vor Ort, der jetzt auch die Fotos des Mangels zeigt, aus dem er kommt. Bisher stand ein solcher Mangel
+  ohne Foto da.
+- Der Hinweis auf eine fehlende oder abgelaufene Qualifikation steht auch beim Zusammenstellen und Planen eines
+  Sammelvorgangs und beim Zuteilen der Rundgänge einer Woche (#515), wie beim einzelnen Vorgang nur für die, die
+  Qualifikationen ansehen.
+- Eine Vorlage eines Rundgangs geht als Excel oder CSV hinaus, in den Spalten, die ihr Import liest (#558), sodass
+  sie sich bearbeiten und wieder einlesen lässt.
 
 ## [0.2.2] - 2026-10-22
 
