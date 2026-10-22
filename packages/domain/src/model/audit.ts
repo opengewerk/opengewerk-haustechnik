@@ -1149,6 +1149,8 @@ export const auditVocabulary: AuditVocabulary = {
     replaces_evidence_id: 'evidence',
     // The service report a frozen state and a print are of (#324).
     service_report_id: 'service_reports',
+    // The handing in a print of a round was made of (#518).
+    round_record_id: 'round_records',
     // What the stores hold (#325).
     store_id: 'stores',
     article_id: 'articles',

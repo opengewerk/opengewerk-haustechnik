@@ -26632,7 +26632,7 @@
             "property_id"
           ],
           "onDelete": "no action",
-          "onUpdate": "cascade"
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},

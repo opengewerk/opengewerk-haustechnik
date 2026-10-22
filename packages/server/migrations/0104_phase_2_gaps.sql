@@ -31,7 +31,7 @@ ALTER TABLE "round_records" ADD CONSTRAINT "round_records_place" UNIQUE("tenant_
 -- the policies (#315).
 ALTER TABLE "prints" NO FORCE ROW LEVEL SECURITY;--> statement-breakpoint
 ALTER TABLE "round_records" NO FORCE ROW LEVEL SECURITY;--> statement-breakpoint
-ALTER TABLE "prints" ADD CONSTRAINT "prints_of_a_round_record" FOREIGN KEY ("tenant_id","round_record_id","property_id") REFERENCES "public"."round_records"("tenant_id","id","property_id") ON DELETE no action ON UPDATE cascade;--> statement-breakpoint
+ALTER TABLE "prints" ADD CONSTRAINT "prints_of_a_round_record" FOREIGN KEY ("tenant_id","round_record_id","property_id") REFERENCES "public"."round_records"("tenant_id","id","property_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "prints" FORCE ROW LEVEL SECURITY;--> statement-breakpoint
 ALTER TABLE "round_records" FORCE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE UNIQUE INDEX "prints_of_a_round_record_once" ON "prints" USING btree ("tenant_id","round_record_id");--> statement-breakpoint

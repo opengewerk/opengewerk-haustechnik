@@ -148,7 +148,7 @@ export const prints = pgTable(
       columns: [table.tenantId, table.roundRecordId, table.propertyId],
       foreignColumns: [roundRecords.tenantId, roundRecords.id, roundRecords.propertyId],
       name: 'prints_of_a_round_record',
-    }).onUpdate('cascade'),
+    }),
     uniqueIndex('prints_of_a_service_report_once').on(
       table.tenantId,
       table.serviceReportId,
