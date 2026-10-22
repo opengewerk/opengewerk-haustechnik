@@ -379,7 +379,6 @@ describe('the Lagebild of a building (#121)', () => {
     // What the device holds of a defect without "Mängel ansehen": the state alone.
     server.put('defects', {
       id: 'df-unsafe',
-      tenantId: place.tenantId,
       assetId: boiler.id,
       status: 'found',
       defectClass: 'probe.severe',
