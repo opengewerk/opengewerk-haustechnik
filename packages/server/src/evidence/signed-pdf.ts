@@ -417,9 +417,17 @@ export interface FoundSignature {
 
 /** The moment `/M` of a signature dictionary names, in the stretch of text after its `/Contents`. */
 function claimedMoment(text: string): Date | null {
-  const found = /\/M\s*\(D:(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(Z|[+-]\d{2}'?\d{2}'?)?/.exec(
-    text,
-  )
+  const found = /\/M\s*\(D:/.exec(text)
+
+  return found === null ? null : momentOfDate(text.slice(found.index + found[0].length - 2))
+}
+
+/**
+ * The moment a date of a PDF names, `D:` and what follows, as it stands in
+ * the file or as a string of a decrypted document (#561).
+ */
+export function momentOfDate(value: string): Date | null {
+  const found = /^D:(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(Z|[+-]\d{2}'?\d{2}'?)?/.exec(value)
 
   if (found === null) {
     return null

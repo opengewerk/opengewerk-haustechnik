@@ -80,7 +80,7 @@ export class PdfChecksController {
     let instance: PdfCheck['instance']
 
     try {
-      instance = instanceSignatureOf(file, await instanceCertificates(this.database))
+      instance = await instanceSignatureOf(file, await instanceCertificates(this.database))
     } catch (error) {
       throw error instanceof SignedPdfRefusal
         ? new UnprocessableEntityException(error.message)
