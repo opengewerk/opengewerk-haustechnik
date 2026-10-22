@@ -518,6 +518,7 @@ export const auditVocabulary: AuditVocabulary = {
         confirmed_at: 'Bestätigt am',
         ends_on: 'Endet am',
         end_reason: 'Grund für das Ende',
+        replaces_duty_id: 'Löst ab',
       },
     },
     duty_dismissals: {
@@ -1133,6 +1134,7 @@ export const auditVocabulary: AuditVocabulary = {
     asset_id: 'assets',
     parent_asset_id: 'assets',
     replaces_asset_id: 'assets',
+    replaces_duty_id: 'duties',
     main_meter_id: 'assets',
     corrects_id: 'meter_readings',
     duty_id: 'duties',

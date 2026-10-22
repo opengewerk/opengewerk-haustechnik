@@ -142,6 +142,10 @@ export const duties = pgTable(
     confirmedAt: timestamp('confirmed_at', { withTimezone: true }).notNull().defaultNow(),
     endsOn: date('ends_on', { mode: 'string' }),
     endReason: text('end_reason'),
+    // The duty of the operator's own at the same asset that this one took the
+    // place of when its proposal was confirmed (section 4.3, #514): it ended
+    // then, and its last evidence counts for the due day of this one.
+    replacesDutyId: reference<'duty'>('replaces_duty_id'),
     ...timestamps,
     ...syncColumns,
   },
@@ -157,6 +161,21 @@ export const duties = pgTable(
     unique('duties_area_key').on(table.tenantId, table.id, table.areaId),
     // What the evidence of a duty points at, on the property of the duty.
     unique('duties_place').on(table.tenantId, table.id, table.propertyId),
+    // What a duty that takes the place of another points at, at its asset (#514).
+    unique('duties_asset_key').on(table.tenantId, table.id, table.propertyId, table.assetId),
+    foreignKey({
+      columns: [table.tenantId, table.replacesDutyId, table.propertyId, table.assetId],
+      foreignColumns: [table.tenantId, table.id, table.propertyId, table.assetId],
+      name: 'duties_replace_one_at_their_asset',
+    }),
+    // A duty is taken the place of once, by a duty from the catalogue.
+    uniqueIndex('duties_replaced_once')
+      .on(table.tenantId, table.replacesDutyId)
+      .where(sql`${table.replacesDutyId} is not null`),
+    check(
+      'duties_replaced_by_the_catalogue',
+      sql`${table.replacesDutyId} is null or (${table.kind} is not null and ${table.replacesDutyId} <> ${table.id})`,
+    ),
     // The area of what the row hangs on (ADR 0003, addendum of #306).
     foreignKey({
       columns: [table.tenantId, table.buildingId, table.areaId],

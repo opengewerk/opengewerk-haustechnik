@@ -6,12 +6,14 @@ import {
   type Catalogue,
   type DismissedProposal,
   type DutyDismissalId,
+  type DutyId,
   type DutyProposal,
   type DutyProposalFilter,
   type DutyProposals,
   type FederalState,
   type IsoDate,
   lifecycleStateOn,
+  type OwnDutyAtAnAsset,
   proposedKinds,
   type ProposedAsset,
   type PropertyId,
@@ -21,7 +23,7 @@ import {
 import { isUuid, type TenantTransaction } from '@opengewerk/platform-server'
 import { and, asc, eq, isNotNull, isNull } from 'drizzle-orm'
 
-import { lifecyclesByAsset } from '../database/duty-standing.js'
+import { lifecyclesByAsset, meetingEvidenceByDuty } from '../database/duty-standing.js'
 import { assets, buildings, duties, dutyDismissals, properties } from '../database/schema/index.js'
 import { dayInGermany } from '../today.js'
 import { said } from './register-question.js'
@@ -170,6 +172,40 @@ export async function dutyProposals(
     decide(dismissal.assetId, dismissal.kind)
   }
 
+  // The duties of the operator's own that stand at the assets, one of which a
+  // proposal may take the place of (section 4.3, #514), with the last day each
+  // was met.
+  const own = await tx
+    .select({ id: duties.id, assetId: duties.assetId, label: duties.label })
+    .from(duties)
+    .where(
+      and(
+        isNull(duties.deletedAt),
+        isNull(duties.endsOn),
+        isNull(duties.kind),
+        isNotNull(duties.assetId),
+        atProperty === undefined ? undefined : eq(duties.propertyId, atProperty),
+        atAsset === undefined ? undefined : eq(duties.assetId, atAsset),
+      ),
+    )
+    .orderBy(asc(duties.label))
+  const met = await meetingEvidenceByDuty(
+    tx,
+    own.map((duty) => duty.id),
+  )
+  const ownAt = new Map<string, OwnDutyAtAnAsset[]>()
+
+  for (const duty of own) {
+    ownAt.set(duty.assetId as string, [
+      ...(ownAt.get(duty.assetId as string) ?? []),
+      {
+        id: duty.id as DutyId,
+        title: duty.label ?? '',
+        lastMetOn: met.get(duty.id)?.at(-1)?.performedOn ?? null,
+      },
+    ])
+  }
+
   const asProposed = new Map<string, ProposedAsset>(
     rows.map((row) => [
       row.id,
@@ -182,6 +218,7 @@ export async function dutyProposals(
         buildingId: row.buildingId as BuildingId,
         roomId: row.roomId as RoomId | null,
         enteredOn: dayInGermany(row.createdAt),
+        ownDuties: ownAt.get(row.id) ?? [],
       },
     ]),
   )

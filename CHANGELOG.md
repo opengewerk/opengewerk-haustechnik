@@ -51,6 +51,10 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   höher signierten PDFs aus dem Speicher (#522), ebenso die Prüfbescheinigung eines Berichts, die als Dokument an
   der Anlage liegt (#552), solange kein Nachweis, der bleibt, oder ein anderes Dokument dieselbe Datei nennt.
   Bisher blieben PDFs mit Schriftzug und Namen im Speicher, auch wenn sie niemand mehr erreichte.
+- Wer einen Vorschlag aus dem Katalog bestätigt, kann die eigene Pflicht der Anlage wählen, die er ersetzt (#514), einzeln
+  und im Stapel je Anlage eine. Sie endet mit der Bestätigung, ihre Nachweise bleiben bei ihr, und ihr letzter
+  Nachweis zählt für den Termin der neuen Pflicht. Das Konzept sagte das zu, gebaut war es nicht: wer eine Prüfung
+  bisher als eigene Pflicht geführt hatte, fing mit dem Vorschlag ohne Nachweis von vorn an.
 
 ## [0.2.2] - 2026-10-22
 

@@ -43,6 +43,7 @@ import {
   type DutyId,
   dutyIntervalProblem,
   type DutyKind,
+  dutyLimits,
   dutyMaximum,
   type DutyPerson,
   type DutyPlaceChain,
@@ -192,6 +193,8 @@ const newFields = [
   'performerNote',
   'contractorId',
   'contractId',
+  // The duty of the operator's own a proposal takes the place of (#514).
+  'replacesDutyId',
 ] as const
 
 /**
@@ -821,6 +824,95 @@ async function confirmedFromTheCatalogue(
     )
 
   return { kind: entry.key, kindVersion: entry.version, counting, ...term }
+}
+
+/**
+ * The duty of the operator's own at an asset that a proposal confirmed there
+ * takes the place of (section 4.3 of the concept, #514), ended on the day of
+ * the confirmation with the new duty named in its reason: one that stands at
+ * the asset, of the operator's own, and has no end yet. Its evidence stays
+ * with it, and its last one counts for the due day of the new duty.
+ */
+async function endedForAProposal(
+  tx: TenantTransaction,
+  catalogue: Catalogue,
+  replacesDutyId: unknown,
+  decided: Decided,
+  target: Target,
+  today: IsoDate,
+): Promise<DutyId> {
+  if (!isUuid(replacesDutyId)) {
+    throw new BadRequestException(replacedElsewhere)
+  }
+
+  const [own] = await tx
+    .select({ id: duties.id, kind: duties.kind, endsOn: duties.endsOn })
+    .from(duties)
+    .where(
+      and(
+        eq(duties.id, replacesDutyId as DutyId),
+        eq(duties.assetId, target.assetId as AssetId),
+        isNull(duties.deletedAt),
+      ),
+    )
+
+  if (own === undefined) {
+    throw new BadRequestException(replacedElsewhere)
+  }
+
+  if (own.kind !== null) {
+    throw new BadRequestException(
+      'Ein Vorschlag löst nur eine eigene Pflicht ab, keine aus dem Katalog.',
+    )
+  }
+
+  if (own.endsOn !== null) {
+    throw new ConflictException(
+      `Die Pflicht, die der Vorschlag ablösen soll, endet schon am ${own.endsOn}.`,
+    )
+  }
+
+  const title = dutyTitle({ ...decided, label: null }, catalogue)
+
+  await tx
+    .update(duties)
+    .set({
+      endsOn: today,
+      endReason: `Abgelöst durch die Pflicht „${title}“ aus dem Katalog.`.slice(
+        0,
+        dutyLimits.endReason,
+      ),
+    })
+    .where(and(eq(duties.id, own.id), isNull(duties.deletedAt)))
+
+  return own.id as DutyId
+}
+
+const replacedElsewhere =
+  'Die Pflicht, die der Vorschlag ablösen soll, steht nicht an dieser Anlage.'
+
+/** The duty of the operator's own each asset of a batch names as the one its proposal takes the place of (#514). */
+function replacementsOf(body: unknown, assetIds: unknown): ReadonlyMap<string, unknown> {
+  const replaces = (body as { replaces?: unknown } | null)?.replaces
+
+  if (replaces === undefined || replaces === null) {
+    return new Map()
+  }
+
+  if (typeof replaces !== 'object' || Array.isArray(replaces)) {
+    throw new BadRequestException(
+      'Was ein Stapel ablöst, steht je Anlage: die Anlage und die eigene Pflicht, die ihr Vorschlag ablöst.',
+    )
+  }
+
+  const chosen = new Set(Array.isArray(assetIds) ? assetIds : [])
+  const named = Object.entries(replaces as Record<string, unknown>)
+
+  if (named.some(([assetId]) => !chosen.has(assetId))) {
+    throw new BadRequestException('Abgelöst wird nur an einer Anlage, die der Stapel bestätigt.')
+  }
+
+  return new Map(named)
 }
 
 /** The due day of a duty kind of the catalogue that falls due once, confirmed at an asset (#439). */
@@ -1684,6 +1776,12 @@ export class DutiesController {
 
         decided = await confirmedFromTheCatalogue(tx, this.catalogue, values, target, today)
       } else {
+        if (given(values.replacesDutyId)) {
+          throw new BadRequestException(
+            'Eine eigene Pflicht löst keine andere ab; das tut ein Vorschlag aus dem Katalog, wenn er bestätigt wird.',
+          )
+        }
+
         if (!given(values.label)) {
           throw new BadRequestException('Die Bezeichnung einer eigenen Pflicht fehlt.')
         }
@@ -1728,10 +1826,13 @@ export class DutiesController {
       const document = given(values.intervalDocumentId)
         ? await intervalDocumentAt(tx, identity, values.intervalDocumentId, target.chain)
         : noIntervalDocument
+      const replacesDutyId = given(values.replacesDutyId)
+        ? await endedForAProposal(tx, this.catalogue, values.replacesDutyId, decided, target, today)
+        : null
 
       const [created] = await tx
         .insert(duties)
-        .values(dutyRow(identity, target, decided, values, document))
+        .values({ ...dutyRow(identity, target, decided, values, document), replacesDutyId })
         .returning()
 
       // A delegation that covers it names who answers for it (#336).
@@ -1764,6 +1865,8 @@ export class DutiesController {
     refuse({ ...dutyProblems(values), ...problemOf('assetIds', batchAssetsProblem(assetIds)) })
     checkPerformer(values.performer, values.performerNote, values.contractorId, contractorOfADuty)
 
+    const replacements = replacementsOf(body, assetIds)
+
     return this.database.forTenant(identity, async (tx) => {
       await checkResponsible(tx, values.responsibleUserId)
       await checkContractor(tx, values.contractorId)
@@ -1773,13 +1876,26 @@ export class DutiesController {
 
       for (const assetId of assetIds as readonly string[]) {
         const target = await targetOf(tx, { assetId })
-        const decided = await atTheAsset(tx, assetId, () =>
-          confirmedFromTheCatalogue(tx, this.catalogue, values, target, today, {
-            itsKindsInterval: true,
-          }),
-        )
+        const [decided, replacesDutyId] = await atTheAsset(tx, assetId, async () => {
+          const confirmed = await confirmedFromTheCatalogue(
+            tx,
+            this.catalogue,
+            values,
+            target,
+            today,
+            { itsKindsInterval: true },
+          )
+          const replaced = replacements.get(assetId)
 
-        rows.push(dutyRow(identity, target, decided, values))
+          return [
+            confirmed,
+            given(replaced)
+              ? await endedForAProposal(tx, this.catalogue, replaced, confirmed, target, today)
+              : null,
+          ] as const
+        })
+
+        rows.push({ ...dutyRow(identity, target, decided, values), replacesDutyId })
       }
 
       return withDelegations(

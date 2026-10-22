@@ -114,6 +114,11 @@ export const proposalWords = {
   noConnection: 'Bestätigt und verworfen wird mit Verbindung. Gerade ist keine da.',
   unguided:
     'Die Pflichtart gibt keine Frist vor. Sie legen sie für alle ausgewählten Anlagen fest und begründen sie.',
+  // The duties of the operator's own the proposals take the place of (#514).
+  replaces: 'Löst ab',
+  replacesNone: 'Keine',
+  replacesHint:
+    'Eigene Pflichten an den gewählten Anlagen. Eine gewählte endet mit der Bestätigung, ihr letzter Nachweis zählt für den Termin der neuen.',
 } as const
 
 /** The proposals as the route reads them, under the duties, which a decision changes. */
@@ -737,6 +742,8 @@ function Batch({
   const [unit, setUnit] = useState<'months' | 'days'>('months')
   const [intervalReason, setIntervalReason] = useState('')
   const [reason, setReason] = useState('')
+  // For each asset that names one, the duty of the operator's own its proposal takes the place of (#514).
+  const [replaces, setReplaces] = useState<Readonly<Record<string, string>>>({})
   const [problems, setProblems] = useState<Readonly<Record<string, string>>>({})
   const [trouble, setTrouble] = useState<string | null>(null)
   const [working, setWorking] = useState(false)
@@ -761,6 +768,14 @@ function Batch({
       : itsInterval(catalogue, entry, chosen, properties, on)
   const count = chosen.length
   const blocked = working || !status.online || count === 0
+  const withOwn = chosen.filter((asset) => asset.ownDuties.length > 0)
+  const replaced = Object.fromEntries(
+    withOwn.flatMap((asset) => {
+      const dutyId = replaces[asset.id] ?? ''
+
+      return dutyId === '' ? [] : [[asset.id, dutyId]]
+    }),
+  )
 
   async function decide(path: string, values: Record<string, unknown>, said: string) {
     setTrouble(null)
@@ -782,6 +797,7 @@ function Batch({
 
       onDone(said)
       setReason('')
+      setReplaces({})
       await afterADecision(queries)
     } finally {
       setWorking(false)
@@ -825,6 +841,7 @@ function Batch({
         performer,
         // The firm out of the list, with a contractor alone (#328).
         contractorId: performer === 'contractor' && contractorId !== '' ? contractorId : null,
+        ...(Object.keys(replaced).length === 0 ? {} : { replaces: replaced }),
       },
       count === 1 ? '1 Pflicht bestätigt.' : `${String(count)} Pflichten bestätigt.`,
     )
@@ -934,6 +951,34 @@ function Batch({
                 ? `Frist: ${its}, die Höchstfrist der Pflichtart. Eine kürzere legen Sie danach je Pflicht fest.`
                 : `Frist: ${its}, der Richtwert der Pflichtart. Eine andere legen Sie danach je Pflicht fest, mit Begründung.`}
           </p>
+        )}
+        {withOwn.length === 0 ? null : (
+          <div className="flex flex-col gap-2">
+            <PanelLabel>{proposalWords.replaces}</PanelLabel>
+            <p className="text-[12px] leading-[1.45] text-ink-muted">
+              {proposalWords.replacesHint}
+            </p>
+            {withOwn.map((asset) => (
+              <SelectField
+                key={asset.id}
+                label={assetName(asset)}
+                options={[
+                  { value: '', label: proposalWords.replacesNone },
+                  ...asset.ownDuties.map((duty) => ({
+                    value: duty.id,
+                    label:
+                      duty.lastMetOn === null
+                        ? duty.title
+                        : `${duty.title}, zuletzt am ${date(duty.lastMetOn)}`,
+                  })),
+                ]}
+                value={replaces[asset.id] ?? ''}
+                onChange={(value) => {
+                  setReplaces((current) => ({ ...current, [asset.id]: value }))
+                }}
+              />
+            ))}
+          </div>
         )}
         <Button tone="primary" icon={Check} wide disabled={blocked} onClick={confirm}>
           {working ? 'Einen Moment' : `${proposalsWords(count)} bestätigen`}

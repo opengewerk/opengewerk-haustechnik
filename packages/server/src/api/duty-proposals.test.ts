@@ -10,6 +10,7 @@ import {
   type DutyKind,
   type DutyProposals,
   type DutyScope,
+  type IsoDate,
   type RoleKey,
   type TenantId,
 } from '@opengewerk/haustechnik-domain'
@@ -24,6 +25,11 @@ import {
   resetToMigrated,
   testIdentityHeader,
 } from '../database/test-database.js'
+import {
+  writtenColumnNames,
+  writtenPlaceholders,
+  writtenValues,
+} from '../database/test-evidence.js'
 import { dayInGermany } from '../today.js'
 import { ApiModule } from './api.module.js'
 import { as, testIdentities } from './test-identity.js'
@@ -409,6 +415,65 @@ describe('the proposals of the catalogue', () => {
       .expect(201)
 
     expect(await proposedFor(elevator)).toContain(mainTest)
+  })
+
+  it('name the duties of the operator own that stand at an asset, which a proposal may take the place of (#514)', async () => {
+    const place = await placeIn()
+    const elevator = await assetIn(place.building)
+    const own = async (label: string) =>
+      (
+        await http()
+          .post('/duties')
+          .set(testIdentityHeader, by('u-duties'))
+          .send({
+            assetId: elevator,
+            label,
+            basis: 'own_decision',
+            sourceNote: 'Hausregel',
+            task: 'inspection',
+            intervalMonths: 12,
+          })
+          .expect(201)
+      ).body as { id: string; propertyId: string; areaId: string }
+    const checked = await own('Aufzug prüfen lassen')
+    const ended = await own('Notruf prüfen')
+
+    await admin.query(
+      `insert into evidence (tenant_id, property_id, area_id, duty_id, performed_on, result,
+                             ${writtenColumnNames})
+       values ($1, $2, $3, $4, '2026-03-14', 'without_defects', ${writtenPlaceholders(5)})`,
+      [
+        small,
+        checked.propertyId,
+        checked.areaId,
+        checked.id,
+        ...writtenValues('u-duties', '2026-03-14' as IsoDate, 'without_defects'),
+      ],
+    )
+    await http()
+      .post(`/duties/${ended.id}/end`)
+      .set(testIdentityHeader, by('u-duties'))
+      .send({})
+      .expect(201)
+    // One from the catalogue is none of the operator's own.
+    await http()
+      .post('/duties')
+      .set(testIdentityHeader, by('u-duties'))
+      .send({
+        assetId: elevator,
+        kind: unguided,
+        intervalMonths: 12,
+        intervalReason: 'Gefährdungsbeurteilung der Aufzüge',
+      })
+      .expect(201)
+
+    const named = (await proposals(`assetId=${elevator}`)).proposals.find(
+      (proposal) => proposal.kind === mainTest,
+    )
+
+    expect(named?.asset.ownDuties).toEqual([
+      { id: checked.id, title: 'Aufzug prüfen lassen', lastMetOn: '2026-03-14' },
+    ])
   })
 
   it('take a kind in again once its duty, confirmed by mistake, is removed, and the log keeps who removed it (#241)', async () => {

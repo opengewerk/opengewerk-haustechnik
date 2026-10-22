@@ -941,6 +941,7 @@ export const syncFieldNames: Readonly<Record<string, string>> = {
   confirmedAt: 'Bestätigt am',
   endsOn: 'Endet am',
   endReason: 'Grund für das Ende',
+  replacesDutyId: 'Löst ab',
   reason: 'Grund',
   dismissedBy: 'Verworfen von',
   // What is said about an activity and the work on it.

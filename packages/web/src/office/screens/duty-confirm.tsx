@@ -51,7 +51,7 @@ import { refusalFor, text, useRecords, useSync, useSyncStatus } from '@opengewer
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams, useSearch } from '@tanstack/react-router'
 import { Check, Info, X } from 'lucide-react'
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, type ReactNode, useState } from 'react'
 
 import { ContractorField, contractorFieldWords } from '../contractor-field.js'
 import { isWaiting } from '../../app/documents.js'
@@ -62,7 +62,7 @@ import { dutyPlaces, dutyRegisterPlace } from '../duty-addresses.js'
 import { kindOfDuty } from '../duty-words.js'
 import { officePlaces } from '../place-addresses.js'
 import { packageOf, proposalFilterOf, proposalPlace } from '../proposal-addresses.js'
-import { assetFileQuery, AssetFileUnread } from './asset.js'
+import { assetDutiesQuery, assetFileQuery, AssetFileUnread } from './asset.js'
 import {
   dutyColleaguesQuery,
   dutyQuery,
@@ -130,6 +130,11 @@ export const confirmWords = {
   reasonForMaximum: 'Auf Wunsch. Eine Höchstfrist zu verkürzen braucht keine Begründung.',
   reasonAtWill: 'Auf Wunsch.',
   noColleagues: 'Wer zur Wahl steht, ließ sich nicht laden. Das braucht eine Verbindung.',
+  // The duty of the operator's own the proposal takes the place of (#514).
+  replaces: 'Löst ab',
+  replacesNone: 'Keine',
+  replacesHint:
+    'Die gewählte eigene Pflicht endet mit der Bestätigung, ihre Nachweise bleiben bei ihr. Ihr letzter Nachweis zählt für den Termin dieser Pflicht.',
   allows: {
     maximum:
       'Die Vorschrift nennt sie. Die Frist lässt sich nur verkürzen, dafür braucht es keine Begründung.',
@@ -425,6 +430,11 @@ function ConfirmForm({
   const [trouble, setTrouble] = useState<string | null>(null)
   const [working, setWorking] = useState(false)
   const [dismissing, setDismissing] = useState(false)
+  // The duties of the operator's own at the asset that stand, one of which the
+  // proposal may take the place of (#514).
+  const duties = useQuery(assetDutiesQuery(asset.id))
+  const own = (duties.data ?? []).filter((duty) => duty.kind === null && duty.endsOn === null)
+  const [replaces, setReplaces] = useState('')
 
   const set = (values: Partial<Typed>) => {
     setTyped((current) => ({ ...current, ...values }))
@@ -454,6 +464,7 @@ function ConfirmForm({
         assetId: asset.id,
         kind: entry.key,
         ...described(typed, allowed),
+        ...(replaces === '' ? {} : { replacesDutyId: replaces }),
       })
 
       if (result.outcome === 'refused') {
@@ -510,6 +521,26 @@ function ConfirmForm({
                   assetId: asset.id,
                 }}
                 pointedAt={null}
+                beforeResponsible={
+                  own.length === 0 ? null : (
+                    <SelectField
+                      label={confirmWords.replaces}
+                      options={[
+                        { value: '', label: confirmWords.replacesNone },
+                        ...own.map((duty) => ({
+                          value: duty.id,
+                          label:
+                            duty.lastMetOn === null
+                              ? duty.title
+                              : `${duty.title}, zuletzt am ${date(duty.lastMetOn)}`,
+                        })),
+                      ]}
+                      value={replaces}
+                      hint={confirmWords.replacesHint}
+                      onChange={setReplaces}
+                    />
+                  )
+                }
               />
             </div>
           </Panel>
@@ -905,6 +936,7 @@ function IntervalFields({
   keptMaximum = false,
   chain,
   pointedAt,
+  beforeResponsible = null,
 }: {
   readonly typed: Typed
   readonly set: (values: Partial<Typed>) => void
@@ -920,6 +952,8 @@ function IntervalFields({
   readonly chain: DutyPlaceChain
   /** The document a duty there is points at; none for a new one. */
   readonly pointedAt: DutyIntervalDocument | null
+  /** What stands before who answers for the duty: the duty a proposal takes the place of (#514). */
+  readonly beforeResponsible?: ReactNode
 }) {
   const seesDocuments = useRight('document.read')
   const interval = typedInterval(typed)
@@ -944,6 +978,7 @@ function IntervalFields({
     return (
       <>
         <OnceFields typed={typed} set={set} problems={problems} once={allowed.once} term={term} />
+        {beforeResponsible}
         <ResponsibleFields typed={typed} set={set} problems={problems} named={named} />
       </>
     )
@@ -1017,6 +1052,7 @@ function IntervalFields({
       {seesDocuments ? (
         <DocumentField typed={typed} set={set} chain={chain} pointedAt={pointedAt} />
       ) : null}
+      {beforeResponsible}
       <ResponsibleFields typed={typed} set={set} problems={problems} named={named} />
     </>
   )
