@@ -251,6 +251,37 @@ describe('the description of the processing an operator makes (#357)', () => {
     ])
   })
 
+  it('names in section 7 the years of what hangs on no evidence that hold at the operator (#524)', async () => {
+    const before = await made()
+
+    expect(await textOf(before.id)).toContain(
+      'Ein Vorgang ohne Nachweis, erledigt oder als nicht durchgeführt geschlossen, bleibt sechs Jahre ab dem Ende des Jahres',
+    )
+
+    await http()
+      .put('/settings/record-retention')
+      .set(testIdentityHeader, by('u-lead'))
+      .send({ activity: 8, defect: null, task: 2, reading_person: 4, booking_person: null })
+      .expect(200)
+
+    expect((await listed()).changedSinceNewest).toEqual(['2', '7'])
+
+    const after = await made()
+    const text = await textOf(after.id)
+
+    expect(after.changed).toEqual(['2', '7'])
+    expect(text).toContain(
+      'Ein Vorgang ohne Nachweis, erledigt oder als nicht durchgeführt geschlossen, bleibt acht Jahre ab dem Ende des Jahres',
+    )
+    expect(text).toContain('Ein behobener Mangel bleibt fünf Jahre ab dem Tag der Beseitigung')
+    expect(text).toContain(
+      'Eine erledigte Aufgabe löscht der Fristenlauf zwei Jahre nach ihrer Erledigung ganz. Am Zählerstand, an der Buchung im Lager und an der Entnahme am Auftrag entfernt er vier Jahre nach der Ablesung, drei Jahre nach Buchung oder Entnahme, wer abgelesen',
+    )
+    expect(text).toContain(
+      '| Aufbewahrung ohne Nachweis | Vorgang ohne Nachweis 8 Jahre, Mangel nach Beseitigung 5 Jahre, Erledigte Aufgabe 2 Jahre, Person am Zählerstand 4 Jahre, Person an der Buchung im Lager 3 Jahre; verlängert, wo es mehr sind als das Gesetz |',
+    )
+  })
+
   it('names no person who works for the operator, only how many hold each role', async () => {
     const text = await textOf((await made()).id)
 

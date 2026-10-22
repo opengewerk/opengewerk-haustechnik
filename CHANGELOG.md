@@ -58,6 +58,11 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 - Das Büro gleicht die Dateien für unterwegs ab wie der Rahmen vor Ort (#536): Ein Gerät, das nach dem Verlust
   eines Bereichs oder Rechts nur noch im Büro geöffnet wird, lässt die Dateien los, die die Person nicht mehr lesen
   darf. Bisher blieben sie im Browser, bis jemand wieder vor Ort öffnete.
+- Die erzeugte Verfahrensbeschreibung nennt in Abschnitt 7 und unter „Bei diesem Betreiber“ die Jahre, die beim
+  Betreiber für Vorgang, Mangel, Aufgabe und die Person an Zählerstand und Buchung gelten (#524); bisher stand dort
+  immer die gesetzliche Frist, auch wenn die Leitung sie verlängert hatte, und eine neue Fassung nannte den Abschnitt
+  nicht als geändert. Drei Sätze, die Phase 2 noch als künftig beschrieben, sagen jetzt, was gebaut ist (#525), und
+  Anhang C nennt jeden Weg des Servers mit seiner Methode, gegen den ein Test die Liste hält (#541).
 
 ## [0.2.2] - 2026-10-22
 
