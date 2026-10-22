@@ -2330,6 +2330,77 @@ describe('a signature from a device', () => {
       expect(holding).not.toContain(theirs.recordId)
     })
 
+    it('takes nothing more of a round handed on from the device of the person before, and all from the person after (#559)', async () => {
+      const toSign = await activityToSign({ kind: 'round' })
+
+      await admin.query(
+        `update activities set form_key = $2, form_version = $3, performer = 'own_staff',
+                               performer_user_id = 'u-tech'
+          where id = $1`,
+        [toSign.activity, form.key, form.version],
+      )
+
+      const first = answer(toSign.activity, 'seal_intact', { result: 'ok' })
+
+      expect(await outcomes('u-tech', [...workDone(toSign).slice(0, 1), first])).toEqual([
+        applied,
+        applied,
+      ])
+
+      // Ill in the middle of the week: the office gives the round to the Objektleitung.
+      await admin.query(`update activities set performer_user_id = 'u-site' where id = $1`, [
+        toSign.activity,
+      ])
+
+      // What the device before still held comes once it is online again, and none of it is taken.
+      const before = [
+        answer(toSign.activity, 'no_leak', { result: 'not_ok', remark: 'Tropft.' }),
+        operation(
+          'activity_answers',
+          'update',
+          first.recordId,
+          { result: 'not_ok', remark: 'Plombe fehlt.' },
+          { result: 'ok' },
+        ),
+        operation(
+          'activities',
+          'update',
+          toSign.activity,
+          { performedOn: '2026-10-02' },
+          { performedOn: '2026-10-01' },
+        ),
+        signature(toSign.activity, pageWith(toSign, [first])),
+      ]
+      const handedOn = {
+        outcome: 'conflict',
+        reason: 'changed_elsewhere',
+        fields: ['performerUserId'],
+      }
+
+      expect(await outcomes('u-tech', before)).toEqual(before.map(() => handedOn))
+      expect(await signaturesOf(toSign.activity)).toEqual([])
+
+      // The person after goes on from what the server holds.
+      expect(
+        await outcomes(
+          'u-site',
+          [answer(toSign.activity, 'no_leak', { result: 'ok' })],
+          small,
+          'tablet',
+        ),
+      ).toEqual([applied])
+
+      const { rows: held } = await admin.query<{ field_key: string; result: string }>(
+        `select field_key, result from activity_answers where activity_id = $1 order by field_key`,
+        [toSign.activity],
+      )
+
+      expect(held).toEqual([
+        { field_key: 'no_leak', result: 'ok' },
+        { field_key: 'seal_intact', result: 'ok' },
+      ])
+    })
+
     it('answers a signature for a page with other answers with a conflict about the page', async () => {
       const toSign = await withForm()
       const given = everyPoint(toSign.activity)

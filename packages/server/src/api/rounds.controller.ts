@@ -16,6 +16,7 @@ import {
 import {
   type Activity,
   type ActivityId,
+  type ActivityStatus,
   activityProblems,
   addDays,
   byNameIn,
@@ -94,6 +95,9 @@ async function named(
 
 /** How many rounds a person hands out at once: those of a plan in a week, with room to spare. */
 const mostAtOnce = 50
+
+/** The states in which a round goes to a person, or to nobody: until it is handed in (#559). */
+const handedOnWhile: readonly ActivityStatus[] = ['open', 'started']
 
 /**
  * The rounds of the plans in the office (#113, section 4.5 of the concept):
@@ -336,11 +340,14 @@ export class RoundsController {
         throw new NotFoundException('Diesen Rundgang gibt es nicht oder nicht mehr.')
       }
 
-      const begun = rounds.find((round) => round.status !== 'open')
+      // A round that was begun goes to another person as well, when the one
+      // walking it falls ill in the middle of the week (#559); one handed in
+      // or closed stays with its person.
+      const fixed = rounds.find((round) => !handedOnWhile.includes(round.status))
 
-      if (begun !== undefined) {
+      if (fixed !== undefined) {
         throw new ConflictException(
-          'Zugeteilt wird ein Rundgang, solange ihn niemand begonnen hat. Einen davon hat schon jemand begonnen.',
+          'Zugeteilt wird ein Rundgang, solange er offen oder begonnen ist. Einer davon ist schon abgegeben oder geschlossen.',
         )
       }
 
@@ -374,7 +381,7 @@ export class RoundsController {
           await tx
             .update(activities)
             .set({ performerUserId: person, updatedAt: now })
-            .where(and(eq(activities.id, round.id), eq(activities.status, 'open')))
+            .where(and(eq(activities.id, round.id), inArray(activities.status, [...handedOnWhile])))
           handed.push({ activityId: round.id, userId: person, dueOn: round.dueOn })
         }
       }
