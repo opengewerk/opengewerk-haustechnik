@@ -619,6 +619,19 @@ describe('the inbox', () => {
     expect([here, there]).toHaveLength(2)
   })
 
+  it('goes out as a table in which a description from outside never runs as a formula (#527)', async () => {
+    const { rawOf } = tableReaders(http)
+
+    // A description is written by whoever reports, also without an account.
+    await reported('u-melder', { roomId: north.room }, '=HYPERLINK("http://x.example")')
+
+    const csv = await rawOf('/fault-reports/table', { state: 'received' }, by('u-site'), 'csv')
+    const sheet = await rawOf('/fault-reports/table', { state: 'received' }, by('u-site'), 'xlsx')
+
+    expect(csv).toContain(`;"'=HYPERLINK(""http://x.example"")";`)
+    expect(sheet).not.toMatch(/<f[ >]/)
+  })
+
   it('holds the reports of the own areas, and a report of another area is not there to decide on', async () => {
     const inTheSouth = await reported('u-lead', { roomId: south.room })
 
