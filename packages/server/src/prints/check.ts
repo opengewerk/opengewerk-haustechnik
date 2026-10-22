@@ -1,6 +1,51 @@
+import {
+  PDFArray,
+  PDFDict,
+  PDFDocument,
+  PDFHexString,
+  PDFName,
+  PDFNumber,
+  PDFString,
+} from '@cantoo/pdf-lib'
 import type { PdfInstanceSignature } from '@opengewerk/haustechnik-domain'
 
-import { signaturesIn } from '../evidence/signed-pdf.js'
+import { momentOfDate, signaturesIn } from '../evidence/signed-pdf.js'
+
+/**
+ * The moment `/M` of the signature that ends at `endsAt`, read from the
+ * decrypted document: in a PDF of the instance since #561 it is encrypted like
+ * every string but `/Contents`, and the text of the file does not show it.
+ * The empty password opens such a file; null for anything that does not open
+ * or names no moment.
+ */
+async function momentInEncrypted(file: Uint8Array, endsAt: number): Promise<Date | null> {
+  try {
+    const document = await PDFDocument.load(file, { password: '', updateMetadata: false })
+
+    for (const [, object] of document.context.enumerateIndirectObjects()) {
+      if (!(object instanceof PDFDict) || object.get(PDFName.of('Type')) !== PDFName.of('Sig')) {
+        continue
+      }
+
+      const range = object.lookupMaybe(PDFName.of('ByteRange'), PDFArray)
+      const [, , from, length] = (range?.asArray() ?? []).map((each) =>
+        each instanceof PDFNumber ? each.asNumber() : -1,
+      )
+
+      if (from !== undefined && length !== undefined && from + length === endsAt) {
+        const moment = object.lookup(PDFName.of('M'))
+
+        return moment instanceof PDFString || moment instanceof PDFHexString
+          ? momentOfDate(moment.decodeText())
+          : null
+      }
+    }
+  } catch {
+    // Not a PDF that opens with the empty password: no moment.
+  }
+
+  return null
+}
 
 /**
  * What the signature of this instance in `file` says (#457), given every
@@ -10,10 +55,10 @@ import { signaturesIn } from '../evidence/signed-pdf.js'
  * signature appended outside (#341) leaves the PDF of the instance in front
  * and adds itself.
  */
-export function instanceSignatureOf(
+export async function instanceSignatureOf(
   file: Uint8Array,
   certificates: readonly Buffer[],
-): PdfInstanceSignature {
+): Promise<PdfInstanceSignature> {
   const found = signaturesIn(file)
   const at = found.findLastIndex(({ certificate }) =>
     certificates.some((known) => certificate !== null && known.equals(certificate.raw)),
@@ -24,7 +69,8 @@ export function instanceSignatureOf(
     return { state: 'none' }
   }
 
-  const signedAt = own.signedAt?.toISOString() ?? null
+  const signedAt =
+    (own.signedAt ?? (await momentInEncrypted(file, own.endsAt)))?.toISOString() ?? null
 
   if (!own.holds) {
     return { state: 'changed', signedAt }

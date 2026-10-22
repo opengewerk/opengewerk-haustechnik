@@ -13,6 +13,7 @@ import { describe, expect, it } from 'vitest'
 
 import { checkSignedPdf, signaturesIn } from '../evidence/signed-pdf.js'
 import { makeSigner, signedPdf } from '../evidence/test-signed-pdf.js'
+import { instanceSignatureOf } from './check.js'
 import { signPdf } from './pades.js'
 
 /**
@@ -135,5 +136,15 @@ describe('a PDF the instance signs', () => {
 
     expect(signaturesIn(higher).map((found) => found.holds)).toEqual([true, true])
     expect(checkSignedPdf(higher, [signed]).signer).toBe('Dr. Anna Becker, Prüfstelle Probe GmbH')
+  })
+
+  it('names the moment of the signature to "PDF prüfen", though its date is encrypted (#561)', async () => {
+    const at = new Date('2026-10-22T09:30:00Z')
+    const signed = await signPdf(await onePage(), instance, at)
+
+    expect(await instanceSignatureOf(signed, [instance.certificate])).toEqual({
+      state: 'unchanged',
+      signedAt: '2026-10-22T09:30:00.000Z',
+    })
   })
 })
