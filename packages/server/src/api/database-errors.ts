@@ -62,6 +62,8 @@ export const applicationConflicts: Readonly<Record<string, string>> = {
   // defect with a work order or an evidence that still counts (#510).
   HT017:
     'Ein abgegebener Rundgang wird bis zur Gegenzeichnung wieder geöffnet, solange kein Mangel daraus einen Auftrag hat.',
+  // A briefing the application writes without the page the person saw (#545).
+  HT018: 'Eine Einweisung nennt die Seite, die die Person gesehen und unterschrieben hat.',
 }
 
 export const { answerFor, DatabaseExceptionFilter } = databaseErrors(applicationConflicts)

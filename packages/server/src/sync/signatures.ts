@@ -186,6 +186,7 @@ export function visited(catalogue: Catalogue): SyncCheck<Sender> {
             personName: String(values['personName'] ?? ''),
             subject: String(values['subject'] ?? ''),
             path: (values['path'] ?? null) as string | null,
+            pageFingerprint: values['pageFingerprint'],
           })
         : checkWorkPermit(tx, tenantId, catalogue, {
             ...shared,

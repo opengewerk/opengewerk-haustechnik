@@ -2,9 +2,12 @@ import type { INestApplication } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
 import { probeCatalogueBundle } from '@opengewerk/haustechnik-catalogue/testing'
 import {
+  type ActivityId,
   addDays,
+  briefingPageOf,
   type CatalogueEntry,
   catalogueOf,
+  type ContractorId,
   type ContractorVisits,
   hotWorkPermitForm,
   type IsoDate,
@@ -16,16 +19,20 @@ import {
   type WorkOrderDetails,
 } from '@opengewerk/haustechnik-domain'
 import { Database, newId } from '@opengewerk/platform-server'
+import { eq } from 'drizzle-orm'
 import type { Pool } from 'pg'
 import request from 'supertest'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
+import { activityOf, pageOf } from '../activities/signing.js'
+import { contractors } from '../database/schema/index.js'
 import {
   applicationDatabaseUrl,
   connect,
   resetToMigrated,
   testIdentityHeader,
 } from '../database/test-database.js'
+import { stateFingerprint } from '../evidence/fingerprint.js'
 import { dayInGermany } from '../today.js'
 import { ApiModule } from './api.module.js'
 import { as, testIdentities } from './test-identity.js'
@@ -176,21 +183,54 @@ async function refused(header: string, operations: readonly ReturnType<typeof op
 const applied = { outcome: 'applied', reason: null, fields: [] }
 const elsewhere = { outcome: 'conflict', reason: 'changed_elsewhere', fields: ['activityId'] }
 
-/** A briefing as a device sends it. */
-function briefingOf(
+/**
+ * The fingerprint of the page of a briefing as the server works it out from
+ * what it holds (#545), which a device works out from what it holds.
+ */
+async function pageFingerprintOf(
+  activityId: string,
+  contractorId: string,
+  personName: string,
+  subject: string,
+): Promise<string> {
+  return database.forTenant({ tenantId: small, userId: 'u-lead' }, async (tx) => {
+    const activity = await activityOf(tx, small, activityId as ActivityId)
+    const [held] = await tx
+      .select({ name: contractors.name })
+      .from(contractors)
+      .where(eq(contractors.id, contractorId as ContractorId))
+
+    return stateFingerprint(
+      briefingPageOf(await pageOf(tx, activity), held?.name ?? '', personName, subject),
+    )
+  })
+}
+
+/** A briefing as a device sends it, with the fingerprint of the page it showed. */
+async function briefingOf(
   activityId: string,
   contractorId: string,
   more: Readonly<Record<string, SyncValue>> = {},
 ) {
+  const said = {
+    personName: 'Marco Petri',
+    subject: 'Fluchtwege, Brandmeldeanlage im Heizraum, Absperrung der Gasleitung',
+    ...more,
+  }
+
   return operation('briefings', newId<'briefing'>(), {
     activityId,
     contractorId,
-    personName: 'Marco Petri',
-    subject: 'Fluchtwege, Brandmeldeanlage im Heizraum, Absperrung der Gasleitung',
     path: 'M10,10L200,300',
     signedAt: new Date().toISOString(),
     deviceInfo: 'Probe-Telefon',
-    ...more,
+    pageFingerprint: await pageFingerprintOf(
+      activityId,
+      contractorId,
+      String(said.personName),
+      String(said.subject),
+    ),
+    ...said,
   })
 }
 
@@ -386,10 +426,13 @@ describe('a briefing and a permit for hot work', () => {
 
     // Whoever leads the order briefs, and the server writes the account.
     expect(
-      await outcomes(by('u-tech'), [briefingOf(order.id, heating), permitOf(order.id, heating)]),
+      await outcomes(by('u-tech'), [
+        await briefingOf(order.id, heating),
+        permitOf(order.id, heating),
+      ]),
     ).toEqual([applied, applied])
     // So does whoever plans and hands out work.
-    expect(await outcomes(by('u-site'), [briefingOf(order.id, heating)])).toEqual([applied])
+    expect(await outcomes(by('u-site'), [await briefingOf(order.id, heating)])).toEqual([applied])
 
     const { rows } = await admin.query<{ signed_by: string }>(
       `select signed_by from briefings where activity_id = $1
@@ -401,28 +444,31 @@ describe('a briefing and a permit for hot work', () => {
 
     // Somebody else of the Haustechnik does neither.
     expect(
-      await outcomes(by('u-other'), [briefingOf(order.id, heating), permitOf(order.id, heating)]),
+      await outcomes(by('u-other'), [
+        await briefingOf(order.id, heating),
+        permitOf(order.id, heating),
+      ]),
     ).toEqual([elsewhere, elsewhere])
     // The firm is the one the order names, which the office may have changed meanwhile.
-    expect(await outcomes(by('u-tech'), [briefingOf(order.id, other)])).toEqual([elsewhere])
+    expect(await outcomes(by('u-tech'), [await briefingOf(order.id, other)])).toEqual([elsewhere])
 
     // An order of the own people has nobody to brief.
     const own = await begun(null)
 
-    expect(await outcomes(by('u-tech'), [briefingOf(own.id, heating)])).toEqual([elsewhere])
+    expect(await outcomes(by('u-tech'), [await briefingOf(own.id, heating)])).toEqual([elsewhere])
 
     // Without a name, a subject or a drawing it is no briefing.
-    expect(await refused(by('u-tech'), [briefingOf(order.id, heating, { personName: '  ' })])).toBe(
-      'Der Name der eingewiesenen Person in Druckschrift fehlt.',
-    )
-    expect(await refused(by('u-tech'), [briefingOf(order.id, heating, { subject: '' })])).toBe(
-      'Worin die Person eingewiesen wurde, fehlt.',
-    )
+    expect(
+      await refused(by('u-tech'), [await briefingOf(order.id, heating, { personName: '  ' })]),
+    ).toBe('Der Name der eingewiesenen Person in Druckschrift fehlt.')
+    expect(
+      await refused(by('u-tech'), [await briefingOf(order.id, heating, { subject: '' })]),
+    ).toBe('Worin die Person eingewiesen wurde, fehlt.')
 
     // Once the order is signed, it is too late.
     await admin.query("update activities set status = 'signed' where id = $1", [order.id])
 
-    const late = await outcomes(by('u-tech'), [briefingOf(order.id, heating)])
+    const late = await outcomes(by('u-tech'), [await briefingOf(order.id, heating)])
 
     expect(late[0]?.outcome).toBe('conflict')
     expect(
@@ -430,12 +476,73 @@ describe('a briefing and a permit for hot work', () => {
     ).toHaveLength(2)
   })
 
+  it('names the page the person saw, and is not taken for a page the server holds otherwise (#545)', async () => {
+    const heating = await firm('Heizungsbau Main GmbH')
+    const order = await begun(heating)
+
+    expect(
+      await outcomes(by('u-tech'), [
+        await briefingOf(order.id, heating, { pageFingerprint: 'f'.repeat(64) }),
+      ]),
+    ).toEqual([{ outcome: 'conflict', reason: 'changed_elsewhere', fields: ['pageFingerprint'] }])
+    expect(await outcomes(by('u-tech'), [await briefingOf(order.id, heating)])).toEqual([applied])
+
+    const { rows } = await admin.query<{ page_fingerprint: string }>(
+      'select page_fingerprint from briefings where activity_id = $1',
+      [order.id],
+    )
+
+    expect(rows).toEqual([
+      {
+        page_fingerprint: await pageFingerprintOf(
+          order.id,
+          heating,
+          'Marco Petri',
+          'Fluchtwege, Brandmeldeanlage im Heizraum, Absperrung der Gasleitung',
+        ),
+      },
+    ])
+
+    // The firm renamed while the device was away is another page.
+    const before = await briefingOf(order.id, heating)
+
+    await admin.query("update contractors set name = 'Heizungsbau Main AG' where id = $1", [
+      heating,
+    ])
+
+    expect(await outcomes(by('u-tech'), [before])).toEqual([
+      { outcome: 'conflict', reason: 'changed_elsewhere', fields: ['pageFingerprint'] },
+    ])
+  })
+
+  it('is held by the database to a fingerprint of the page, which the application never leaves out (#545)', async () => {
+    const heating = await firm('Heizungsbau Lahn GmbH')
+    const order = await begun(heating)
+
+    expect(await outcomes(by('u-tech'), [await briefingOf(order.id, heating)])).toEqual([applied])
+
+    const copied = (fingerprint: string) =>
+      `insert into briefings (tenant_id, property_id, area_id, activity_id, contractor_id, person_name, subject,
+                              path, signed_by, signed_at, page_fingerprint)
+       select tenant_id, property_id, area_id, activity_id, contractor_id, person_name, subject, path, signed_by,
+              signed_at, ${fingerprint}
+         from briefings where activity_id = '${order.id}'`
+
+    await expect(
+      database.forTenant({ tenantId: small, userId: 'u-lead' }, (tx) => tx.execute(copied('null'))),
+    ).rejects.toMatchObject({ cause: { code: 'HT018' } })
+    await expect(admin.query(copied("'abc'"))).rejects.toMatchObject({ code: '23514' })
+  })
+
   it('are changed and removed by no role, the owner of the tables included', async () => {
     const heating = await firm('Heizungsbau Neckar GmbH')
     const order = await begun(heating)
 
     expect(
-      await outcomes(by('u-tech'), [briefingOf(order.id, heating), permitOf(order.id, heating)]),
+      await outcomes(by('u-tech'), [
+        await briefingOf(order.id, heating),
+        permitOf(order.id, heating),
+      ]),
     ).toEqual([applied, applied])
 
     for (const table of ['briefings', 'work_permits']) {
@@ -519,7 +626,10 @@ describe('the briefings and permits of a firm', () => {
     const order = await begun(heating)
 
     expect(
-      await outcomes(by('u-tech'), [briefingOf(order.id, heating), permitOf(order.id, heating)]),
+      await outcomes(by('u-tech'), [
+        await briefingOf(order.id, heating),
+        permitOf(order.id, heating),
+      ]),
     ).toEqual([applied, applied])
 
     const atOrder = (

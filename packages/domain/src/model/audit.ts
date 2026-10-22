@@ -727,6 +727,7 @@ export const auditVocabulary: AuditVocabulary = {
         signed_by: 'Aufgenommen von',
         signed_at: 'Unterschrieben am',
         device_info: 'Gerät',
+        page_fingerprint: 'Fingerabdruck der Seite',
       },
     },
     work_permits: {

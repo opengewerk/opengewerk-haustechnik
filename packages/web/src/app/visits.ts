@@ -1,5 +1,6 @@
 import {
   briefingLimits,
+  briefingPageOf,
   type Catalogue,
   type FormDefinition,
   formOfActivity,
@@ -11,6 +12,7 @@ import {
 import { refusalFor } from '@opengewerk/platform-web/sync'
 
 import type { SyncClient } from '../sync/client.js'
+import { fingerprintOf, pageOnDevice, signingWords } from './signing.js'
 
 // A contractor at work at a work order (section 4.11 of the concept, #330):
 // the briefing of one of its people and the permit for hot work, written on
@@ -28,8 +30,9 @@ function stamped(longest: number) {
 
 /**
  * Writes a briefing to the outbox: whom of the firm the order names, in
- * what, and the drawing. Null once it is queued, otherwise the sentence why
- * it was not taken.
+ * what, and the drawing, with the fingerprint of the page as this device
+ * holds it (#545), which the server works out again. Null once it is queued,
+ * otherwise the sentence why it was not taken.
  */
 export async function takeBriefing(
   client: SyncClient,
@@ -41,6 +44,19 @@ export async function takeBriefing(
     readonly path: string
   },
 ): Promise<string | null> {
+  const order = pageOnDevice(client, briefing.activityId)
+
+  if (order === null) {
+    return signingWords.notHeld
+  }
+
+  const firm = client.list('contractors').find((record) => record['id'] === briefing.contractorId)
+  const page = briefingPageOf(
+    order,
+    typeof firm?.['name'] === 'string' ? firm['name'] : '',
+    briefing.personName,
+    briefing.subject,
+  )
   const made = await client.create('briefings', {
     activityId: briefing.activityId,
     contractorId: briefing.contractorId,
@@ -48,6 +64,7 @@ export async function takeBriefing(
     subject: briefing.subject.trim(),
     path: briefing.path,
     ...stamped(briefingLimits.deviceInfo),
+    pageFingerprint: await fingerprintOf(page),
   })
 
   return made.outcome === 'refused' ? refusalFor(made) : null

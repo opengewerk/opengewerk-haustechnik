@@ -86,6 +86,11 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Bezirksschornsteinfeger, das Installateurverzeichnis Gas und die fachkundige Person nach § 60a Abs. 3 im Paket
   Heizung 1.2.0, die nach VDI 6022 geschulte Person im Paket Raumluft und Kälte 1.5.0. Bei den übrigen 15 bleibt die
   Stufe offen, und das README ihres Pakets sagt es; ein Test hält beides.
+- Die Unterschrift unter einer Einweisung nennt die Seite, die die eingewiesene Person gesehen hat, mit Auftrag,
+  Ort, Firma, Name und dem, worin eingewiesen wurde (#545), wie die Unterschrift des Auftraggebers unter einem
+  Leistungsnachweis. Hat sich die Seite geändert, seit sie gezeigt wurde, nimmt der Server die Einweisung nicht an,
+  und die Datenbank nimmt von der Anwendung keine ohne den Fingerabdruck. Bisher konnte eine Unterschrift unter einer
+  Seite stehen, die so niemand gesehen hatte.
 
 ## [0.2.2] - 2026-10-22
 

@@ -1,6 +1,7 @@
 import {
   type ActivityId,
   type BriefingEntry,
+  briefingPageOf,
   briefingProblems,
   briefsAtWorkOrder,
   type Catalogue,
@@ -24,7 +25,8 @@ import {
   workOrders,
   workPermits,
 } from '../database/schema/index.js'
-import { activityOf, signedAtLeeway, SigningRefusal } from './signing.js'
+import { stateFingerprint } from '../evidence/fingerprint.js'
+import { activityOf, pageOf, signedAtLeeway, SigningRefusal } from './signing.js'
 
 // A contractor at work at a work order (section 4.11 of the concept, #330):
 // the briefing of one of its people and the permit for hot work, taken on the
@@ -50,6 +52,8 @@ export interface BriefingToCheck extends VisitToCheck {
   readonly subject: string
   readonly path: string | null
   readonly deviceInfo: string | null
+  /** The fingerprint of the page the person saw (#545). */
+  readonly pageFingerprint: unknown
 }
 
 /** A permit as it arrives from the device. */
@@ -112,7 +116,9 @@ async function orderOfVisit(
 
 /**
  * Checks a briefing before it is written (#330): its shape, the clock of the
- * device and the order. Each refusal is a `SigningRefusal`, answered by the
+ * device and the order, and that the page the person saw is the page the
+ * server works out from what it holds (#545), as for the client's signature
+ * under a service report. Each refusal is a `SigningRefusal`, answered by the
  * sync as one of a signature.
  */
 export async function checkBriefing(
@@ -135,6 +141,25 @@ export async function checkBriefing(
   }
 
   await orderOfVisit(tx, tenantId, input, at)
+
+  const activity = await activityOf(tx, tenantId, input.activityId, true)
+  const [firm] = await tx
+    .select({ name: contractors.name })
+    .from(contractors)
+    .where(eq(contractors.id, input.contractorId))
+  const page = briefingPageOf(
+    await pageOf(tx, activity),
+    firm?.name ?? '',
+    input.personName,
+    input.subject,
+  )
+
+  if (input.pageFingerprint !== stateFingerprint(page)) {
+    throw new SigningRefusal(
+      'Die Seite hat sich geändert, seit sie gezeigt wurde. Sie wird neu gezeigt und neu unterschrieben.',
+      'page',
+    )
+  }
 }
 
 /**

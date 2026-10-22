@@ -1,4 +1,5 @@
 import {
+  type BriefingPage,
   canonicalForm,
   type DelegationPage,
   defaultWorkOrderSettings,
@@ -42,7 +43,7 @@ export function pageOnDevice(client: SyncClient, activityId: string): SignedPage
 
 /** SHA-256 over the canonical form of a page, as the server takes it: 64 hexadecimal digits. */
 export async function fingerprintOf(
-  page: SignedPage | ServiceReportPage | DelegationPage,
+  page: SignedPage | ServiceReportPage | DelegationPage | BriefingPage,
 ): Promise<string> {
   const digest = await crypto.subtle.digest(
     'SHA-256',

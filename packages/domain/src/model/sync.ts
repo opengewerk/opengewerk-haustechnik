@@ -662,6 +662,8 @@ export const offlineEdits: Readonly<Record<string, OfflineEdits>> = {
       path: true,
       signedAt: true,
       deviceInfo: true,
+      // The page the person saw (#545).
+      pageFingerprint: true,
     },
   },
   work_permits: {
