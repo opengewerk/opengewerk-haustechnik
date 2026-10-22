@@ -53,6 +53,19 @@ Richtwert, maßgeblich ist die Zulassung.
 Die Fristen stehen als Regeln in `regeln/asr.json` und beginnen mit der Ausgabe ihrer ASR, Mai 2018
 und November 2009. Geprüft sind sie am Text der BAuA in der jeweils geltenden Fassung.
 
+## Arten der Qualifikation
+
+| Schlüssel | Art | Stufe |
+| --- | --- | --- |
+| `fire_extinguisher_expert` | Sachkundiger für die Instandhaltung tragbarer Feuerlöscher | Fachkraft |
+| `hold_open_device_expert` | Sachkundiger für Feststellanlagen | Fachkraft |
+
+Ohne Art bleiben vier Pflichtarten, deren Quelle eine Stufe oder gar keine, aber keine Qualifikation nennt: die
+Prüfung von Brandmeldeanlage und Wandhydranten (`fire_detection_and_hydrant_check`) nach den Angaben des
+Herstellers, die Prüfung der Feuerschutzabschlüsse (`fire_door_check`) nach ihrer Zulassung, die monatliche Prüfung
+der Feststellanlage durch den Betreiber (`hold_open_device_monthly_check`) und die Prüfung der
+Sicherheitseinrichtungen (`safety_device_check`). Wer sie ausführt, legt der Betreiber fest; die Stufe steht an der Pflichtart, und eine Art wird erst eingetragen, wenn eine Quelle sie nennt.
+
 ## Formulare und Vorlagen
 
 - `hold_open_device_function_check`: die monatliche Prüfung der Feststellanlage durch den Betreiber.

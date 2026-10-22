@@ -291,4 +291,54 @@ describe('the package Heizung', () => {
       ['gas_installation_visual_check', 'private_standard', 'none'],
     ])
   })
+
+  it('asks for the kind of qualification its source names, and for none where the source names none (#547)', () => {
+    const asked = [
+      'chimney_sweeping',
+      'fireplace_inspection',
+      'flue_gas_first_measurement',
+      'flue_gas_measurement_gas',
+      'flue_gas_measurement_gas_older',
+      'flue_gas_measurement_gas_self_calibrating',
+      'flue_gas_measurement_oil',
+      'flue_gas_measurement_oil_older',
+      'flue_gas_measurement_oil_self_calibrating',
+      'flue_gas_measurement_solid',
+      'gas_installation_maintenance',
+      'gas_installation_serviceability_test',
+      'gas_installation_visual_check',
+      'heat_pump_check',
+      'heating_check',
+      'heating_check_before_2009',
+      'heating_maintenance',
+      'oil_storage_self_check',
+    ].map((key) => [key, heating.qualificationFor(`heizung.${key}`)?.qualification.key ?? null])
+
+    expect(asked).toEqual([
+      ['chimney_sweeping', 'heizung.chimney_sweep'],
+      ['fireplace_inspection', 'heizung.district_chimney_sweep'],
+      ['flue_gas_first_measurement', 'heizung.chimney_sweep'],
+      ['flue_gas_measurement_gas', 'heizung.chimney_sweep'],
+      ['flue_gas_measurement_gas_older', 'heizung.chimney_sweep'],
+      ['flue_gas_measurement_gas_self_calibrating', 'heizung.chimney_sweep'],
+      ['flue_gas_measurement_oil', 'heizung.chimney_sweep'],
+      ['flue_gas_measurement_oil_older', 'heizung.chimney_sweep'],
+      ['flue_gas_measurement_oil_self_calibrating', 'heizung.chimney_sweep'],
+      ['flue_gas_measurement_solid', 'heizung.chimney_sweep'],
+      ['gas_installation_maintenance', 'heizung.registered_gas_installer'],
+      ['gas_installation_serviceability_test', 'heizung.registered_gas_installer'],
+      // The operator or somebody the operator instructed.
+      ['gas_installation_visual_check', null],
+      ['heat_pump_check', 'heizung.heat_pump_inspector'],
+      ['heating_check', 'heizung.heating_inspector'],
+      ['heating_check_before_2009', 'heizung.heating_inspector'],
+      // Whoever has the knowledge and skills it needs, § 60 Abs. 2.
+      ['heating_maintenance', null],
+      ['oil_storage_self_check', null],
+    ])
+    // A district chimney sweep is a chimney sweep.
+    expect(
+      heating.coveredBy('heizung.chimney_sweep').map((kind) => kind.qualification.key),
+    ).toEqual(['heizung.district_chimney_sweep'])
+  })
 })

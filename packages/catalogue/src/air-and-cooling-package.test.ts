@@ -257,6 +257,22 @@ describe('the package Raumluft und Kälte', () => {
     }
   })
 
+  it('asks for a person trained after VDI 6022 for the inspection of hygiene, and for no kind where the source names none (#547)', () => {
+    expect(
+      [
+        'ventilation_hygiene_inspection',
+        'ventilation_maintenance',
+        'cooling_water_internal_check',
+        'leak_detection_system_check',
+      ].map((key) => [key, air.qualificationFor(`raumluft.${key}`)?.qualification.key ?? null]),
+    ).toEqual([
+      ['ventilation_hygiene_inspection', 'raumluft.ventilation_hygiene_inspector'],
+      ['ventilation_maintenance', null],
+      ['cooling_water_internal_check', null],
+      ['leak_detection_system_check', null],
+    ])
+  })
+
   it('judges a Legionella count above the test value 1 as outside, and the value itself as inside', () => {
     const form = air.form('raumluft.cooling_water_findings', options.today)
     const legionella = fieldsOf(

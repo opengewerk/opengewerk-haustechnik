@@ -147,6 +147,21 @@ den Nachweisen entsteht, bleiben die Nachweise der vier Pflichtarten, solange di
 Jahre danach: Seit der Fassung 1.3.0 nennen sie dafür in ihrer Fassung 2 die Regel `cooling_book_retention`, vom
 selben Tag an wie Fassung 1.
 
+## Arten der Qualifikation
+
+| Schlüssel | Art | Stufe |
+| --- | --- | --- |
+| `fgas_certified_person` | Zertifizierte Person für Dichtheitskontrollen (F-Gase) | Fachkraft |
+| `energy_inspector` | Fachkundige Person für die energetische Inspektion | Fachkraft |
+| `ventilation_hygiene_inspector` | Nach VDI 6022 geschulte Person für Hygieneinspektionen | Fachkraft |
+
+Die Hygieneinspektion fordert seit der Fassung 1.5.0 (#547) eine nach der Richtlinie geschulte Person, wie
+VDI 6022 Blatt 1 sie nennt; abgenommen ist die Art noch nicht. Ohne Art bleiben die Wartung der
+raumlufttechnischen Anlage (`ventilation_maintenance`) und die Kontrolle des Leckage-Erkennungssystems
+(`leak_detection_system_check`), für die ihre Quelle keine Stufe nennt, und die Überprüfung der
+Verdunstungskühlanlage im Betrieb (`cooling_water_internal_check`) durch Personal, das der Betreiber einweist.
+Wer sie ausführt, legt der Betreiber fest; die Stufe steht an der Pflichtart, und eine Art wird erst eingetragen, wenn eine Quelle sie nennt.
+
 ## Formulare
 
 | Formular | Wofür |

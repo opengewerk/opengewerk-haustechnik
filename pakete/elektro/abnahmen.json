@@ -385,17 +385,17 @@
     {
       "key": "loop_factor_b",
       "validFrom": "2017-06-01",
-      "checkedOn": "2026-10-19"
+      "checkedOn": "2026-10-22"
     },
     {
       "key": "loop_factor_c",
       "validFrom": "2017-06-01",
-      "checkedOn": "2026-10-19"
+      "checkedOn": "2026-10-22"
     },
     {
       "key": "loop_factor_d",
       "validFrom": "2017-06-01",
-      "checkedOn": "2026-10-19"
+      "checkedOn": "2026-10-22"
     },
     {
       "key": "loop_nominal_voltage",
@@ -405,12 +405,12 @@
     {
       "key": "rcd_trip_current_maximum",
       "validFrom": "2017-06-01",
-      "checkedOn": "2026-10-19"
+      "checkedOn": "2026-10-22"
     },
     {
       "key": "rcd_trip_time_maximum",
       "validFrom": "2017-06-01",
-      "checkedOn": "2026-10-19"
+      "checkedOn": "2026-10-22"
     }
   ],
   "classes": [
