@@ -45,7 +45,13 @@ export const guideOrder = [
 ] as const
 
 /** The chapters of the manual, in the order somebody who sets up an instance needs them. */
-export const manualOrder = ['installation', 'update', 'sicherung', 'betreiber-anlegen'] as const
+export const manualOrder = [
+  'installation',
+  'update',
+  'sicherung',
+  'betreiber-anlegen',
+  'massnahmen-und-signatur',
+] as const
 
 /** The texts of the screens on site, in the order of its tabs and then its menu. */
 export const siteHelpOrder = [

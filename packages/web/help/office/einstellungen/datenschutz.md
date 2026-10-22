@@ -8,6 +8,16 @@ Jede erzeugte Fassung bleibt unter „Erzeugte Fassungen“ mit ihrem Tag, wer s
 
 Die Beschreibung nennt keine Person, die beim Betreiber arbeitet; von den Zugängen nennt sie nur, wie viele jede Rolle haben. Erzeugen und ansehen kann sie nur die Leitung.
 
+## Verzeichnis, Maßnahmen und Löschkonzept
+
+Drei weitere Dokumente erzeugt die Leitung hier auf dieselbe Weise, jedes mit einer Karte, „Jetzt erzeugen“ und seinen erzeugten Fassungen:
+
+- **Verzeichnis der Verarbeitungstätigkeiten** nach Art. 30 DSGVO: je Tätigkeit Zweck, Rechtsgrundlage, betroffene Personen, Daten, Empfänger und Löschung. Betroffene und Daten kennt die Anwendung. Zweck und Rechtsgrundlage schlägt sie vor, bis die Leitung sie unter „Angaben pflegen“ bestätigt oder ändert.
+- **Technische und organisatorische Maßnahmen**, als Anlage 1 zum Vertrag zur Auftragsverarbeitung. Teil A sagt, was die Anwendung mitbringt, und ist auf jeder Instanz gleich. Teil B und die Unterauftragsverarbeiter trägt die Verwaltung der Instanz ein; fehlt Teil B noch, lässt sich das Dokument trotzdem erzeugen und sagt es.
+- **Löschkonzept:** welche Daten die Anwendung wann löscht oder leert und was sie aufbewahrt, aus ihren eigenen Regeln und dem, was bei Ihrem Betreiber eingestellt ist.
+
+Wie bei der Verfahrensbeschreibung bleibt jede Fassung mit ihrem Tag, und keine lässt sich ändern oder entfernen.
+
 ## Auskunft über eine Person
 
 Fragt jemand, was die Anwendung über sie oder ihn hält, erzeugt die Leitung hier die Auskunft: alles aus jedem Bereich, als PDF zum Lesen und als JSON, das sich in eine andere Anwendung mitnehmen lässt. Für eine Person mit Zugang wählen Sie den Zugang. Für eine Person ohne Zugang, etwa jemanden, der über das Etikett eine Störung gemeldet hat, einen Auftraggeber oder einen Ansprechpartner, suchen Sie nach dem Namen oder der E-Mail-Adresse, mit mindestens drei Zeichen; die Liste zeigt, wo etwas gefunden wurde, und die Auskunft enthält alles, was dazu passt. Passt ein Treffer nicht zu der Person, suchen Sie genauer.
