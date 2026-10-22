@@ -1217,6 +1217,8 @@ export function rowsOf(tenant: Tenant): readonly Row[] {
         path: 'M10,10L200,300',
         signed_by: tenant.userId,
         signed_at: '2026-10-01T08:00:00Z',
+        // The page the person saw (#545), which the application never leaves out.
+        page_fingerprint: 'd'.repeat(64),
       },
     },
     {
