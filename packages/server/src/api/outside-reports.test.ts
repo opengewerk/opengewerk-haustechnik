@@ -1143,9 +1143,18 @@ describe('the limits of the page', () => {
     ).toBe(0)
   })
 
-  it('stand where the application role reaches only through the one function', async () => {
+  it('stand where the application role sees nothing of them and writes only through the one function', async () => {
+    await gate.openPage(database, '198.51.100.9')
+
+    expect(
+      (
+        await database.forInstance((tx) =>
+          tx.execute<{ n: number }>(sql`select count(*)::int as n from outside_counts`),
+        )
+      ).rows[0]?.n,
+    ).toBe(0)
     await expect(
-      database.forInstance((tx) => tx.execute(sql`select count(*) from outside_counts`)),
+      database.forInstance((tx) => tx.execute(sql`delete from outside_counts`)),
     ).rejects.toMatchObject({ cause: { code: '42501' } })
   })
 })

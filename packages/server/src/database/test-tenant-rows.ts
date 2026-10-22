@@ -1466,6 +1466,11 @@ export function rowsOfTheInstance(north: Tenant, south: Tenant): readonly Row[] 
       table: 'instance_operators',
       values: { user_id: north.userId },
     },
+    // A count of the page of a label (#540), under the hash of an address.
+    {
+      table: 'outside_counts',
+      values: { kind: 'page', key: 'a'.repeat(64), at: new Date().toISOString() },
+    },
   ]
 }
 

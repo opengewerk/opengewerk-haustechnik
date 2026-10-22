@@ -19,9 +19,6 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Übersicht der Einstellungen nennt jeden Eintrag, die Hilfe zu „Datenschutz“ alle erzeugten Dokumente, und das
   Handbuch der Instanz hat ein Kapitel zu Maßnahmen und Signatur (#528). Das Konzept zieht in v0.94 nach, was der
   Abgleich gefragt hat und wo der Code richtig ist (#554), und das Löschkonzept sagt „Sitzungen“, wo es die meinte.
-- Die Grenzen der Seite eines Etiketts für Meldungen ohne Konto zählt die Datenbank (#540), nicht mehr der Speicher
-  eines Prozesses: ein Neustart setzt sie nicht zurück, und mehrere Prozesse zählen gemeinsam. Gezählt wird unter
-  dem Hashwert der Adresse, und nach einer Stunde ist die Zählung weg.
 - Ein Soll-Dokument gilt erst als vorhanden, wenn die Datei des Dokuments angekommen ist (#516). Bisher zählte
   auch ein Dokument, das vor Ort ohne Netz abgelegt wurde und dessen Datei nie ankam; Akte, Anlagenverzeichnis
   und Lagebild sagten dann „vorhanden“.
@@ -33,6 +30,9 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   „angenommen“ einmal (#517). Bisher kam er nur, wenn die Annahme der anderen Meldung keine 48 Stunden her war.
 - Die Auswertung der Mängel zählt keine entfernten Mängel mehr mit (#521), etwa die an einer entfernten
   Anlage; die Zahl stimmt jetzt mit der Liste überein, zu der sie führt.
+- Die Grenzen der Seite eines Etiketts für Meldungen ohne Konto zählt die Datenbank (#540), nicht mehr der Speicher
+  eines Prozesses: ein Neustart setzt sie nicht zurück, und mehrere Prozesse zählen gemeinsam. Gezählt wird unter
+  dem Hashwert der Adresse, und nach einer Stunde ist die Zählung weg.
 - Das Änderungsprotokoll nennt bei einer Unterschrift nur noch, dass sie gesetzt wurde, auch in seiner
   Tabelle (#523). Bisher standen die ersten 300 Zeichen des Linienzugs in XLSX und CSV.
 - Ein Paket heißt nicht „eigen“ (#529): so heißen die eigenen Anlagenarten eines Betreibers, und der Lader

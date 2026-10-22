@@ -6,8 +6,9 @@
 -- report was asked for from one, or a report over a label was written, by
 -- the kind and the SHA-256 of the address or the code, never the address
 -- itself, and the moment. No tenant: the page comes before any operator.
--- The application role may not read or write it; row level security is on
--- without a policy, as a second lock behind the missing grants.
+-- Protected like a table of the instance: row level security forced, the
+-- owner keeps it through the function, and the application role, which may
+-- only read it, sees no row of it anywhere.
 -- `outside_take(...)`: SECURITY DEFINER, the one way to it. It forgets every
 -- row older than an hour first, so that no count holds a hash longer than the
 -- hour it counts for; then, under a lock per key held to the end of the
@@ -23,7 +24,11 @@ CREATE TABLE "outside_counts" (
 );--> statement-breakpoint
 CREATE INDEX "outside_counts_by_key" ON "outside_counts" USING btree ("kind","key","at");--> statement-breakpoint
 ALTER TABLE "outside_counts" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
+ALTER TABLE "outside_counts" FORCE ROW LEVEL SECURITY;--> statement-breakpoint
 REVOKE ALL ON "outside_counts" FROM PUBLIC;--> statement-breakpoint
+CREATE POLICY "kept_by_the_function" ON "outside_counts" AS PERMISSIVE FOR ALL TO current_user USING (true) WITH CHECK (true);--> statement-breakpoint
+CREATE POLICY "seen_by_nobody" ON "outside_counts" AS PERMISSIVE FOR SELECT TO "opengewerk_app" USING (false);--> statement-breakpoint
+GRANT SELECT ON "outside_counts" TO "opengewerk_app";--> statement-breakpoint
 CREATE FUNCTION "outside_take"(
 	"kinds" text[],
 	"keys" text[],
