@@ -1,7 +1,6 @@
 import type { DelegationEntry } from '@opengewerk/haustechnik-domain'
 import { Button, Dialog, Status, TablePanel, Cell, Column } from '@opengewerk/platform-web'
 import { Empty } from '@opengewerk/platform-web/office'
-import { useRight } from '@opengewerk/platform-web/session'
 import { RequestRefused } from '@opengewerk/platform-web/sync'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Signature } from 'lucide-react'
@@ -92,14 +91,14 @@ function SignDialog({ id, onClose }: { readonly id: string; readonly onClose: ()
   )
 }
 
+/** The delegations to the person signed in: their own, which no right opens or closes (#543). */
 export function MyDelegationsCard() {
-  const reads = useRight('duty.read')
-  const mine = useQuery({ ...myDelegationsQuery, enabled: reads })
+  const mine = useQuery(myDelegationsQuery)
   const scopeWords = useScopeWords()
   const [signing, setSigning] = useState<string | null>(null)
   const rows = mine.data ?? []
 
-  if (!reads || rows.length === 0) {
+  if (rows.length === 0) {
     return null
   }
 

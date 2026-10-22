@@ -1,7 +1,6 @@
 import { type QualificationEntry, qualificationStandingLabel } from '@opengewerk/haustechnik-domain'
 import { Cell, Column, Status, TablePanel } from '@opengewerk/platform-web'
 import { date } from '@opengewerk/platform-web/format'
-import { useRight } from '@opengewerk/platform-web/session'
 import { useQuery } from '@tanstack/react-query'
 import { FileText } from 'lucide-react'
 
@@ -36,12 +35,12 @@ function Certificate({ entry }: { readonly entry: QualificationEntry }) {
 
 const tone = { valid: 'done', expiring: 'waiting', expired: 'conflict' } as const
 
+/** The qualifications of the person signed in: their own, which no right opens or closes (#543). */
 export function MyQualificationsCard() {
-  const works = useRight('activity.read')
-  const mine = useQuery({ ...myQualificationsQuery, enabled: works })
+  const mine = useQuery(myQualificationsQuery)
   const rows = mine.data?.qualifications ?? []
 
-  if (!works || rows.length === 0) {
+  if (rows.length === 0) {
     return null
   }
 

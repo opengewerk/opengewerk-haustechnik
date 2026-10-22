@@ -42,6 +42,7 @@ import {
   CurrentIdentity,
   Database,
   isUuid,
+  RequiresMembership,
   type TenantTransaction,
 } from '@opengewerk/platform-server'
 import { memberships, tenantRoles } from '@opengewerk/platform-server/schema'
@@ -162,8 +163,9 @@ export class DelegationsController {
   }
 
   /** The delegations to the person asking, from the signature of the Leitung on: what waits for them, and the copies. */
+  // Their own delegations, which no right opens or closes (section 7 of the concept, #543).
   @Get('mine')
-  @RequiresPermission('duty.read')
+  @RequiresMembership()
   async mine(@CurrentIdentity() identity: Asking): Promise<readonly DelegationEntry[]> {
     const today = dayInGermany()
 
@@ -179,15 +181,16 @@ export class DelegationsController {
     })
   }
 
+  // Whoever delegates sees every one, the person it goes to their own (`heldFor`), with no right (#543).
   @Get(':id')
-  @RequiresPermission('duty.read')
+  @RequiresMembership()
   page(@CurrentIdentity() identity: Asking, @Param('id') id: string): Promise<DelegationReading> {
     return this.reading(identity, id)
   }
 
   /** The PDF of a delegation: the copy of the person, and the page of the Leitung. */
   @Get(':id/pdf')
-  @RequiresPermission('duty.read')
+  @RequiresMembership()
   async print(
     @CurrentIdentity() identity: Asking,
     @Param('id') id: string,

@@ -215,6 +215,26 @@ describe('every route', () => {
   })
 
   /**
+   * The fifth kind: somebody who works for the tenant, with no right asked
+   * (#543, section 7 of the concept). What is the person's own there: their
+   * qualifications with their certificates and the delegations to them. Each
+   * handler keeps to the person or to whoever holds the right, and only reads.
+   * A new one turns this red, which makes it a decision.
+   */
+  it('that needs a membership and no right reads what is the person own', () => {
+    const membershipOnly = routesOf(controllers).filter((route) => route.needsMembershipOnly)
+
+    expect(membershipOnly.map((route) => route.name).sort()).toEqual([
+      'GET /delegations/:id',
+      'GET /delegations/:id/pdf',
+      'GET /delegations/mine',
+      'GET /qualifications/:id/certificate',
+      'GET /qualifications/mine',
+    ])
+    expect(membershipOnly.filter((route) => route.writes || route.isPublic)).toEqual([])
+  })
+
+  /**
    * The routes of the authentication library are mounted in front of the
    * guard, because a route that hands out a session cannot ask for one. That
    * is defensible exactly as long as nothing of ours shares the prefix: a

@@ -67,6 +67,10 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   „abgelehnt“ (#537); das Konzept sagt „jede seiner Anfragen“. Das Protokoll bleibt so lange wie das
   Änderungsprotokoll, und das Löschkonzept und die Verfahrensbeschreibung sagen es. Prüfer und Melder stehen nicht mehr
   zur Wahl, wenn jemand für eine Pflicht verantwortlich wird, und der Server nimmt sie dafür nicht an (#538).
+- Die eigenen Qualifikationen mit Nachweis und die eigenen Pflichtenübertragungen mit Seite und PDF sieht jede Person
+  unter „Konto“ ohne ein Recht (#543), wie Abschnitt 7 des Konzepts es sagt: es sind ihre eigenen Daten. Bisher
+  verlangte der Server „Vorgänge ansehen“ und „Pflichten ansehen“, und wer das Recht verlor, verlor auch seine
+  Ausfertigung. Das Fundament hat dafür Routen für ein Mitglied ohne Recht (`RequiresMembership`).
 
 ## [0.2.2] - 2026-10-22
 
