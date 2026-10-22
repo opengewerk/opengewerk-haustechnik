@@ -118,17 +118,70 @@ export type MeetingEvidence = LastEvidence & { readonly nextDueOn: IsoDate | nul
  * or of every one. Only the evidence that stands: neither replaced by a
  * correction nor declared invalid (ADR 0004, points 14 and 15), so that a
  * duty whose only evidence is invalid is open again.
+ *
+ * A duty that took the place of one of the operator's own when its proposal
+ * was confirmed counts the last evidence of that one as its own first (section
+ * 4.3 of the concept, #514). The one it replaced is of the operator's own, and
+ * such a duty replaces none, so there is never more than one step back.
  */
 export async function meetingEvidenceByDuty(
   tx: TenantTransaction,
   dutyIds?: readonly string[],
 ): Promise<ReadonlyMap<string, readonly MeetingEvidence[]>> {
-  const performances = new Map<string, MeetingEvidence[]>()
-
   if (dutyIds?.length === 0) {
-    return performances
+    return new Map()
   }
 
+  const replacing = await tx
+    .select({ id: duties.id, replacesDutyId: duties.replacesDutyId })
+    .from(duties)
+    .where(
+      and(
+        isNotNull(duties.replacesDutyId),
+        dutyIds === undefined
+          ? undefined
+          : inArray(duties.id, dutyIds as (typeof duties.$inferSelect)['id'][]),
+      ),
+    )
+  const performances = await standingPerformances(
+    tx,
+    dutyIds === undefined
+      ? undefined
+      : [...dutyIds, ...replacing.map((duty) => duty.replacesDutyId as string)],
+  )
+
+  for (const { id, replacesDutyId } of replacing) {
+    const carried = performances.get(replacesDutyId as string)?.at(-1)
+
+    if (carried !== undefined) {
+      performances.set(
+        id,
+        [carried, ...(performances.get(id) ?? [])].sort((one, other) =>
+          one.performedOn < other.performedOn ? -1 : one.performedOn > other.performedOn ? 1 : 0,
+        ),
+      )
+    }
+  }
+
+  if (dutyIds !== undefined) {
+    const asked = new Set(dutyIds)
+
+    for (const id of performances.keys()) {
+      if (!asked.has(id)) {
+        performances.delete(id)
+      }
+    }
+  }
+
+  return performances
+}
+
+/** The evidence that stands and meets each duty, of these duties or of every one, the earliest day first. */
+async function standingPerformances(
+  tx: TenantTransaction,
+  dutyIds?: readonly string[],
+): Promise<Map<string, MeetingEvidence[]>> {
+  const performances = new Map<string, MeetingEvidence[]>()
   const voided = new Set(
     (await tx.select({ evidenceId: evidenceVoidings.evidenceId }).from(evidenceVoidings)).map(
       (row) => row.evidenceId as string,

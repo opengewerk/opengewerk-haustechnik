@@ -929,6 +929,254 @@ describe('ending a duty', () => {
   })
 })
 
+describe('a proposal that takes the place of a duty of the operator own (#514)', () => {
+  /** A duty of the operator's own at an asset, as the register had it before the catalogue proposed one. */
+  const ownAt = async (assetId: string, label = 'Aufzug prüfen lassen') =>
+    (
+      await post({
+        assetId,
+        label,
+        basis: 'own_decision',
+        sourceNote: 'Hausregel seit 2019',
+        task: 'inspection',
+        intervalMonths: 12,
+      }).expect(201)
+    ).body as { id: string; propertyId: string; areaId: string }
+  /** An evidence of a duty on a day, met without defects. */
+  const metOn = async (duty: { id: string; propertyId: string; areaId: string }, day: string) => {
+    await admin.query(
+      `insert into evidence (tenant_id, property_id, area_id, duty_id, performed_on, result,
+                             ${writtenColumnNames})
+       values ($1, $2, $3, $4, $5, 'without_defects', ${writtenPlaceholders(6)})`,
+      [
+        small,
+        duty.propertyId,
+        duty.areaId,
+        duty.id,
+        day,
+        ...writtenValues('u-duties', day as IsoDate, 'without_defects'),
+      ],
+    )
+  }
+  const read = async (path: string) =>
+    (await http().get(path).set(testIdentityHeader, by('u-duties')).expect(200)).body
+  const replacedReason =
+    'Abgelöst durch die Pflicht „Hauptprüfung der Aufzugsanlage“ aus dem Katalog.'
+
+  it('ends the own duty, keeps its evidence with it and counts the new one from its last evidence', async () => {
+    const place = await placeIn()
+    const own = await ownAt(place.elevator)
+
+    await metOn(own, '2025-03-14')
+    await metOn(own, '2026-03-14')
+
+    const confirmed = (
+      await post({
+        assetId: place.elevator,
+        kind: mainTest,
+        intervalMonths: 24,
+        replacesDutyId: own.id,
+      }).expect(201)
+    ).body as { id: string }
+
+    expect(await read(`/duties/${own.id}`)).toMatchObject({
+      endsOn: dayInGermany(),
+      endReason: replacedReason,
+    })
+    expect(await read(`/duties/${own.id}/evidence`)).toHaveLength(2)
+    expect(await read(`/duties/${confirmed.id}/evidence`)).toHaveLength(0)
+
+    // The same as a duty of the kind met there on the same day.
+    const other = await placeIn()
+    const alike = (
+      await post({ assetId: other.elevator, kind: mainTest, intervalMonths: 24 }).expect(201)
+    ).body as { id: string; propertyId: string; areaId: string }
+
+    await metOn(alike, '2026-03-14')
+
+    const replacing = await read(`/duties/${confirmed.id}`)
+    const metThere = await read(`/duties/${alike.id}`)
+
+    expect(replacing).toMatchObject({ replacesDutyId: own.id, lastMetOn: '2026-03-14' })
+    expect([replacing.state, replacing.appointment]).toEqual([metThere.state, metThere.appointment])
+    expect(replacing.appointment).not.toBeNull()
+
+    // An evidence of its own counts from then on.
+    await metOn(replacing, '2026-09-01')
+
+    expect((await read(`/duties/${confirmed.id}`)).lastMetOn).toBe('2026-09-01')
+  })
+
+  it('names the other duty in the log of changes of both', async () => {
+    const place = await placeIn()
+    const own = await ownAt(place.elevator)
+    const confirmed = (
+      await post({
+        assetId: place.elevator,
+        kind: mainTest,
+        intervalMonths: 24,
+        replacesDutyId: own.id,
+      }).expect(201)
+    ).body as { id: string }
+    const changesOf = async (record: string) =>
+      (
+        await http()
+          .get('/audit/changes')
+          .query({ table: 'duties', record })
+          .set(testIdentityHeader, by('u-lead'))
+          .expect(200)
+      ).body as {
+        changes: { fields: { field: string; after: string | null }[] }[]
+        titles: Record<string, { table: string; title: string | null }>
+      }
+    const after = (page: Awaited<ReturnType<typeof changesOf>>, field: string) =>
+      page.changes.flatMap((change) => change.fields).find((each) => each.field === field)?.after
+
+    const replacing = await changesOf(confirmed.id)
+
+    expect(after(replacing, 'replaces_duty_id')).toBe(own.id)
+    expect(replacing.titles[own.id]).toMatchObject({ table: 'duties' })
+    expect(after(await changesOf(own.id), 'end_reason')).toBe(replacedReason)
+  })
+
+  it('takes the place of one own duty for each asset of a batch that names one', async () => {
+    const first = await placeIn()
+    const second = await placeIn()
+    const own = await ownAt(first.elevator)
+
+    await metOn(own, '2026-02-02')
+
+    const made = (
+      await http()
+        .post('/duties/batch')
+        .set(testIdentityHeader, by('u-duties'))
+        .send({
+          kind: mainTest,
+          assetIds: [first.elevator, second.elevator],
+          replaces: { [first.elevator]: own.id },
+        })
+        .expect(201)
+    ).body as { assetId: string; replacesDutyId: string | null; id: string }[]
+
+    expect(made.map((duty) => [duty.assetId, duty.replacesDutyId])).toEqual([
+      [first.elevator, own.id],
+      [second.elevator, null],
+    ])
+    expect(await read(`/duties/${own.id}`)).toMatchObject({ endReason: replacedReason })
+    expect((await read(`/duties/${made[0]?.id ?? ''}`)).lastMetOn).toBe('2026-02-02')
+    expect((await read(`/duties/${made[1]?.id ?? ''}`)).lastMetOn).toBeNull()
+  })
+
+  it('takes the place of an own duty at the same asset only, which stands, and nothing else does', async () => {
+    const place = await placeIn()
+    const atTheMeter = await ownAt(place.waterMeter, 'Zähler ablesen')
+    const ended = await ownAt(place.elevator, 'Notruf prüfen')
+    const confirming = (replacesDutyId: string) =>
+      post({ assetId: place.elevator, kind: mainTest, intervalMonths: 24, replacesDutyId })
+
+    await http()
+      .post(`/duties/${ended.id}/end`)
+      .set(testIdentityHeader, by('u-duties'))
+      .send({})
+      .expect(201)
+
+    expect((await confirming(atTheMeter.id).expect(400)).body.message).toBe(
+      'Die Pflicht, die der Vorschlag ablösen soll, steht nicht an dieser Anlage.',
+    )
+    expect((await confirming(newId<'duty'>()).expect(400)).body.message).toBe(
+      'Die Pflicht, die der Vorschlag ablösen soll, steht nicht an dieser Anlage.',
+    )
+    expect((await confirming(ended.id).expect(409)).body.message).toBe(
+      `Die Pflicht, die der Vorschlag ablösen soll, endet schon am ${dayInGermany()}.`,
+    )
+
+    // A duty of the catalogue is no duty of the operator's own.
+    const fromTheCatalogue = (
+      await post({ assetId: place.elevator, kind: guided, intervalMonths: 24 }).expect(201)
+    ).body as { id: string }
+
+    expect((await confirming(fromTheCatalogue.id).expect(400)).body.message).toBe(
+      'Ein Vorschlag löst nur eine eigene Pflicht ab, keine aus dem Katalog.',
+    )
+    // Nothing of it stayed: the duty of the catalogue was never confirmed.
+    expect(
+      (
+        await admin.query(
+          'select count(*)::int as n from duties where asset_id = $1 and kind = $2',
+          [place.elevator, mainTest],
+        )
+      ).rows,
+    ).toEqual([{ n: 0 }])
+    expect(
+      (
+        await post({
+          assetId: place.elevator,
+          label: 'Schacht reinigen',
+          basis: 'own_decision',
+          sourceNote: 'Hausregel',
+          task: 'maintenance',
+          intervalMonths: 12,
+          replacesDutyId: ended.id,
+        }).expect(400)
+      ).body.message,
+    ).toBe(
+      'Eine eigene Pflicht löst keine andere ab; das tut ein Vorschlag aus dem Katalog, wenn er bestätigt wird.',
+    )
+    expect(
+      (
+        await http()
+          .post('/duties/batch')
+          .set(testIdentityHeader, by('u-duties'))
+          .send({
+            kind: mainTest,
+            assetIds: [place.elevator],
+            replaces: { [place.waterMeter]: atTheMeter.id },
+          })
+          .expect(400)
+      ).body.message,
+    ).toBe('Abgelöst wird nur an einer Anlage, die der Stapel bestätigt.')
+  })
+
+  it('is held by the database: at the same asset, by a duty of the catalogue, once', async () => {
+    const place = await placeIn()
+    const own = await ownAt(place.elevator)
+    const atTheMeter = await ownAt(place.waterMeter, 'Zähler ablesen')
+    const confirmed = (
+      await post({
+        assetId: place.elevator,
+        kind: mainTest,
+        intervalMonths: 24,
+        replacesDutyId: own.id,
+      }).expect(201)
+    ).body as { id: string }
+    const refused = async (statement: string, values: unknown[]) =>
+      ((await admin.query(statement, values).catch((error: unknown) => error)) as { code?: string })
+        .code
+
+    // Another asset, an own duty that replaces, and a second duty that replaces the same.
+    expect(
+      await refused('update duties set replaces_duty_id = $1 where id = $2', [
+        atTheMeter.id,
+        confirmed.id,
+      ]),
+    ).toBe('23503')
+    expect(
+      await refused('update duties set replaces_duty_id = $1 where id = $2', [
+        own.id,
+        atTheMeter.id,
+      ]),
+    ).toBe('23514')
+
+    const second = (
+      await post({ assetId: place.elevator, kind: guided, intervalMonths: 24 }).expect(201)
+    ).body as { id: string }
+
+    expect(
+      await refused('update duties set replaces_duty_id = $1 where id = $2', [own.id, second.id]),
+    ).toBe('23505')
+  })
+})
+
 describe('removing a duty', () => {
   it('removes one entered by mistake, and not one with an evidence or a signed activity (#79)', async () => {
     const place = await placeIn()

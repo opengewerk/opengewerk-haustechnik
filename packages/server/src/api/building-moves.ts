@@ -114,6 +114,8 @@ export const holdingTheBuilding: Readonly<Record<string, string>> = {
   defects_set_right_by_a_work_order_of_their_property: 'ein Mangel mit dem Auftrag, der ihn behebt',
   duties_interval_document_of_their_property:
     'eine Pflicht mit dem Dokument, das ihren Abstand begründet',
+  // A duty from the catalogue with the own duty at the same asset it took the place of (#514).
+  duties_replace_one_at_their_asset: 'eine Pflicht mit der eigenen Pflicht, die sie abgelöst hat',
   evidence_from_an_activity_of_its_property: 'ein Nachweis mit dem Vorgang, aus dem er kommt',
   fault_reports_accepted_as_a_work_order_of_their_property:
     'eine Störmeldung mit dem Auftrag, als der sie angenommen wurde',

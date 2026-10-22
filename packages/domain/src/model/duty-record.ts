@@ -146,6 +146,12 @@ export interface Duty extends Synced, PlaceTarget {
   /** The day it ends, from which it calls for nothing any more. */
   readonly endsOn: IsoDate | null
   readonly endReason: string | null
+  /**
+   * The duty of the operator's own at the same asset this one took the place
+   * of when its proposal was confirmed (section 4.3, #514); its last evidence
+   * counts for the due day of this one.
+   */
+  readonly replacesDutyId: DutyId | null
 }
 
 /**

@@ -2,7 +2,7 @@ import type { FederalState, IsoDate } from '@opengewerk/platform-domain'
 
 import type { AssetId, AssetValue, LifecycleState } from './asset.js'
 import type { Catalogue, CatalogueEntry, DutyKind, DutyScope, ScopeCondition } from './catalogue.js'
-import type { DutyDismissalId } from './duty-record.js'
+import type { DutyDismissalId, DutyId } from './duty-record.js'
 import type { BuildingId, BuildingKind, PropertyId, RoomId } from './location.js'
 
 /**
@@ -137,6 +137,16 @@ export interface ProposedAsset {
   readonly roomId: RoomId | null
   /** The day it was entered, "angelegt am". */
   readonly enteredOn: IsoDate
+  /** Its duties of the operator's own that stand, one of which a proposal may take the place of (section 4.3, #514). */
+  readonly ownDuties: readonly OwnDutyAtAnAsset[]
+}
+
+/** A duty of the operator's own at an asset, as a proposal there offers to take its place (#514). */
+export interface OwnDutyAtAnAsset {
+  readonly id: DutyId
+  readonly title: string
+  /** The last day an evidence that stands met it: the one its successor counts from. */
+  readonly lastMetOn: IsoDate | null
 }
 
 /** One open proposal: a duty kind of the catalogue, by its key, for an asset. */
