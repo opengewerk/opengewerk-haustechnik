@@ -12,6 +12,7 @@ import {
   type AssetDetails,
   type AssetRegister,
   catalogueOf,
+  rightsOfRoles,
   type DutyReading,
   type IsoDate,
   type Right,
@@ -448,6 +449,84 @@ describe('a defect that makes its asset unsafe', () => {
     expect({ shutDown: file.shutDown, shutDownBy: file.shutDownBy }).toEqual({
       shutDown: true,
       shutDownBy: null,
+    })
+  })
+})
+
+describe('out of service on the device of whoever does not see the defects (#520)', () => {
+  /** What a full pull hands the device of a person with these rights, by entity. */
+  async function pulled(header: string): Promise<Record<string, Record<string, unknown>[]>> {
+    const answer = await http().get('/sync?since=0').set(testIdentityHeader, header).expect(200)
+
+    return Object.fromEntries(
+      (answer.body.changes as { entity: string; rows: Record<string, unknown>[] }[]).map(
+        (change) => [change.entity, change.rows],
+      ),
+    )
+  }
+
+  it('holds the defects that put an asset out of service, by the state alone, and lets one go once it is remedied', async () => {
+    const { asset } = await elevatorIn(small, null, 'Gemeindesaal')
+    const dangerous = await defectAt(asset, 'allgemein.dangerous', 'Tragseil angerissen')
+    const significant = await defectAt(asset, 'allgemein.significant', 'Kabine hält nicht bündig')
+    // The Leitung, who sees every area, as a role of the operator's own without "Mängel ansehen".
+    const header = JSON.stringify({
+      userId: 'u-lead',
+      tenantId: small,
+      roles: ['management'],
+      rights: [...rightsOfRoles(['management'])].filter((right) => right !== 'defect.read'),
+    })
+    const held = (await pulled(header))['defects'] ?? []
+
+    expect(held.map((row) => row['id'])).toContain(dangerous)
+    expect(held.map((row) => row['id'])).not.toContain(significant)
+
+    // What the state needs and nothing of the defect itself.
+    for (const row of held) {
+      expect(Object.keys(row).sort()).toEqual(
+        [
+          'assetId',
+          'changeSequence',
+          'defectClass',
+          'deletedAt',
+          'id',
+          'status',
+          'tenantId',
+          'version',
+        ].sort(),
+      )
+    }
+
+    expect(JSON.stringify(held)).not.toContain('Tragseil angerissen')
+
+    // Set right: it leaves the device, which a changed value of the defects tells it.
+    const { body: before } = await http()
+      .get('/sync?since=0')
+      .set(testIdentityHeader, header)
+      .expect(200)
+
+    await standing(dangerous, 'remedied')
+
+    const { body: after } = await http()
+      .get('/sync?since=0')
+      .set(testIdentityHeader, header)
+      .expect(200)
+    const valueOf = (body: { narrowed?: Record<string, string> }) => body.narrowed?.['defects']
+
+    expect(((await pulled(header))['defects'] ?? []).map((row) => row['id'])).not.toContain(
+      dangerous,
+    )
+    expect(valueOf(after)).toMatch(/shut-down:/)
+    expect(valueOf(after)).not.toBe(valueOf(before))
+  })
+
+  it('holds the whole defect for whoever sees the defects, as before', async () => {
+    const { asset } = await elevatorIn(small, null, 'Musikschule')
+    const dangerous = await defectAt(asset, 'allgemein.dangerous', 'Notruf ohne Funktion')
+    const held = (await pulled(by('u-lead')))['defects'] ?? []
+
+    expect(held.find((row) => row['id'] === dangerous)).toMatchObject({
+      description: 'Notruf ohne Funktion',
     })
   })
 })

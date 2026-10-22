@@ -1,22 +1,25 @@
-import type { SignedPrint } from '@opengewerk/haustechnik-domain'
+import { type SignedPrint, signatureLevelLabel } from '@opengewerk/haustechnik-domain'
 import { Button, Dialog, DialogActions, Panel } from '@opengewerk/platform-web'
 import { prepareVersion } from '@opengewerk/platform-web/attachments'
 import { fileSize, moment } from '@opengewerk/platform-web/format'
 import { refusalFor, useSync } from '@opengewerk/platform-web/sync'
 import { useQueryClient } from '@tanstack/react-query'
-import { Check, FileText, Printer, Upload } from 'lucide-react'
+import { Check, Download, FileText, Upload } from 'lucide-react'
 import { useRef, useState } from 'react'
 
+import { fetchPdf, savePdf } from '../app/prints.js'
 import { makeAt } from '../sync/made-at.js'
 
 export const signedPrintWords = {
   title: 'Höher signiertes PDF',
   none: 'Keins abgelegt. Wo eine Vorschrift mehr verlangt, wird das PDF dieses Nachweises außerhalb signiert und hier abgelegt; der Nachweis ändert sich dadurch nicht.',
   file: 'Ablegen',
-  open: 'Öffnen',
+  download: 'Herunterladen',
+  failed: 'Das PDF ist nicht gekommen.',
   signer: (print: SignedPrint) => `Signiert von ${print.signer}`,
   about: (print: SignedPrint) =>
     [
+      print.level === null ? null : `Stufe: ${signatureLevelLabel[print.level]}`,
       `Zertifikat von ${print.issuer}`,
       print.signedAt === null ? null : `signiert am ${moment(print.signedAt)}`,
       `abgelegt am ${moment(print.filedAt)} von ${print.filedBy}`,
@@ -24,10 +27,10 @@ export const signedPrintWords = {
       .filter((part) => part !== null)
       .join(' · '),
   checked:
-    'Die Signatur deckt das ganze PDF dieses Nachweises und passt zum Zertifikat darin. Ob das Zertifikat einer Vertrauensliste angehört, prüft die Anwendung nicht.',
+    'Die Signatur deckt das ganze PDF dieses Nachweises und passt zum Zertifikat darin. Die Stufe ist, was das Zertifikat von sich sagt; ob es einer Vertrauensliste angehört, prüft die Anwendung nicht.',
   dialog: 'Signiertes PDF ablegen',
   steps:
-    '1. Das PDF dieses Nachweises öffnen und speichern. 2. Außerhalb signieren, etwa mit einer qualifizierten elektronischen Signatur. 3. Die signierte Datei hier ablegen.',
+    '1. Das PDF dieses Nachweises herunterladen. 2. Außerhalb signieren, etwa mit einer qualifizierten elektronischen Signatur. 3. Die signierte Datei hier ablegen.',
   field: 'Signiertes PDF',
   noFile: 'Noch keine Datei gewählt.',
   choose: 'Datei wählen',
@@ -52,10 +55,13 @@ export function signedPrintAddress(evidenceId: string, printId: string): string 
  */
 export function SignedPrintsCard({
   evidenceId,
+  number,
   prints,
   mayFile,
 }: {
   readonly evidenceId: string
+  /** The number of the evidence, for the name a PDF is saved under. */
+  readonly number: string
   readonly prints: readonly SignedPrint[]
   readonly mayFile: boolean
 }) {
@@ -101,15 +107,10 @@ export function SignedPrintsCard({
                     {signedPrintWords.about(print)}
                   </div>
                 </div>
-                <a
-                  href={signedPrintAddress(evidenceId, print.id)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex shrink-0 items-center gap-1.5 rounded-control border border-line-strong bg-surface px-2.5 py-1 text-[13px] text-ink"
-                >
-                  <Printer size={14} aria-hidden="true" />
-                  {signedPrintWords.open}
-                </a>
+                <SignedPrintDownload
+                  address={signedPrintAddress(evidenceId, print.id)}
+                  name={`Nachweis ${number} signiert`}
+                />
               </li>
             ))}
           </ul>
@@ -257,5 +258,51 @@ function FileSigned({
         </DialogActions>
       </form>
     </Dialog>
+  )
+}
+
+/**
+ * A PDF with a higher signature, saved under a name that says what it is
+ * (#509, #526): fetched as a file, no tab, as every PDF of the office.
+ */
+function SignedPrintDownload({
+  address,
+  name,
+}: {
+  readonly address: string
+  readonly name: string
+}) {
+  const [working, setWorking] = useState(false)
+  const [failed, setFailed] = useState<string | null>(null)
+
+  return (
+    <div className="flex shrink-0 flex-col items-end gap-1">
+      <Button
+        size="small"
+        icon={Download}
+        disabled={working}
+        onClick={() => {
+          setWorking(true)
+          setFailed(null)
+          fetchPdf(address)
+            .then((file) => {
+              savePdf(file, name)
+            })
+            .catch((error: unknown) => {
+              setFailed(
+                error instanceof Error && error.message !== ''
+                  ? error.message
+                  : signedPrintWords.failed,
+              )
+            })
+            .finally(() => {
+              setWorking(false)
+            })
+        }}
+      >
+        {signedPrintWords.download}
+      </Button>
+      {failed === null ? null : <span className="text-[12px] text-conflict">{failed}</span>}
+    </div>
   )
 }

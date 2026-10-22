@@ -36,7 +36,9 @@ import {
   type FaultReportEntry,
   type FaultReportId,
   type FaultReportPage,
+  faultPlaceLine,
   faultReportProblems,
+  faultReportStateLabel,
   fileHashProblem,
   fileSizeProblem,
   isAllowed,
@@ -61,6 +63,8 @@ import {
   isUuid,
   mayNameFile,
   storedMediaType,
+  tableAnswer,
+  tableFormatOf,
   type TenantTransaction,
   UploadLimits,
 } from '@opengewerk/platform-server'
@@ -607,6 +611,51 @@ export class FaultReportsController {
 
     return this.database.forTenant(identity, (tx) =>
       inbox(tx, { filter: state as FaultInboxFilter, ...narrowed }),
+    )
+  }
+
+  /**
+   * The inbox as a table, with what its filter shows (section 3 of the
+   * concept, #527), from the areas of the person. A report in the inbox names
+   * nobody (4.7), and so does its table: no person who reported, no address
+   * for an answer.
+   */
+  @Get('table')
+  @RequiresPermission('fault.accept')
+  @Header('Cache-Control', 'no-store')
+  async table(
+    @CurrentIdentity() identity: Asking,
+    @Query() query: Readonly<Record<string, unknown>>,
+  ): Promise<StreamableFile> {
+    const format = tableFormatOf(query)
+    const entries = await this.list(identity, query)
+
+    return tableAnswer(
+      {
+        name: 'Störungen',
+        columns: [
+          'Eingegangen',
+          'Kategorie',
+          'Ort',
+          'Anlage',
+          'Beschreibung',
+          'Stand',
+          'Auftrag',
+          'Ohne Konto',
+        ],
+        rows: entries.map((entry) => [
+          dayInGermany(new Date(entry.receivedAt)),
+          entry.category,
+          faultPlaceLine(entry.words),
+          entry.assetName ?? '',
+          entry.description,
+          faultReportStateLabel[entry.state],
+          entry.workOrder?.number ?? '',
+          entry.outside ? 'ja' : 'nein',
+        ]),
+      },
+      format,
+      dayInGermany(),
     )
   }
 

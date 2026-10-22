@@ -576,6 +576,7 @@ export const auditVocabulary: AuditVocabulary = {
         signed_at: 'Signiert am',
         valid_from: 'Zertifikat gültig ab',
         valid_to: 'Zertifikat gültig bis',
+        stated_level: 'Stufe nach Angabe des Zertifikats',
         filed_by: 'Abgelegt von',
         filed_at: 'Abgelegt am',
       },

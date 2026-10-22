@@ -594,6 +594,7 @@ describe('the page of an evidence', () => {
             signedAt: '2026-10-04T08:12:00.000Z',
             validFrom: '2026-01-01T00:00:00.000Z',
             validTo: '2036-01-01T00:00:00.000Z',
+            level: 'qualified',
             filedBy: 'Dennis Roth',
             filedAt: '2026-10-04T08:20:00.000Z',
           },
@@ -602,9 +603,10 @@ describe('the page of an evidence', () => {
     )
 
     expect(screen.getByText('Signiert von Dr. Anna Becker, Prüfstelle Probe GmbH')).toBeDefined()
-    expect(screen.getByRole('link', { name: 'Öffnen' }).getAttribute('href')).toBe(
-      '/evidence/e-131/signed-prints/sp-1',
-    )
+    // The level the certificate states, and the file saved, not opened in a tab (#526).
+    expect(screen.getByText(/^Stufe: qualifiziert nach Angabe des Zertifikats · /)).toBeDefined()
+    expect(screen.getByRole('button', { name: 'Herunterladen' })).toBeDefined()
+    expect(screen.queryByRole('link', { name: 'Öffnen' })).toBeNull()
 
     fireEvent.click(screen.getByRole('button', { name: 'Ablegen' }))
 

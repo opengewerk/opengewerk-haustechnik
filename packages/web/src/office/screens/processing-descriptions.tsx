@@ -24,7 +24,7 @@ export const processingScreenWords = {
   changed: 'Gegenüber der vorherigen',
   caption:
     'Die erzeugten Verfahrensbeschreibungen, mit Tag, wer sie erzeugt hat, und was sich geändert hat',
-  pdf: 'PDF',
+  pdf: 'PDF herunterladen',
   nobody: 'Unbekanntes Konto',
   working: 'Wird erzeugt.',
   loading: 'Wird geladen.',

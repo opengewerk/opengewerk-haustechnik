@@ -39,6 +39,7 @@ import { faultReports } from '../database/schema/index.js'
 import { dayInGermany } from '../today.js'
 import { ApiModule } from './api.module.js'
 import { as, testIdentities } from './test-identity.js'
+import { tableReaders } from './test-tables.js'
 
 /**
  * The fault reports with an account (#331, section 4.7 of the concept): the
@@ -578,6 +579,44 @@ describe('the inbox', () => {
 
     expect(JSON.stringify(await inbox('u-site'))).not.toContain('u-melder')
     expect(JSON.stringify(await page(id, 'u-site'))).not.toContain('u-melder')
+  })
+
+  it('goes out as a table with what its filter shows, from the own areas, naming nobody (#527)', async () => {
+    const { tableOf } = tableReaders(http)
+    const here = await reported('u-melder', { roomId: north.room }, 'Die Tür zum Hof klemmt.')
+    const there = await reported('u-lead', { roomId: south.room }, 'Licht im Treppenhaus Süd aus.')
+
+    for (const format of ['xlsx', 'csv'] as const) {
+      const table = await tableOf(
+        '/fault-reports/table',
+        { state: 'received' },
+        by('u-site'),
+        format,
+      )
+
+      expect(table[0]).toEqual([
+        'Eingegangen',
+        'Kategorie',
+        'Ort',
+        'Anlage',
+        'Beschreibung',
+        'Stand',
+        'Auftrag',
+        'Ohne Konto',
+      ])
+      expect(table.some((row) => row.includes('Die Tür zum Hof klemmt.'))).toBe(true)
+      // Not from another area, and nobody who reported.
+      expect(table.flat()).not.toContain('Licht im Treppenhaus Süd aus.')
+      expect(JSON.stringify(table)).not.toContain('u-melder')
+      expect(JSON.stringify(table)).not.toContain('Melder')
+    }
+
+    // The table is for whoever reads the inbox.
+    await http()
+      .get('/fault-reports/table?format=csv')
+      .set(testIdentityHeader, by('u-melder'))
+      .expect(403)
+    expect([here, there]).toHaveLength(2)
   })
 
   it('holds the reports of the own areas, and a report of another area is not there to decide on', async () => {

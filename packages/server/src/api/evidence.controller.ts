@@ -36,6 +36,7 @@ import {
   retentionInWords,
   retentionSentences,
   type SignedPrint,
+  signatureLevel,
   signedPrintWords,
   type StatedRetention,
   statedReasonProblem,
@@ -348,6 +349,7 @@ export class EvidenceController {
         signedAt: each.signedAt?.toISOString() ?? null,
         validFrom: each.validFrom.toISOString(),
         validTo: each.validTo.toISOString(),
+        level: signatureLevel(each.statedLevel),
         filedBy: accounts.get(each.filedBy)?.name ?? unknownAccount,
         filedAt: each.filedAt.toISOString(),
       })),
@@ -424,6 +426,7 @@ export class EvidenceController {
           signedAt: facts.signedAt,
           validFrom: facts.validFrom,
           validTo: facts.validTo,
+          statedLevel: facts.level,
           filedBy: identity.userId,
         })
         .onConflictDoNothing()
@@ -441,6 +444,7 @@ export class EvidenceController {
       signedAt: written.signedAt?.toISOString() ?? null,
       validFrom: written.validFrom.toISOString(),
       validTo: written.validTo.toISOString(),
+      level: signatureLevel(written.statedLevel),
       filedBy: accounts.get(identity.userId)?.name ?? unknownAccount,
       filedAt: written.filedAt.toISOString(),
     }

@@ -21,6 +21,7 @@ import {
 } from '@opengewerk/platform-web'
 import { date } from '@opengewerk/platform-web/format'
 import { Empty, NoteBox } from '@opengewerk/platform-web/office'
+import { useRight } from '@opengewerk/platform-web/session'
 import { maybeText, request, RequestRefused, text, useRecords } from '@opengewerk/platform-web/sync'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
@@ -350,6 +351,8 @@ export function ShutDownInBuilding({ assets }: { readonly assets: readonly Recor
   const shutDown = useShutDown()
   const rooms = useRecords('rooms')
   const catalogue = useCatalogue()
+  // Whoever does not see the defects reads the state and not the defect (#520).
+  const seesDefects = useRight('defect.read')
   const here = assets.filter((asset) => shutDown.has(String(asset['id']))).sort(byNumber)
 
   if (here.length === 0) {
@@ -374,12 +377,14 @@ export function ShutDownInBuilding({ assets }: { readonly assets: readonly Recor
               {[maybeText(asset, 'number'), text(asset, 'name')].filter(Boolean).join(' ')}
             </Link>
             {room ? `, ${titleOfRoom(room)}` : null}
-            {`, ${defects
-              .map(
-                (defect) =>
-                  `${classWord(maybeText(defect, 'defectClass'))}: ${text(defect, 'description')}`,
-              )
-              .join(', ')}`}
+            {seesDefects
+              ? `, ${defects
+                  .map(
+                    (defect) =>
+                      `${classWord(maybeText(defect, 'defectClass'))}: ${text(defect, 'description')}`,
+                  )
+                  .join(', ')}`
+              : null}
           </Fragment>
         )
       })}

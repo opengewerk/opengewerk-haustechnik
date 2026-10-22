@@ -160,14 +160,17 @@ export const shutDownWords = {
  * What the page of an asset on site says first while a defect puts it out of
  * service (#345, `shut_notice()` of the boards): each defect that does, with
  * its class, and until when. Read from the device, also without a network;
- * nothing while none does.
+ * nothing while none does. Whoever does not see the defects reads the state
+ * and not the defect (#520): the device holds no more of it either.
  */
 export function ShutDownNotice({
   defects,
   catalogue,
+  seesDefects = true,
 }: {
   readonly defects: readonly RecordState[]
   readonly catalogue: Pick<Catalogue, 'defectClass'> | null
+  readonly seesDefects?: boolean
 }) {
   if (defects.length === 0) {
     return null
@@ -185,13 +188,15 @@ export function ShutDownNotice({
       <div className="min-w-0">
         <div className="text-[17px] font-semibold">{shutDownLabel}</div>
         <p className="mt-[3px] text-[15px] leading-[1.45] text-ink">
-          {`${defects
-            .map((defect) =>
-              [text(defect, 'description'), classWord(maybeText(defect, 'defectClass'))]
-                .filter((part) => part !== null && part !== '')
-                .join(', '),
-            )
-            .join('; ')}. ${shutDownWords.until(defects.length)}`}
+          {seesDefects
+            ? `${defects
+                .map((defect) =>
+                  [text(defect, 'description'), classWord(maybeText(defect, 'defectClass'))]
+                    .filter((part) => part !== null && part !== '')
+                    .join(', '),
+                )
+                .join('; ')}. ${shutDownWords.until(defects.length)}`
+            : shutDownWords.until(defects.length)}
         </p>
       </div>
     </div>
