@@ -118,6 +118,14 @@ function signedIn(role: RoleKey) {
         { userId: 'u-murat', name: 'Murat Yilmaz' },
         { userId: 'u-lena', name: 'Lena Vogt' },
       ],
+      // Of the rounds still to hand out: Lena lacks the kind their duties ask for (#515).
+      [`/rounds/hints?area=${nord.id}&rounds=r-2,r-3,r-4`]: {
+        'u-lena': {
+          kindLabel: 'Elektrotechnisch unterwiesene Person',
+          check: 'missing',
+          expiredOn: null,
+        },
+      },
     },
     (write) => answerToWrite(write),
   )
@@ -247,7 +255,14 @@ describe('the rounds of a week', () => {
 
     // Lena is ill: her begun Tuesday goes to Murat.
     fireEvent.change(tuesday as HTMLElement, { target: { value: 'u-murat' } })
+    expect(within(dialog).queryByText(/Lena Vogt hat sie nicht/)).toBeNull()
     fireEvent.change(wednesday as HTMLElement, { target: { value: 'u-lena' } })
+    // Chosen, she lacks what the duties of the rounds ask for: a note, not a refusal (#515).
+    expect(
+      await within(dialog).findByText(
+        'Gefordert ist „Elektrotechnisch unterwiesene Person“. Lena Vogt hat sie nicht. Sie können trotzdem speichern.',
+      ),
+    ).toBeDefined()
     fireEvent.click(within(dialog).getByRole('button', { name: 'Zuteilen' }))
 
     await waitFor(() => {

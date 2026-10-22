@@ -3,6 +3,7 @@ import {
   byNameIn,
   everybodyIn,
   type IsoDate,
+  type QualificationHint,
   type RecordState,
   rhythmText,
   type RoundState,
@@ -48,6 +49,7 @@ import { type ReactNode, useMemo, useState } from 'react'
 
 import { areaName, useAreas } from '../../session/areas.js'
 import { CountTiles } from '../count-tiles.js'
+import { QualificationNotes } from '../qualification-note.js'
 import {
   planListPlace,
   planPlaces,
@@ -632,6 +634,20 @@ function HandOutDialog({
   readonly onDone: () => Promise<void>
 }) {
   const performers = useQuery(performersQuery(row.areaId))
+  // What a person lacks of the kinds the duties of these rounds ask for (#515).
+  const looks = useRight('qualification.read')
+  const asked = row.rounds
+    .filter((round) => handedOnWhile.includes(round.state))
+    .map((round) => round.id)
+    .join(',')
+  const hints = useQuery({
+    queryKey: ['rounds', 'hints', row.areaId, asked],
+    queryFn: () =>
+      request<Record<string, QualificationHint>>(
+        `/rounds/hints?area=${row.areaId}&rounds=${asked}`,
+      ),
+    enabled: looks && asked !== '',
+  })
   const people = useQuery(roundPeopleQuery)
   const [chosen, setChosen] = useState<Readonly<Record<string, string>>>(() =>
     Object.fromEntries(row.rounds.map((round) => [round.id, round.performerUserId ?? ''])),
@@ -745,6 +761,17 @@ function HandOutDialog({
             )
           })}
         </ul>
+        <QualificationNotes
+          hints={hints.data}
+          chosen={[
+            ...new Set(
+              row.rounds
+                .filter((round) => handedOnWhile.includes(round.state))
+                .map((round) => chosen[round.id] ?? ''),
+            ),
+          ]}
+          nameOf={(userId) => performers.data?.find((each) => each.userId === userId)?.name ?? ''}
+        />
         <p className="text-[12px] leading-[1.4] text-ink-muted">{weekWords.everybody(area)}</p>
         {trouble ? (
           <p role="alert" className="text-[13px] font-semibold text-conflict">

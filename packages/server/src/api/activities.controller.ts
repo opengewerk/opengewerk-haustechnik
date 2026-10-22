@@ -454,7 +454,8 @@ export class ActivitiesController {
    * perform activities, each seeing the area of the activity and not shut
    * out. For whoever plans, and the name and nothing else of each person;
    * for whoever may look at qualifications, besides, what a performer lacks
-   * of the kind its duties ask for (#337), as a note.
+   * of the kind its duties ask for (#337), as a note. A collective has no
+   * duties of its own: its kind is the one of its parts (#515).
    */
   @Get(':id/candidates')
   @RequiresPermission('activity.write')
@@ -484,7 +485,7 @@ export class ActivitiesController {
         hints: await qualificationHints(
           tx,
           this.catalogue,
-          kinds.map((row) => row.kind),
+          [...kinds.map((row) => row.kind), activity.collectiveKind],
           offered.performers,
           dayInGermany(),
         ),

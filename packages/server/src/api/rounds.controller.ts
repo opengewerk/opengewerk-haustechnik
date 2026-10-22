@@ -22,6 +22,7 @@ import {
   byNameIn,
   type Catalogue,
   type DutyPerson,
+  type QualificationHint,
   type IsoDate,
   type RoundDetails,
   roundStateOf,
@@ -50,9 +51,17 @@ import {
   takeSignature,
 } from '../activities/signing.js'
 import { CATALOGUE } from '../catalogue.js'
-import { activities, defects, evidence, roundPlans } from '../database/schema/index.js'
+import {
+  activities,
+  activityDuties,
+  defects,
+  duties,
+  evidence,
+  roundPlans,
+} from '../database/schema/index.js'
 import { EvidenceRefusal } from '../evidence/write.js'
 import { type Handed, tellHandedOut } from '../notifications/tell.js'
+import { qualificationHints } from '../qualifications/hints.js'
 import { pointAssetNames } from '../rounds/point-assets.js'
 import { dayInGermany } from '../today.js'
 import { candidatesIn, inSight } from './activities.controller.js'
@@ -280,9 +289,78 @@ export class RoundsController {
   }
 
   /**
+   * What those who may walk the rounds of an area lack of the kinds the
+   * duties of these rounds ask for (#337, #515), as a note beside the choice:
+   * for whoever plans there and may look at qualifications, and nothing for
+   * anybody else, nor for rounds of another area.
+   */
+  @Get('hints')
+  @RequiresPermission('activity.write')
+  async hints(
+    @CurrentIdentity() identity: Asking,
+    @Query('area') area: unknown,
+    @Query('rounds') asked: unknown,
+  ): Promise<Record<string, QualificationHint>> {
+    if (typeof area !== 'string' || !isUuid(area)) {
+      throw new BadRequestException('Es fehlt der Bereich, für den ausgewählt wird.')
+    }
+
+    const ids = typeof asked === 'string' ? asked.split(',').filter(isUuid) : []
+
+    if (
+      ids.length === 0 ||
+      ids.length > mostAtOnce ||
+      !identity.rights.includes('qualification.read')
+    ) {
+      return {}
+    }
+
+    return this.database.forTenant(identity, async (tx) => {
+      const { rows } = await tx.execute<{ sees: boolean }>(
+        sql`select (session_sees_all_areas() or ${area}::uuid = any(session_areas())) as sees`,
+      )
+
+      if (rows[0]?.sees !== true) {
+        return {}
+      }
+
+      const kinds = await tx
+        .select({ kind: duties.kind })
+        .from(activityDuties)
+        .innerJoin(
+          activities,
+          and(
+            eq(activities.tenantId, activityDuties.tenantId),
+            eq(activities.id, activityDuties.activityId),
+          ),
+        )
+        .innerJoin(
+          duties,
+          and(eq(duties.tenantId, activityDuties.tenantId), eq(duties.id, activityDuties.dutyId)),
+        )
+        .where(
+          and(
+            ofAPlan,
+            eq(activities.areaId, area as (typeof activities.$inferSelect)['areaId']),
+            inArray(activityDuties.activityId, ids as (typeof activities.$inferSelect)['id'][]),
+          ),
+        )
+
+      return qualificationHints(
+        tx,
+        this.catalogue,
+        kinds.map((row) => row.kind),
+        (await candidatesIn(tx, area)).performers,
+        dayInGermany(),
+      )
+    })
+  }
+
+  /**
    * Hands rounds out, each to a person or to nobody: those of a plan in a
    * week, as the office hands them out together. Every round named is one of
-   * a plan that nobody has begun; otherwise none of them changes.
+   * a plan that is open or begun, and none handed in (#559); otherwise none of
+   * them changes.
    */
   @Put('assignment')
   @RequiresPermission('activity.write')

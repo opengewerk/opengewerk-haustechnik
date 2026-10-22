@@ -264,6 +264,33 @@ describe('composing a collective activity', () => {
     expect(screen.getByText(/Eine Anlage liegt in einem Gebäude mit eigenem Bereich/)).toBeTruthy()
   })
 
+  it('notes when the person chosen lacks the qualification the kind asks for (#515)', async () => {
+    await mount('/pruefungen/sammelvorgang', {
+      ...answers,
+      [asked('probe.elevator_main_test')]: {
+        ...(answers[asked('probe.elevator_main_test')] as CollectiveCandidates),
+        hints: {
+          'u-wendt': {
+            kindLabel: 'Elektrotechnisch unterwiesene Person',
+            check: 'expired',
+            expiredOn: '2026-09-15' as IsoDate,
+          },
+        },
+      } satisfies CollectiveCandidates,
+    })
+    await untilTheRightsAreKnown()
+    await choose(/^Liegenschaft/, 'p-school')
+    await choose(/^Pflichtart/, 'probe.elevator_main_test')
+    await screen.findByRole('checkbox', { name: 'AN-d1 Feuerlöscher wählen' })
+
+    const note =
+      'Gefordert ist „Elektrotechnisch unterwiesene Person“. Bei Tobias Wendt ist sie am 15.09.2026 abgelaufen. Sie können trotzdem speichern.'
+
+    expect(screen.queryByText(note)).toBeNull()
+    await choose('Ausführend', 'u-wendt')
+    expect(await screen.findByText(note)).toBeTruthy()
+  })
+
   it('sends the place, the kind, the duties chosen and the plan, and opens the collective activity it became', async () => {
     const { router } = await mount('/pruefungen/sammelvorgang', answers)
 

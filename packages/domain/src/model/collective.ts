@@ -13,6 +13,7 @@ import type { DutyId } from './duty-record.js'
 import type { DutyPerson } from './duty-register.js'
 import type { EvidenceId, EvidenceResult } from './evidence.js'
 import type { StatedCollective } from './evidence.js'
+import type { QualificationHint } from './qualifications.js'
 import { calendarDay, type Problems, required } from './fields.js'
 import { type Report, type ReportDefect, reportProblems } from './report.js'
 
@@ -90,6 +91,11 @@ export interface CollectiveCandidates {
     readonly responsible: readonly DutyPerson[]
     readonly performers: readonly DutyPerson[]
   }
+  /**
+   * For whoever may look at qualifications, what a performer lacks of the
+   * kind chosen (#337, #515), as a note; nothing before a kind is chosen.
+   */
+  readonly hints?: Readonly<Record<string, QualificationHint>>
 }
 
 /**
