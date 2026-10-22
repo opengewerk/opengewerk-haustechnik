@@ -52,6 +52,7 @@ import {
   fileUploadType,
   isUuid,
   mayNameFile,
+  RequiresMembership,
   storedMediaType,
   type TenantTransaction,
   UploadLimits,
@@ -111,9 +112,12 @@ export class QualificationsController {
     return this.listed(identity, null)
   }
 
-  /** The qualifications of the person asking, under "Konto". */
+  /**
+   * The qualifications of the person asking, under "Konto": their own data,
+   * which no right opens or closes (section 7 of the concept, #543).
+   */
   @Get('mine')
-  @RequiresPermission('activity.read')
+  @RequiresMembership()
   mine(@CurrentIdentity() identity: Asking): Promise<QualificationList> {
     return this.listed(identity, identity.userId)
   }
@@ -389,9 +393,12 @@ export class QualificationsController {
     })
   }
 
-  /** The certificate, for whoever may look at qualifications and for the person it belongs to. */
+  /**
+   * The certificate, for whoever may look at qualifications and for the person
+   * it belongs to, who needs no right for it (#543).
+   */
   @Get(':id/certificate')
-  @RequiresPermission('activity.read')
+  @RequiresMembership()
   @Header('Cache-Control', 'private, no-store')
   async certificateFile(
     @CurrentIdentity() identity: Asking,

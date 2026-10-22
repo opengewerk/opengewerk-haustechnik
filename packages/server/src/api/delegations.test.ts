@@ -536,6 +536,22 @@ describe('a delegation of duties', () => {
     ).toBe('waiting')
     await http().get(`/delegations/${made.id}`).set(testIdentityHeader, by('u-site')).expect(404)
     await http().get(`/delegations/${made.id}`).set(testIdentityHeader, by('u-duties')).expect(200)
+
+    // Their own, with no right at all: in a role that reads no duty (#543).
+    const withoutARight = as(tenant, 'u-duties', 'reporter')
+
+    expect(
+      (
+        (await http().get('/delegations/mine').set(testIdentityHeader, withoutARight).expect(200))
+          .body as DelegationEntry[]
+      ).some((entry) => entry.id === made.id),
+    ).toBe(true)
+    await http().get(`/delegations/${made.id}`).set(testIdentityHeader, withoutARight).expect(200)
+    // And of nobody else: somebody without the right who is not the person it goes to.
+    await http()
+      .get(`/delegations/${made.id}`)
+      .set(testIdentityHeader, as(tenant, 'u-site', 'reporter'))
+      .expect(404)
   })
 
   it('is a deadline at its last day once both signed, named by the person', async () => {

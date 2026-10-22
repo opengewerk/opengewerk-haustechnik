@@ -228,6 +228,25 @@ describe('the qualifications under "Konto"', () => {
       ['ElektrofachkraftPaket Elektro', '31.03.2027', 'Gültig', 'Nachweis'],
     ])
   })
+
+  it('lists them for somebody whose role reads no activity, as their own data (#543)', async () => {
+    const { done } = mounted('auditor', '/konto', {
+      '/qualifications/mine': {
+        qualifications: [list.qualifications[1]],
+        expired: 0,
+        expiring: 0,
+        leadDays: 60,
+      },
+    })
+
+    await done
+
+    const table = 'Ihre Qualifikationen mit gültig bis und Stand'
+
+    await screen.findByRole('table', { name: table })
+
+    expect(rowsOf(table)).toHaveLength(1)
+  })
 })
 
 describe('the note on a qualification', () => {

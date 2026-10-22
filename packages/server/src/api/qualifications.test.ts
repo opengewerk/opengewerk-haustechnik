@@ -537,6 +537,21 @@ describe('the qualifications', () => {
       .get(`/qualifications/${theirs.id}/certificate`)
       .set(testIdentityHeader, by('u-site'))
       .expect(200)
+
+    // Their own data, with no right at all: in a role that reads no activity (#543).
+    const withoutARight = as(tenant, 'u-tech', 'reporter')
+
+    expect(
+      (await listOf(withoutARight, '/qualifications/mine')).qualifications.map((each) => each.id),
+    ).toEqual([mine.id])
+    await http()
+      .get(`/qualifications/${mine.id}/certificate`)
+      .set(testIdentityHeader, withoutARight)
+      .expect(200)
+    await http()
+      .get(`/qualifications/${theirs.id}/certificate`)
+      .set(testIdentityHeader, withoutARight)
+      .expect(403)
   })
 
   it('reach the device of their own person and of nobody else, also of whoever sees everything', async () => {
