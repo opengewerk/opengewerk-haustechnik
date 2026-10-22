@@ -7,6 +7,28 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-10-22
+
+Eine Fassung mit den Lücken, die der Abgleich von Phase 2 mit Konzept und Code gefunden hat, und dem
+Fehler #518 aus 0.2.1.
+
+Die Adresse für die Rückmeldung einer Störmeldung ohne Konto wird jetzt bestätigt: an sie geht zuerst eine
+E-Mail mit einem Link, die weder die Meldung noch Gebäude oder Raum nennt. Erst danach schreibt der
+Betreiber, dass die Meldung angenommen und dass sie erledigt ist. Eine Adresse, die vor dem Update
+angegeben wurde, bekommt beim nächsten Lauf ihren Link.
+
+Fünf Stellen gaben eigenen Rollen oder dem Prüfer mehr, als ihre Rechte und Bereiche erlauben: Einstellungen
+für alle Bereiche, die eigenen Anlagenarten im Katalog, die Seiten von Fremdfirma und Vertrag, die
+Qualifikationen und die Orte eines Prüfers mit Beschränkung auf Anlagenarten. Dazu die Advisories zu dieser
+Fassung.
+
+PDF und Tabelle eines wieder geöffneten Rundgangs zeigen die letzte Abgabe, und wieder öffnen darf auch,
+wer nur gegenzeichnet.
+
+Aktualisiert wird wie bei jeder Fassung in zwei Schritten, vorher gesichert. Die Migration
+`0104_phase_2_gaps` läuft von selbst; sie ändert keine Zeile, sondern gibt der Datenbank die neuen Policies,
+zwei Funktionen und die Spalten für die Bestätigung und den Druck einer Abgabe.
+
 ### Behoben
 
 - PDF und Tabelle eines wieder geöffneten Rundgangs zeigen den Stand der letzten Abgabe (#518). Bisher lieferten
