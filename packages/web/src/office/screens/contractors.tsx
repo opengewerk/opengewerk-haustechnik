@@ -1,8 +1,10 @@
 import {
   type ActivityList,
   activityStatusLabel,
+  type ContractEntry,
   contractorServices,
   contractorServicesWords,
+  contractStandingLabel,
   type DutyRegister,
   evidenceResultLabel,
 } from '@opengewerk/haustechnik-domain'
@@ -51,7 +53,9 @@ import {
 } from '../contractor-addresses.js'
 import { ContractorContacts } from '../contractor-contacts.js'
 import { ContractorDialog, TakeoverDialog, useServiceWords } from '../contractor-dialogs.js'
+import { contractPlaces, firmContractsQuery } from '../contract-addresses.js'
 import { DocumentsCard } from '../documents.js'
+import { factLink } from '../links.js'
 import {
   dutyPlaces,
   dutyRegisterPlace,
@@ -304,6 +308,51 @@ export function ContractorListScreen() {
   )
 }
 
+/** "1 Anlage", "3 Anlagen". */
+function counted(n: number, one: string, many: string): string {
+  return `${String(n)} ${n === 1 ? one : many}`
+}
+
+/** "läuft bis 31.12.2027, 2 Gebäude, 3 Anlagen", or how a contract stands that does not run. */
+function contractWords(contract: ContractEntry): string {
+  return [
+    contract.standing === 'running' && contract.runsUntil !== null
+      ? `läuft bis ${date(contract.runsUntil)}`
+      : contractStandingLabel[contract.standing],
+    contract.buildings === 0 ? null : counted(contract.buildings, 'Gebäude', 'Gebäude'),
+    contract.assets === 0 ? null : counted(contract.assets, 'Anlage', 'Anlagen'),
+  ]
+    .filter((part) => part !== null)
+    .join(', ')
+}
+
+/** The contracts of a firm, each to its page (#570). */
+function ContractsCard({ contractorId }: { readonly contractorId: string }) {
+  const contracts = useQuery({ ...firmContractsQuery(contractorId), retry: refusedOnce })
+
+  return (
+    <Card title="Verträge">
+      {contracts.data === undefined ? null : contracts.data.length === 0 ? (
+        <p className="text-[12px] text-ink-faint">Kein Vertrag mit dieser Firma.</p>
+      ) : (
+        <ul className="flex flex-col gap-2.5">
+          {contracts.data.map((contract) => (
+            <li key={contract.id} className="leading-[1.35]">
+              <Link
+                to={contractPlaces.contract(contract.id)}
+                className={`text-[13px] font-medium ${factLink}`}
+              >
+                {contract.title}
+              </Link>
+              <div className="text-[12px] text-ink-faint">{contractWords(contract)}</div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  )
+}
+
 function Card({
   title,
   action,
@@ -355,6 +404,7 @@ export function ContractorScreen() {
   })
   // The activities still to be done that the firm carries out (#328).
   const readsActivities = useRight('activity.read')
+  const readsContracts = useRight('contract.read')
   const orders = useQuery({
     queryKey: [...contractorKey, 'activities', contractorId],
     queryFn: () =>
@@ -473,6 +523,8 @@ export function ContractorScreen() {
             files={keeps && !removed}
             says="validity"
           />
+          {/* Its contracts, for whoever reads contracts (#328, #570). */}
+          {readsContracts ? <ContractsCard contractorId={contractor.id} /> : null}
         </div>
         <div className="flex flex-col gap-3.5">
           {readsDuties ? (

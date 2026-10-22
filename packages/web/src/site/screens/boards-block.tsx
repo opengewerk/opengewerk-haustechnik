@@ -246,3 +246,56 @@ export function SiteBuildingBoardsBlock({
 function circuitsOrNone(total: number): string {
   return total === 0 ? siteStructureWords.noCircuit : circuitsInWords(total)
 }
+
+/**
+ * The boards that stand in a room, of whichever installation (#495, #570),
+ * each to its page; a new one is taken down at the building. The room shows
+ * the panel only where one stands.
+ */
+export function SiteRoomBoardsBlock({ roomId }: { readonly roomId: string }) {
+  const client = useSync()
+  const boards = useRecords('distribution_boards').filter(
+    (board) => board['roomId'] === roomId && !board['deletedAt'],
+  )
+  const assets = useRecords('assets')
+  const circuits = useRecords('circuits')
+
+  return (
+    <Panel title="Verteiler" action={<Count total={boards.length} />}>
+      <SiteRows label="Verteiler in diesem Raum">
+        {boards.map((board) => {
+          const id = String(board['id'])
+          const assetId = String(board['assetId'])
+          const asset = assets.find((each) => each['id'] === assetId)
+
+          return (
+            <SiteRow
+              key={id}
+              to={structurePlaces.board(assetId, id)}
+              title={text(board, 'designation')}
+              meta={
+                <>
+                  {asset ? text(asset, 'name') : null}
+                  {' · '}
+                  <span>
+                    {boardWhere(board)}
+                    {', '}
+                    {circuitsOrNone(
+                      circuits.filter((circuit) => circuit['distributionBoardId'] === id).length,
+                    )}
+                    {client.isPending('distribution_boards', id) ? (
+                      <>
+                        {', '}
+                        <NotSent />
+                      </>
+                    ) : null}
+                  </span>
+                </>
+              }
+            />
+          )
+        })}
+      </SiteRows>
+    </Panel>
+  )
+}

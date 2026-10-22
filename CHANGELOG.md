@@ -9,6 +9,9 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ### Behoben
 
+- Die Seite eines Raums vor Ort nennt die Verteiler, die in ihm stehen, wie die Seite des Gebäudes, und die Seite
+  einer Fremdfirma nennt ihre Verträge, wenn die Person Verträge ansehen darf (#570). Beides verlangten #495 und #328, und
+  das Konzept sagt es seit v0.94; im Büro zeigte der Raum seine Verteiler schon.
 - Die Dokumentation steht auf dem Stand von Phase 2 (#531). Die ADRs 0002 bis 0006 tragen nach, was beim Bau
   entschieden wurde: Fremdfirmen, Verträge, Einweisung und Erlaubnisschein, die Tabellen ohne Bereich und die
   Richtlinie `within_limits` des Prüfers, Soll-Dokumente, Gruppen je Stromkreis und eigene Anlagenarten im Katalog,

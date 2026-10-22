@@ -84,6 +84,31 @@ const answers = {
     ],
   },
   '/contractors/c-lift': { contractor: lift, openDuties: 3, openActivities: 1, evidence: [] },
+  // The contracts of the firm (#570).
+  '/contracts?contractorId=c-fire': [
+    {
+      id: 'k-1',
+      contractorId: 'c-fire',
+      contractorName: 'Brandschutz Beispiel GmbH',
+      title: 'Wartungsvertrag Brandmeldeanlagen',
+      standing: 'running',
+      runsUntil: '2027-12-31',
+      noticeBy: '2027-09-30',
+      buildings: 2,
+      assets: 3,
+    },
+    {
+      id: 'k-2',
+      contractorId: 'c-fire',
+      contractorName: 'Brandschutz Beispiel GmbH',
+      title: 'Prüfvertrag Feuerlöscher',
+      standing: 'ended',
+      runsUntil: '2026-03-31',
+      noticeBy: null,
+      buildings: 1,
+      assets: 0,
+    },
+  ],
   // A briefing at an order of the firm (#330).
   '/contractors/c-fire/visits': {
     briefings: [
@@ -343,6 +368,32 @@ describe('the page of a contractor', () => {
     // Whoever only looks neither changes nor removes the firm.
     expect(screen.queryByRole('button', { name: 'Bearbeiten' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Entfernen' })).toBeNull()
+  })
+
+  it('names its contracts to whoever reads contracts, each to its page (#570)', async () => {
+    const { done } = mounted('site_management', '/fremdfirmen/c-fire')
+
+    await done
+    await untilTheRightsAreKnown()
+
+    expect(
+      (await screen.findByRole('link', { name: 'Wartungsvertrag Brandmeldeanlagen' })).getAttribute(
+        'href',
+      ),
+    ).toBe('/vertraege/k-1')
+    expect(screen.getByText('läuft bis 31.12.2027, 2 Gebäude, 3 Anlagen')).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'Prüfvertrag Feuerlöscher' })).toBeTruthy()
+  })
+
+  it('names no contract to whoever does not read contracts (#570)', async () => {
+    const { done } = mounted('technician', '/fremdfirmen/c-fire')
+
+    await done
+    await untilTheRightsAreKnown()
+    await screen.findByRole('heading', { name: 'Brandschutz Beispiel GmbH' })
+
+    expect(screen.queryByRole('heading', { name: 'Verträge' })).toBeNull()
+    expect(screen.queryByText('Wartungsvertrag Brandmeldeanlagen')).toBeNull()
   })
 
   it('says why a firm that open duties name cannot be removed, and offers no removal', async () => {
