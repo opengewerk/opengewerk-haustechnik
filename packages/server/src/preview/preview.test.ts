@@ -797,8 +797,8 @@ describe('a preview started as the Leitung', () => {
     const documents = rowsOf('attachments')
     const versions = rowsOf('attachment_versions')
     const hangsOn = (document: Record<string, unknown>) =>
-      ['assetId', 'roomId', 'buildingId', 'contractorId', 'contractId'].find(
-        (field) => document[field] !== null,
+      ['assetId', 'roomId', 'buildingId', 'contractorId', 'contractId', 'defectId'].find(
+        (field) => document[field] !== null && document[field] !== undefined,
       ) ?? 'propertyId'
 
     // Every report of the sample duties filed its PDF as a certificate at
@@ -852,6 +852,9 @@ describe('a preview started as the Leitung', () => {
         hangsOn: 'assetId',
         versions: 2,
       },
+      // The photos of the defect at the lift, which its work order shows on site (#519).
+      { title: 'Kabine im Erdgeschoss', kind: null, hangsOn: 'defectId', versions: 1 },
+      { title: 'Kante der Schwelle', kind: null, hangsOn: 'defectId', versions: 1 },
       {
         title: 'Revisionsunterlagen Heizung',
         kind: 'as_built_documentation',
