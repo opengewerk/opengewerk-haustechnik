@@ -309,6 +309,62 @@ describe('confirming a proposal', () => {
     ])
   })
 
+  it('names the duty of the operator own at the asset it takes the place of, and only one that stands (#514)', async () => {
+    const reading = (id: string, values: object) => ({
+      id,
+      kind: null,
+      title: id,
+      endsOn: null,
+      lastMetOn: null,
+      ...values,
+    })
+    const router = await mount(
+      `/pflichten/bestaetigen?anlage=${lift.id}&pflichtart=${mainTest}`,
+      undefined,
+      {
+        [`/assets/${lift.id}/duties`]: [
+          reading('d-own', { title: 'Aufzug prüfen lassen', lastMetOn: '2026-03-14' }),
+          reading('d-ended', { title: 'Notruf prüfen', endsOn: '2026-01-31' }),
+          reading('d-catalogue', { title: 'Zwischenprüfung', kind: 'probe.interim_check' }),
+        ],
+      },
+    )
+    const replaces = (await screen.findByRole('combobox', {
+      name: confirmWords.replaces,
+    })) as HTMLSelectElement
+
+    expect([...replaces.options].map((option) => option.textContent)).toEqual([
+      'Keine',
+      'Aufzug prüfen lassen, zuletzt am 14.03.2026',
+    ])
+    expect(screen.getByText(confirmWords.replacesHint)).toBeTruthy()
+
+    answerToWrite = answering({ id: 'd-new' })
+    fireEvent.change(replaces, { target: { value: 'd-own' } })
+    press('Pflicht bestätigen')
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/pflichten/d-new')
+    })
+    expect(written[0]?.body).toMatchObject({ kind: mainTest, replacesDutyId: 'd-own' })
+  })
+
+  it('offers nothing to take the place of where the asset has no duty of the operator own (#514)', async () => {
+    await mount(`/pflichten/bestaetigen?anlage=${lift.id}&pflichtart=${mainTest}`, undefined, {
+      [`/assets/${lift.id}/duties`]: [],
+    })
+    await screen.findByRole('button', { name: 'Pflicht bestätigen' })
+
+    answerToWrite = answering({ id: 'd-new' })
+    press('Pflicht bestätigen')
+
+    await waitFor(() => {
+      expect(written).toHaveLength(1)
+    })
+    expect(screen.queryByRole('combobox', { name: confirmWords.replaces })).toBeNull()
+    expect(written[0]?.body).not.toHaveProperty('replacesDutyId')
+  })
+
   it('never sends an interval longer than the maximum', async () => {
     await confirming(mainTest)
 

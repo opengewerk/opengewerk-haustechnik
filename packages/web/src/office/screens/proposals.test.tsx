@@ -56,7 +56,7 @@ const house = {
 const mainTest = 'probe.elevator_main_test'
 const interimCheck = 'probe.interim_check'
 
-function lift(n: number): ProposedAsset {
+function lift(n: number, ownDuties: ProposedAsset['ownDuties'] = []): ProposedAsset {
   return {
     id: `a-${String(n)}`,
     number: `AN-0010${String(n)}`,
@@ -66,10 +66,11 @@ function lift(n: number): ProposedAsset {
     buildingId: house.id,
     roomId: null,
     enteredOn: '2026-09-28',
+    ownDuties,
   } as ProposedAsset
 }
 
-const lifts = [1, 2, 3, 4, 5, 6, 7].map(lift)
+const lifts = [1, 2, 3, 4, 5, 6, 7].map((n) => lift(n))
 
 const dismissal = {
   id: 'dm-1',
@@ -280,6 +281,83 @@ describe('a batch', () => {
         },
       },
     ])
+  })
+
+  it('names for each asset with a duty of the operator own the one its proposal takes the place of (#514)', async () => {
+    const own = [
+      { id: 'd-own-1', title: 'Aufzug prüfen lassen', lastMetOn: '2026-02-02' },
+      { id: 'd-own-2', title: 'Notruf prüfen', lastMetOn: null },
+    ] as unknown as ProposedAsset['ownDuties']
+    const withOwn = [lift(1, own), lift(2, own.slice(1)), lift(3)]
+
+    await listed('technical_management', {
+      '/duties/proposals': {
+        proposals: withOwn.map((asset) => ({ kind: mainTest, asset })),
+        dismissed: [],
+      },
+    })
+
+    answerToWrite = answering([])
+
+    // Only the assets that have one, each with its own duties.
+    expect(screen.getByText(proposalWords.replacesHint)).toBeTruthy()
+    expect(screen.queryByRole('combobox', { name: 'AN-00103 Aufzug 3' })).toBeNull()
+    expect(
+      within(screen.getByRole('combobox', { name: 'AN-00101 Aufzug 1' }))
+        .getAllByRole('option')
+        .map((option) => option.textContent),
+    ).toEqual(['Keine', 'Aufzug prüfen lassen, zuletzt am 02.02.2026', 'Notruf prüfen'])
+
+    fireEvent.change(screen.getByRole('combobox', { name: 'AN-00101 Aufzug 1' }), {
+      target: { value: 'd-own-1' },
+    })
+    // One chosen and taken back again: it names nothing.
+    fireEvent.change(screen.getByRole('combobox', { name: 'AN-00102 Aufzug 2' }), {
+      target: { value: 'd-own-2' },
+    })
+    fireEvent.change(screen.getByRole('combobox', { name: 'AN-00102 Aufzug 2' }), {
+      target: { value: '' },
+    })
+    press('3 Vorschläge bestätigen')
+
+    await waitFor(() => {
+      expect(written).toHaveLength(1)
+    })
+    expect(written[0]?.body).toMatchObject({
+      assetIds: ['a-1', 'a-2', 'a-3'],
+      replaces: { 'a-1': 'd-own-1' },
+    })
+  })
+
+  it('names no duty of the operator own where the asset chosen with one is chosen no more (#514)', async () => {
+    const own = [
+      { id: 'd-own-1', title: 'Aufzug prüfen lassen', lastMetOn: null },
+    ] as unknown as ProposedAsset['ownDuties']
+
+    await listed('technical_management', {
+      '/duties/proposals': {
+        proposals: [lift(1, own), lift(2)].map((asset) => ({ kind: mainTest, asset })),
+        dismissed: [],
+      },
+    })
+
+    answerToWrite = answering([])
+    fireEvent.change(screen.getByRole('combobox', { name: 'AN-00101 Aufzug 1' }), {
+      target: { value: 'd-own-1' },
+    })
+    fireEvent.click(screen.getByRole('checkbox', { name: 'AN-00101 Aufzug 1 auswählen' }))
+    press('1 Vorschlag bestätigen')
+
+    await waitFor(() => {
+      expect(written).toHaveLength(1)
+    })
+    expect(written[0]?.body).toEqual({
+      kind: mainTest,
+      assetIds: ['a-2'],
+      responsibleUserId: null,
+      performer: null,
+      contractorId: null,
+    })
   })
 
   it('asks the interval and its reason of a kind without a value, and sends them with the batch', async () => {
