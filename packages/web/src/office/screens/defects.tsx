@@ -133,8 +133,8 @@ export const defectWords = {
   reportedBy:
     'Melden darf jede Rolle, auch vor Ort ohne Netz. Klasse und Frist vergibt, wer Mängel führt; bis dahin steht der Mangel als „ohne Klasse“ in der Liste.',
   reportWithout: 'Klasse und Frist vergibt, wer Mängel führt.',
-  later:
-    'Ein Mangel, der eine Anlage unsicher macht, setzt sie ab Phase 2 außer Betrieb und sagt es an Anlage, Raum und Lagebild (4.6).',
+  outOfService:
+    'Bekommt ein Mangel an einer Anlage eine Klasse, die sie unsicher macht, ist die Anlage außer Betrieb, bis er behoben ist; Akte, Raum und Lagebild zeigen es.',
   photosAfter: 'Die Fotos gehen mit dem nächsten Abgleich an den Server, auch ohne Netz.',
   classesFailed: 'Die Klassen ließen sich nicht laden. Das braucht eine Verbindung.',
   noPlace: 'Sagen Sie, woran der Mangel ist.',
@@ -1629,10 +1629,8 @@ export function NewDefectScreen() {
             <div className="flex flex-col gap-2 text-[13px] leading-[1.45]">
               <p>{defectWords.reportedBy}</p>
               <p>{defectWords.photosAfter}</p>
+              <p>{defectWords.outOfService}</p>
             </div>
-          </Panel>
-          <Panel title="Später">
-            <p className="text-[12px] leading-[1.4] text-ink-muted">{defectWords.later}</p>
           </Panel>
         </div>
       </div>
