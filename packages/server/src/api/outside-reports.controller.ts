@@ -190,7 +190,7 @@ export class OutsideReportsController {
   @Get(':code')
   @PublicRoute()
   async page(@Param('code') code: string, @Req() request: BodyRequest): Promise<OutsideLabelPage> {
-    if (!this.gate.openPage(addressForLimits(request))) {
+    if (!(await this.gate.openPage(this.database, addressForLimits(request)))) {
       throw tooMany()
     }
 
@@ -228,7 +228,7 @@ export class OutsideReportsController {
     @Body() body: unknown,
     @Req() request: BodyRequest,
   ): Promise<OutsideReportReceipt> {
-    if (!this.gate.takeReport(addressForLimits(request), code)) {
+    if (!(await this.gate.takeReport(this.database, addressForLimits(request), code))) {
       throw tooMany()
     }
 
@@ -291,7 +291,7 @@ export class OutsideReportsController {
 
       // Only now: a request that fails at a check before does not use up the
       // reports a label takes (#472).
-      if (!this.gate.takeLabel(code)) {
+      if (!(await this.gate.takeLabel(tx, code))) {
         throw tooMany()
       }
 
@@ -350,7 +350,7 @@ export class OutsideReportsController {
     @Body() body: unknown,
     @Req() request: BodyRequest,
   ): Promise<{ readonly confirmed: true }> {
-    if (!this.gate.openPage(addressForLimits(request))) {
+    if (!(await this.gate.openPage(this.database, addressForLimits(request)))) {
       throw tooMany()
     }
 

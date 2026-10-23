@@ -16,6 +16,7 @@ import {
   missingRight,
   type OutsideLabelPage,
   type OutsideReportReceipt,
+  outsideReportRules,
   type RoleKey,
   shippedRoles,
   staleFormSentence,
@@ -817,10 +818,10 @@ describe('the page of a label without an account', () => {
 
     // Both passed the door at nine; the other one is written a moment sooner.
     const take = gate.takeLabel.bind(gate)
-    const raced = vi.spyOn(gate, 'takeLabel').mockImplementationOnce((label) => {
-      take(label)
+    const raced = vi.spyOn(gate, 'takeLabel').mockImplementationOnce(async (tx, label) => {
+      await take(tx, label)
 
-      return take(label)
+      return take(tx, label)
     })
     const form = await filledIn(code)
     const description = `Tür klemmt ${randomBytes(4).toString('hex')}`
@@ -1094,5 +1095,66 @@ describe('the answer by mail', () => {
     ).toBe(0)
     expect(mails).toEqual([])
     expect(await contactOf(id)).toBeUndefined()
+  })
+})
+
+describe('the limits of the page', () => {
+  it('are counted in the database, so that a second process and a restart count on (#540)', async () => {
+    const address = '203.0.113.40'
+    const first = new OutsideReports(() => clock)
+    const second = new OutsideReports(() => clock)
+
+    for (let index = 0; index < outsideReportRules.pagesPerAddress / 2; index += 1) {
+      expect(await first.openPage(database, address)).toBe(true)
+      expect(await second.openPage(database, address)).toBe(true)
+    }
+
+    // A third gate, as after a restart, finds the hour used up.
+    expect(await new OutsideReports(() => clock).openPage(database, address)).toBe(false)
+
+    clock += 3_600_001
+
+    expect(await second.openPage(database, address)).toBe(true)
+  })
+
+  it('keep no address and no code, and nothing past its hour (#540)', async () => {
+    const address = '198.51.100.7'
+
+    expect(await gate.openPage(database, address)).toBe(true)
+
+    const { rows } = await admin.query<{ kind: string; key: string }>(
+      'select kind, key from outside_counts',
+    )
+
+    expect(rows.length).toBeGreaterThan(0)
+    expect(rows.every((row) => /^[0-9a-f]{64}$/u.test(row.key))).toBe(true)
+    expect(rows.some((row) => row.key.includes(address))).toBe(false)
+
+    clock += 3_600_001
+    await gate.openPage(database, '198.51.100.8')
+
+    expect(
+      (
+        await admin.query<{ n: number }>(
+          `select count(*)::int as n from outside_counts where at <= $1::timestamptz - interval '1 hour'`,
+          [new Date(clock).toISOString()],
+        )
+      ).rows[0]?.n,
+    ).toBe(0)
+  })
+
+  it('stand where the application role sees nothing of them and writes only through the one function', async () => {
+    await gate.openPage(database, '198.51.100.9')
+
+    expect(
+      (
+        await database.forInstance((tx) =>
+          tx.execute<{ n: number }>(sql`select count(*)::int as n from outside_counts`),
+        )
+      ).rows[0]?.n,
+    ).toBe(0)
+    await expect(
+      database.forInstance((tx) => tx.execute(sql`delete from outside_counts`)),
+    ).rejects.toMatchObject({ cause: { code: '42501' } })
   })
 })

@@ -1,57 +1,49 @@
-import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
+import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 
 import { outsideReportRules } from '@opengewerk/haustechnik-domain'
 import type { TenantId } from '@opengewerk/haustechnik-domain'
+import type { Database, TenantTransaction } from '@opengewerk/platform-server'
+import { sql } from 'drizzle-orm'
+
+import { outsideReason } from '../database/label-area.js'
 
 const hour = 3_600_000
 
+/** A limit asked of the database: the kind of count, what it counts under, and how many an hour. */
+interface Count {
+  readonly kind: 'page' | 'address' | 'label'
+  readonly key: string
+  readonly limit: number
+}
+
+/** What a count is kept under: the SHA-256 of the address or the code, never either itself. */
+function keyOf(value: string): string {
+  return createHash('sha256').update(value, 'utf8').digest('hex')
+}
+
 /**
- * How often something happened in the last hour under one key, and whether
- * once more is allowed. Kept in memory, in this process: a restart forgets
- * it, which costs an attacker nothing they could not have got by waiting an
- * hour. The keys are capped, so that a flood of made-up codes cannot fill the
- * memory; the oldest go first.
+ * Whether once more is allowed under each count in the last hour, and if so
+ * counting it under the kinds named, in the database (#540): every process
+ * of an instance counts the same, and a restart forgets nothing. The
+ * database forgets a count after its hour (`outside_take`).
  */
-class HourlyLimit {
-  private readonly times = new Map<string, number[]>()
+async function taken(
+  tx: TenantTransaction,
+  counts: readonly Count[],
+  counted: readonly Count['kind'][],
+  now: number,
+): Promise<boolean> {
+  const { rows } = await tx.execute<{ allowed: boolean }>(
+    sql`select outside_take(
+          ${sql.raw(`array[${counts.map((count) => `'${count.kind}'`).join(',')}]::text[]`)},
+          ${sql.raw(`array[${counts.map((count) => `'${count.key}'`).join(',')}]::text[]`)},
+          ${sql.raw(`array[${counts.map((count) => String(count.limit)).join(',')}]::integer[]`)},
+          ${sql.raw(`array[${counted.map((kind) => `'${kind}'`).join(',')}]::text[]`)},
+          ${new Date(now).toISOString()}::timestamptz
+        ) as allowed`,
+  )
 
-  constructor(
-    private readonly limit: number,
-    private readonly keys = 20_000,
-  ) {}
-
-  /** Whether once more is allowed, without counting it. */
-  allows(key: string, now: number): boolean {
-    return (this.times.get(key) ?? []).filter((at) => now - at < hour).length < this.limit
-  }
-
-  take(key: string, now: number): boolean {
-    const kept = (this.times.get(key) ?? []).filter((at) => now - at < hour)
-
-    // Taken out and put back, so the order of the map is the order of use.
-    this.times.delete(key)
-
-    if (kept.length >= this.limit) {
-      this.times.set(key, kept)
-
-      return false
-    }
-
-    this.times.set(key, [...kept, now])
-    this.trim()
-
-    return true
-  }
-
-  private trim(): void {
-    for (const key of this.times.keys()) {
-      if (this.times.size <= this.keys) {
-        return
-      }
-
-      this.times.delete(key)
-    }
-  }
+  return rows[0]?.allowed === true
 }
 
 /** Where the photo of a report without an account may still go, and until when. */
@@ -68,18 +60,20 @@ export type FormState = 'good' | 'early' | 'stale'
 /**
  * What stands between the page of a label and a machine (section 4.7 of the
  * concept, #332, decided 15.10.2026: no captcha and no service of a third
- * party). Three things, all in this process:
+ * party). Three things:
  *
  * - a limit per hour, on opening the page per address, and on reports per
- *   address and per label. The address counts every request for a report;
+ *   address and per label, counted in the database (#540), so that every
+ *   process counts the same and a restart forgets nothing. The address counts
+ *   every request for a report;
  *   the label counts only a report that passed its checks and is written
  *   (#472), so that requests that fail at the field nobody sees, at the form
  *   or at their fields do not use up the reports a label takes;
- * - the form the page sends back, which carries when it was handed out under
+ * - the form the page sends back, in this process, which carries when it was handed out under
  *   a key of this process: a report sent sooner than a person reads the page
  *   is taken as from a machine, one older than a day as stale, and so is one
  *   from before a restart;
- * - the slip for the photo of a report, good once and for a few minutes, so
+ * - the slip for the photo of a report, in this process, good once and for a few minutes, so
  *   that nobody stores a file in an operator's store without a report it
  *   belongs to.
  *
@@ -87,16 +81,25 @@ export type FormState = 'good' | 'early' | 'stale'
  */
 export class OutsideReports {
   private readonly key = randomBytes(32)
-  private readonly pages = new HourlyLimit(outsideReportRules.pagesPerAddress)
-  private readonly byAddress = new HourlyLimit(outsideReportRules.perAddress)
-  private readonly byLabel = new HourlyLimit(outsideReportRules.perLabel)
   private readonly slips = new Map<string, { readonly slip: PhotoSlip; readonly until: number }>()
 
   constructor(readonly now: () => number = Date.now) {}
 
   /** Whether one more opening of a page is allowed from this address. */
-  openPage(address: string): boolean {
-    return this.pages.take(address, this.now())
+  openPage(database: Database, address: string): Promise<boolean> {
+    const now = this.now()
+
+    return database.forInstance(
+      (tx) =>
+        taken(
+          tx,
+          [{ kind: 'page', key: keyOf(address), limit: outsideReportRules.pagesPerAddress }],
+          ['page'],
+          now,
+        ),
+      undefined,
+      outsideReason,
+    )
   }
 
   /**
@@ -105,25 +108,38 @@ export class OutsideReports {
    * of the request, and against neither when one refuses. The code is only
    * asked here: a report over it is counted once it is written (`takeLabel`).
    */
-  takeReport(address: string, code: string): boolean {
+  takeReport(database: Database, address: string, code: string): Promise<boolean> {
     const now = this.now()
 
-    if (!this.byAddress.allows(address, now) || !this.byLabel.allows(code, now)) {
-      return false
-    }
-
-    this.byAddress.take(address, now)
-
-    return true
+    return database.forInstance(
+      (tx) =>
+        taken(
+          tx,
+          [
+            { kind: 'address', key: keyOf(address), limit: outsideReportRules.perAddress },
+            { kind: 'label', key: keyOf(code), limit: outsideReportRules.perLabel },
+          ],
+          ['address'],
+          now,
+        ),
+      undefined,
+      outsideReason,
+    )
   }
 
   /**
    * Whether one more report over this code is allowed, counted against it
    * once it is: for a report that passed its checks and is about to be
-   * written, and for nothing before (#472).
+   * written, and for nothing before (#472). In the transaction of the
+   * report, so that one that fails after it counts nothing (#540).
    */
-  takeLabel(code: string): boolean {
-    return this.byLabel.take(code, this.now())
+  takeLabel(tx: TenantTransaction, code: string): Promise<boolean> {
+    return taken(
+      tx,
+      [{ kind: 'label', key: keyOf(code), limit: outsideReportRules.perLabel }],
+      ['label'],
+      this.now(),
+    )
   }
 
   /** The form for the page of a code, with the moment it was handed out. */

@@ -52,12 +52,15 @@ const outsideTheLog = {
   // The reads of an auditor (#339) are a log themselves: logging them again would double every request.
   // What an import made (#174) is written only while the import writes, when the five tables it writes log
   // nothing: the row of the import is the entry, and a row for every record would undo that (#100).
+  // The counts of the page of a label (#540) belong to no tenant and go after an hour; a log of them would
+  // keep the hashes of the addresses for as long as the log is kept.
   tables: [
     ...foundationOutsideTheLog.tables,
     'secrets',
     'fault_report_contacts',
     'auditor_reads',
     'import_records',
+    'outside_counts',
   ],
 }
 

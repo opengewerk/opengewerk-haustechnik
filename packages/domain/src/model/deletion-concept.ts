@@ -164,6 +164,14 @@ export function deletionRules(facts: DeletionFacts): readonly DeletionRule[] {
       setting: 'bei der Verwaltung der Instanz',
       proofs: ['B64'],
     },
+    // Last, so that the numbers of the rules before it stay as they were printed (#540).
+    {
+      key: 'outside-count',
+      data: 'Die Zählung der Seite eines Etiketts für Meldungen ohne Konto: der Hashwert des Anschlusses und des Codes und der Zeitpunkt, nie Anschluss oder Code selbst',
+      when: 'nach einer Stunde, mit dem nächsten Aufruf einer solchen Seite',
+      setting: 'nein',
+      proofs: ['B484'],
+    },
   ]
 }
 

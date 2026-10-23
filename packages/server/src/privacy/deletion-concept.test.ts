@@ -133,6 +133,8 @@ const inMigrations: Readonly<Record<string, readonly DeletionRuleKey[]>> = {
   // and since 0101 the photos of a remedied defect (#412).
   attachment_versions: [...emptied, 'remedied-defect'],
   files: [...emptied, 'remedied-defect'],
+  // 0112: a count of the page of a label, past its hour (#540).
+  outside_counts: ['outside-count'],
 }
 
 /**
