@@ -52,6 +52,7 @@ import {
 } from '../database/schema/index.js'
 import { serviceReportsOf } from '../activities/service-reports.js'
 import { signPdf } from '../prints/pades.js'
+import { photoForPrint } from '../prints/print-photo.js'
 import { dayInGermany } from '../today.js'
 import {
   evidencePrintJob,
@@ -330,7 +331,7 @@ export class Printer {
    * state names: every photo of a point, the first and those after it
    * (#451). Where a point has more than one, the caption counts them; one
    * alone is captioned as before. A point in the block of a circuit is named
-   * with its circuit (#350).
+   * with its circuit (#350). Each at the size of the page (#580).
    */
   async photosOf(
     answers: readonly StatedAnswer[],
@@ -354,8 +355,10 @@ export class Printer {
             files.length === 1
               ? point
               : `${point} (Foto ${String(index + 1)} von ${String(files.length)})`,
-          mediaType: file.mediaType,
-          bytes: await this.store.get(file.sha256),
+          ...(await photoForPrint({
+            mediaType: file.mediaType,
+            bytes: await this.store.get(file.sha256),
+          })),
         })
       }
     }

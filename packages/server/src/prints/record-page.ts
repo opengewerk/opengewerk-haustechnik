@@ -28,8 +28,9 @@ import { fontFaces, type PrintJob, text, typeface } from '@opengewerk/platform-s
 // a round as it was written down, on A4, from the state alone and never from
 // the records as they are now. The page is a template string, as every page
 // the renderer prints: escaping is all it needs to be safe. Photos come in as
-// data addresses, read from the store by the hash the state names, and a
-// signature as the drawing it kept.
+// data addresses, read from the store by the hash the state names and made
+// the size of the page (print-photo.ts), and a signature as the drawing it
+// kept.
 
 /** A photo of an answer, read from the store by its hash. */
 export interface PrintedPhoto {
