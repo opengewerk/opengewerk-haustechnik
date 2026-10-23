@@ -146,7 +146,6 @@ export const workOrderWords = {
     'Die Gewährleistung hängt am abgenommenen Auftrag und steht in der Akte seiner Anlage.',
   notSigned:
     'Noch nicht unterschrieben. Abschließen kann den Auftrag nur, wer ihn führt, mit der Unterschrift vor Ort.',
-  laterMaterial: 'Material aus dem Lager am Auftrag kommt mit Phase 2 (4.12).',
   peopleFailed: 'Wer zur Wahl steht, ließ sich nicht laden. Das braucht eine Verbindung.',
   fromFault:
     'Mit dem Anlegen ist die Meldung angenommen, und wer sie gemeldet hat, bekommt Bescheid. Ist der Auftrag unterschrieben, ist sie erledigt. Auftrag und Meldung nennen einander.',
@@ -2115,11 +2114,6 @@ export function NewWorkOrderScreen() {
               <p>{follows}</p>
               <p>{workOrderWords.whoFinishes}</p>
             </div>
-          </Panel>
-          <Panel title="Später">
-            <p className="text-[12px] leading-[1.4] text-ink-muted">
-              {workOrderWords.laterMaterial}
-            </p>
           </Panel>
         </div>
       </div>

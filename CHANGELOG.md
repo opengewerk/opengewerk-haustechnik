@@ -7,6 +7,13 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+### Behoben
+
+- „Neuer Auftrag“ und „Mangel melden“ kündigen nicht mehr als „Später“ an, was seit 0.2.0 gebaut ist: Material aus dem
+  Lager am Auftrag (#326) und eine Anlage, die ein Mangel außer Betrieb setzt (#345). Der Satz zum Mangel steht jetzt
+  im Präsens unter „Gut zu wissen“; der zum Material entfällt, denn entnommen wird vor Ort, und die Seite des Auftrags
+  zeigt es.
+
 ## [0.2.4] - 2026-10-23
 
 Eine Sicherheitsfassung. Das Abbild baut auf Node 24.22.1, und der Renderer für PDFs läuft auf 2.57.3, das dieselbe
