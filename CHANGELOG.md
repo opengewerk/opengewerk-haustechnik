@@ -7,6 +7,30 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-10-23
+
+Der Rest des Abgleichs von Phase 2 mit Konzept und Code: was er an Lücken, Fragen und zweiten Prüflinien
+gefunden hat, ist mit dieser Fassung gebaut, und die Dokumentation steht auf ihrem Stand.
+
+Ein PDF, das die Instanz signiert, ist jetzt zertifiziert und trägt Rechte: nach der Signatur sind nur
+Ausfüllen und weitere Signaturen erlaubt, Drucken und Kopieren bleiben, Ändern und Zusammenstellen nicht.
+Die Unterschrift unter einer Einweisung nennt die Seite, die die Person gesehen hat, wie die unter einem
+Leistungsnachweis.
+
+Die Datenbank hält selbst, was bisher nur der Server hielt: eine eigene Rolle führt den Betreiber nie, nach
+dem letzten Tag eines Zugangs liest die Person auch dort nichts mehr, wo kein Bereich hängt, der Lauf der
+Fristen weist sich aus, wenn er entfernt, ein Sammelvorgang hält seine Unterschrift und trägt keine eigene
+Pflicht, und die Grenzen der Seite eines Etiketts zählen über Neustarts und Prozesse hinweg.
+
+Vor Ort nennt ein Raum seine Verteiler, im Büro eine Fremdfirma ihre Verträge. Eine eigene Pflicht lässt
+sich durch einen Vorschlag des Katalogs ablösen, und jede Person sieht ihre eigenen Qualifikationen und
+Übertragungen ohne ein Recht. Dazu neue Fassungen der Pakete Elektro (1.5.1), Heizung (1.2.0) sowie Raumluft
+und Kälte (1.5.0).
+
+Aktualisiert wird wie bei jeder Fassung in zwei Schritten, vorher gesichert. Die Migrationen `0105` bis
+`0112` laufen von selbst; sie ändern keine bestehende Zeile, sondern geben der Datenbank neue Spalten,
+Trigger, Policies und Funktionen und die Tabelle für die Zählungen der Seite eines Etiketts.
+
 ### Behoben
 
 - Die Seite eines Raums vor Ort nennt die Verteiler, die in ihm stehen, wie die Seite des Gebäudes, und die Seite
