@@ -32,7 +32,8 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Anlage; die Zahl stimmt jetzt mit der Liste überein, zu der sie führt.
 - Die Grenzen der Seite eines Etiketts für Meldungen ohne Konto zählt die Datenbank (#540), nicht mehr der Speicher
   eines Prozesses: ein Neustart setzt sie nicht zurück, und mehrere Prozesse zählen gemeinsam. Gezählt wird unter
-  dem Hashwert der Adresse, und nach einer Stunde ist die Zählung weg.
+  dem Hashwert der Adresse, und nach einer Stunde ist die Zählung weg; das Löschkonzept nennt das als letzte
+  Regel, damit die Nummern der übrigen bleiben.
 - Das Änderungsprotokoll nennt bei einer Unterschrift nur noch, dass sie gesetzt wurde, auch in seiner
   Tabelle (#523). Bisher standen die ersten 300 Zeichen des Linienzugs in XLSX und CSV.
 - Ein Paket heißt nicht „eigen“ (#529): so heißen die eigenen Anlagenarten eines Betreibers, und der Lader

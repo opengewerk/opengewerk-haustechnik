@@ -29,6 +29,7 @@ export type DeletionRuleKey =
   | 'sessions'
   | 'password-link'
   | 'outside-answer'
+  | 'outside-count'
   | 'push-subscription'
   | 'device-store'
   | 'substitution'
@@ -137,10 +138,10 @@ export const processingActivities = [
     title: 'Störmeldungen',
     sections: ['3.17'],
     subjects: 'Beschäftigte, Melder ohne Konto',
-    data: 'Die Meldung mit Ort und Foto, wer gemeldet hat, die Adresse für die Antwort an einen Melder ohne Konto',
+    data: 'Die Meldung mit Ort und Foto, wer gemeldet hat, die Adresse für die Antwort an einen Melder ohne Konto, für die Grenzen der Seite eines Etiketts der Hashwert seines Anschlusses',
     purpose: 'Störungen aufnehmen, beheben und dem Melder antworten',
     legalBasis: 'Art. 6 Abs. 1 lit. b DSGVO; für Melder ohne Konto Art. 6 Abs. 1 lit. f DSGVO',
-    deletion: ['outside-answer'],
+    deletion: ['outside-answer', 'outside-count'],
   },
   {
     key: 'delegations',
