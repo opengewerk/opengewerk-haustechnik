@@ -21,6 +21,13 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   bis 10 MiB an, und jedes Foto steht eingebettet in der Seite; schon ein Rundgang mit rund zehn Fotos wurde abgelehnt.
   Die Grenze steht jetzt auf 96 MiB, knapp unter dem, was Chromium selbst annimmt.
 
+### Sicherheit
+
+- Das Abbild baut auf `node:24-alpine` mit Node 24.22.1 statt 24.22.0, und der Renderer für PDFs läuft auf
+  `browserless/chromium` 2.57.3 statt 2.57.1, das ebenfalls Node 24.22.1 mitbringt. Warum: Node 24.22.1 schließt die
+  Lücken aus dem Sicherheitsrelease vom 21.10.2026, darunter CVE-2026-111497 (der Brotli-Decoder schreibt außerhalb
+  seines Puffers, was fremden Code ausführen lässt).
+
 ## [0.2.3] - 2026-10-23
 
 Der Rest des Abgleichs von Phase 2 mit Konzept und Code: was er an Lücken, Fragen und zweiten Prüflinien
