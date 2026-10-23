@@ -7,6 +7,18 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-10-23
+
+Eine Sicherheitsfassung. Das Abbild baut auf Node 24.22.1, und der Renderer für PDFs läuft auf 2.57.3, das dieselbe
+Fassung von Node mitbringt; beide schließen damit die Lücken aus dem Sicherheitsrelease von Node vom 21.10.2026,
+darunter CVE-2026-111497.
+
+Dazu lässt sich das PDF eines Rundgangs mit vielen Fotos wieder erzeugen: der Renderer nimmt Seiten bis 96 MiB an,
+und die Fotos stehen in Druckgröße darin, so dass ein PDF mit gut 200 Fotos unter dieser Grenze bleibt und nur noch
+rund ein Drittel so viel wiegt wie bisher.
+
+Aktualisiert wird wie bei jeder Fassung, vorher gesichert; eine Migration gibt es nicht.
+
 ### Geändert
 
 - Das PDF eines Rundgangs und eines Nachweises trägt seine Fotos in Druckgröße, höchstens 1200 Pixel an der langen
