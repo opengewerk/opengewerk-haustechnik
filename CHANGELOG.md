@@ -15,6 +15,12 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   dabei rund ein Drittel so groß. Das Foto im Speicher bleibt, wie es war, und der Nachweis nennt weiter dessen
   Prüfsumme; ein Druck, der schon aufbewahrt ist, bleibt ebenfalls, wie er ist.
 
+### Behoben
+
+- Das PDF eines Rundgangs mit vielen Fotos lässt sich wieder erzeugen (#579). Der Renderer nahm von Haus aus nur Seiten
+  bis 10 MiB an, und jedes Foto steht eingebettet in der Seite; schon ein Rundgang mit rund zehn Fotos wurde abgelehnt.
+  Die Grenze steht jetzt auf 96 MiB, knapp unter dem, was Chromium selbst annimmt.
+
 ## [0.2.3] - 2026-10-23
 
 Der Rest des Abgleichs von Phase 2 mit Konzept und Code: was er an Lücken, Fragen und zweiten Prüflinien
