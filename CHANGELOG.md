@@ -7,6 +7,14 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+### Geändert
+
+- Das PDF eines Rundgangs und eines Nachweises trägt seine Fotos in Druckgröße, höchstens 1200 Pixel an der langen
+  Kante (#580). Ein Gerät legt sie mit 2048 Pixeln und bis zu 3 MB ab, und jedes Foto steht in der Seite, die der
+  Renderer bekommt; so passten nur wenige Dutzend in ein PDF, und jedes PDF wog so viel wie seine Fotos. Ein Foto wird
+  dabei rund ein Drittel so groß. Das Foto im Speicher bleibt, wie es war, und der Nachweis nennt weiter dessen
+  Prüfsumme; ein Druck, der schon aufbewahrt ist, bleibt ebenfalls, wie er ist.
+
 ### Behoben
 
 - Das PDF eines Rundgangs mit vielen Fotos lässt sich wieder erzeugen (#579). Der Renderer nahm von Haus aus nur Seiten

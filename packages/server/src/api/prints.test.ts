@@ -1,6 +1,12 @@
 import { BadGatewayException } from '@nestjs/common'
-import type { EvidenceId } from '@opengewerk/haustechnik-domain'
-import { type Database, noFileStorage, type PrintJob } from '@opengewerk/platform-server'
+import type { EvidenceId, StatedAnswer } from '@opengewerk/haustechnik-domain'
+import {
+  type Database,
+  type FileStorage,
+  noFileStorage,
+  type PrintJob,
+} from '@opengewerk/platform-server'
+import sharp from 'sharp'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { Asking } from './places.js'
@@ -41,5 +47,54 @@ describe('a print that fails (#475)', () => {
       'renderer:3000',
     )
     expect(complained).toHaveBeenCalledWith(expect.any(String), refusal)
+  })
+})
+
+describe('the photos of a print (#580)', () => {
+  it('reads every photo of a point from the store and hands it over at the size of the page', async () => {
+    // A photo as a device keeps it, 2048 pixels on its long edge.
+    const kept = await sharp({
+      create: {
+        width: 2048,
+        height: 1536,
+        channels: 3,
+        background: { r: 120, g: 140, b: 160 },
+        noise: { type: 'gaussian', mean: 128, sigma: 40 },
+      },
+    })
+      .jpeg({ quality: 80 })
+      .toBuffer()
+    const store: FileStorage = { ...noFileStorage, get: () => Promise.resolve(kept) }
+    const printer = new Printer(database, store, () => Promise.resolve(new Uint8Array()))
+    const file = { sha256: 'a'.repeat(64), name: 'Foto.jpg', mediaType: 'image/jpeg' }
+    const answer = {
+      section: 'Rundgang',
+      label: 'Heizraum',
+      group: null,
+      kind: 'photo',
+      value: null,
+      result: null,
+      remark: null,
+      limit: null,
+      photo: file,
+      morePhotos: [file],
+    } as StatedAnswer
+
+    const photos = await printer.photosOf([answer])
+
+    expect(photos.map((photo) => photo.caption)).toEqual([
+      'Heizraum (Foto 1 von 2)',
+      'Heizraum (Foto 2 von 2)',
+    ])
+
+    for (const photo of photos) {
+      const { width, height } = await sharp(photo.bytes).metadata()
+
+      expect({ mediaType: photo.mediaType, width, height }).toEqual({
+        mediaType: 'image/jpeg',
+        width: 1200,
+        height: 900,
+      })
+    }
   })
 })
