@@ -197,7 +197,7 @@ const instance = {
     what: 'Die Betreiber auf dieser Instanz. Jeder ist vom anderen getrennt wie zwei fremde.',
     create: 'Betreiber anlegen',
     caption: 'Die Betreiber auf dieser Instanz',
-    note: 'Was bei einem Betreiber steht, sieht hier niemand, auch die Verwaltung der Instanz nicht: nur sein Name, der Tag der Anlage und wer ihn leitet.',
+    note: 'Was bei einem Betreiber steht, sieht hier niemand, auch die Verwaltung der Instanz nicht: nur sein Name, der Tag der Anlage, wer ihn leitet und wie viel er im Dateispeicher belegt.',
     tenantColumn: 'Betreiber',
     leadsColumn: 'Leitung',
     nameLabel: 'Name des Betreibers',
@@ -230,6 +230,16 @@ const instance = {
     what: 'Was für alle Betreiber auf dieser Instanz gilt.',
     mailOwnServer: 'Ein Betreiber verschickt seine E-Mails über seinen eigenen Mailserver.',
     mailNoWayIn: 'So greift kein Betreiber über die Instanz in das Netz dahinter.',
+    tenantLimits: {
+      title: 'Betreiber',
+      what: 'Wie viel ein Betreiber im Dateispeicher ablegen darf, alles zusammen, was er hat. Arbeiten mehrere Betreiber auf dieser Instanz, hält eine Grenze einen davon ab, den Speicher für alle zu füllen.',
+      storageLabel: 'Speicher je Betreiber',
+      storageHint:
+        'In GB. Leer heißt ohne Grenze. Wie viel jeder Betreiber belegt, steht unter „Betreiber“.',
+      ownLabel: 'Leitungen dürfen weitere Betreiber anlegen',
+      ownHint:
+        'Höchstens fünf je Konto. Bisher bietet die Haustechnik einer Leitung das nicht an; einen weiteren Betreiber legt die Verwaltung der Instanz an, unter „Betreiber“.',
+    },
     accountMail:
       'Über diesen Mailserver gehen die E-Mails an ein Konto: der Link zu einem neuen Passwort und der Hinweis auf einen neuen Passkey. Ein Konto gehört der Instanz und keinem Betreiber, deshalb gehen diese E-Mails nie über den Mailserver eines Betreibers.',
     accountMailMissing: (

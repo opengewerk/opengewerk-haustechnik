@@ -223,6 +223,56 @@ export function recoveryCodesRenewedMessage(facts: {
 }
 
 /**
+ * The mail to an account once the app was set up on it, or every second
+ * factor of it was taken away (#591, N6 of the security audit of the
+ * repository opengewerk). The first needed nothing but a password on an
+ * account without one, the second is done by whoever manages the accesses of
+ * an operator or on the server; the person should hear of both.
+ */
+export function secondFactorChangedMessage(facts: {
+  readonly name: string
+  readonly change: 'app' | 'reset'
+  readonly changedAt: Date
+  readonly link: string
+  readonly application: string
+}): MessageText {
+  const what =
+    facts.change === 'app'
+      ? `wurde am ${momentOf(facts.changedAt)} Uhr eine Authenticator-App als zweiter ` +
+        'Faktor eingerichtet.'
+      : `wurde am ${momentOf(facts.changedAt)} Uhr der zweite Faktor zurückgesetzt: die ` +
+        'Authenticator-App und alle Passkeys sind entfernt, und alle Geräte sind abgemeldet. ' +
+        'Bei der nächsten Anmeldung richten Sie einen neuen ein.'
+  const yourself =
+    facts.change === 'app'
+      ? 'Wenn Sie die App nicht selbst eingerichtet haben, ändern Sie Ihr Passwort und sagen ' +
+        'Sie der Leitung Bescheid.'
+      : 'Wenn Sie das nicht erwartet haben, sagen Sie der Leitung Bescheid.'
+  const body = [
+    greeting(facts.name || null),
+    '',
+    `für Ihren Zugang zu ${facts.application} ${what}`,
+    '',
+    'Ihren Zugang sehen Sie unter „Konto“:',
+    '',
+    facts.link,
+    '',
+    yourself,
+    '',
+    '-- ',
+    facts.application,
+  ].join('\n')
+
+  return {
+    subject:
+      facts.change === 'app'
+        ? `Authenticator-App für ${facts.application} eingerichtet`
+        : `Zweiter Faktor für ${facts.application} zurückgesetzt`,
+    body,
+  }
+}
+
+/**
  * The mail to every account of the administration of the instance when one
  * was named to it or taken off (#360), and to the one taken off. Whoever is
  * in the administration sets up the mail server of the instance, and through

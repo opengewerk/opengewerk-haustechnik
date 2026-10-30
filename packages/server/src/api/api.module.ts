@@ -40,6 +40,8 @@ import {
   TRUSTED_ORIGINS,
   pushParts,
   VERSION,
+  WriteLimitInterceptor,
+  WriteLimits,
 } from '@opengewerk/platform-server'
 
 import { AuditedExceptionFilter, AuditorReadsInterceptor } from '../limits/auditor-reads.js'
@@ -216,6 +218,12 @@ export interface ApiOptions {
    * says yes, so that the page of the texts shows there.
    */
   readonly legalTexts?: boolean
+  /**
+   * How much one account writes within an hour, over every operator it works
+   * for (#590, B5 of the security audit of the repository opengewerk). Left
+   * out, the foundation's numbers; a test hands in smaller ones.
+   */
+  readonly writeLimits?: WriteLimits
 }
 
 /**
@@ -525,6 +533,10 @@ export class ApiModule {
         // about a row somebody may not see; a request of an auditor the guard
         // refuses is written down before it is answered (#537).
         { provide: APP_FILTER, useClass: AuditedExceptionFilter },
+        // What an account writes within an hour (#590), asked behind the
+        // guards, which know the account, before the route writes anything.
+        { provide: WriteLimits, useValue: options.writeLimits ?? new WriteLimits() },
+        { provide: APP_INTERCEPTOR, useClass: WriteLimitInterceptor },
         // No answer says when a record last changed, who changed it or from
         // which device: that stays on the row and in the change log, which
         // only the Leitung reads (section 9 of the concept).

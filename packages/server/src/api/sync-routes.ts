@@ -3,6 +3,7 @@ import {
   type Identity,
   isAllowed,
   isLimited,
+  longestFormValues,
   offlineEditRefusal,
   offlineRules,
   type Operation,
@@ -342,6 +343,10 @@ export function syncRoutesFor(
     sync: syncFor(catalogue),
     permissionFor,
     answerFor,
+    // The answers of a permit for hot work hold more than any other text a
+    // device writes, as long as their check lets them (#330); every other
+    // text is held to the length of the foundation (#590).
+    longerTexts: { work_permits: { answers: longestFormValues } },
     scope: async ({ tx, identity }) => {
       const limited = isLimited(identity.roles)
       const stateOnly =

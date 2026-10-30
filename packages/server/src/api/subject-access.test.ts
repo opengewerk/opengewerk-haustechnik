@@ -491,7 +491,7 @@ describe('the information about a person with an access (#355)', () => {
    * the Leitung finds each in the information about the person, without the
    * values of the conflict, and none in the information about anybody else.
    */
-  it('names the files, conflicts and new passwords of the person, nobody else', async () => {
+  it('names the files, conflicts, new passwords and second factors of the person, nobody else', async () => {
     const sha256 = 'c0ffee'.repeat(10) + 'beef'
     const conflictId = newId()
     const language = auditLanguage(auditVocabulary)
@@ -514,6 +514,10 @@ describe('the information about a person with an access (#355)', () => {
     )
     await admin.query(
       `insert into password_resets (tenant_id, user_id, reset_at) values ($1, $2, '2026-10-04T07:00:00Z')`,
+      [north.id, north.colleagueId],
+    )
+    await admin.query(
+      `insert into second_factor_changes (tenant_id, user_id, changed_at) values ($1, $2, '2026-10-04T08:00:00Z')`,
       [north.id, north.colleagueId],
     )
 
@@ -548,11 +552,21 @@ describe('the information about a person with an access (#355)', () => {
 
       expect(newPasswords(colleague)).toEqual(['2026-10-04T07:00:00.000Z'])
       expect(newPasswords(lead)).not.toContain('2026-10-04T07:00:00.000Z')
+
+      // The app set up on the account, or its second factor taken away (#591).
+      const secondFactors = (access: SubjectAccess) =>
+        rowsIn(access, 'sessions')
+          .filter((row) => row['what'] === 'Zweiter Faktor eingerichtet oder zurückgesetzt')
+          .map((row) => new Date(String(row['at'])).toISOString())
+
+      expect(secondFactors(colleague)).toEqual(['2026-10-04T08:00:00.000Z'])
+      expect(secondFactors(lead)).not.toContain('2026-10-04T08:00:00.000Z')
       expect(rowsIn(lead, 'uploads').some((row) => row['size'] === 4321)).toBe(false)
       expect(JSON.stringify(lead)).not.toContain('phone-of-the-colleague')
     } finally {
       await admin.query('delete from sync_conflicts where id = $1', [conflictId])
       await admin.query('delete from password_resets where user_id = $1', [north.colleagueId])
+      await admin.query('delete from second_factor_changes where user_id = $1', [north.colleagueId])
       await admin.query('delete from file_uploads where sha256 = $1', [sha256])
       // The lock on files lets a row go only while it is named as the one
       // being taken (opengewerk/opengewerk#658); the test names it the same way.
