@@ -4919,3 +4919,109 @@ describe('the invitations to lead from 0097', () => {
     expect(rows).toEqual([])
   })
 })
+
+/**
+ * The log of an instance from before 0113 (#589, B13 of the security audit of
+ * the repository opengewerk): its entries are of version 2, fingerprinted over
+ * their values alone. After the update they check through as before and a
+ * value of them is blacked out as before; what changes is written in version
+ * 3, with a nonce for each value. The rollback leaves a chain that still
+ * checks through.
+ */
+describe('the log of an instance from before 0113', () => {
+  const tenant = { id: newId<'tenant'>() as TenantId }
+  const contractor = newId<'contractor'>()
+
+  async function chain(): Promise<string | null> {
+    const { rows } = await admin.query<{ problem: string | null }>(
+      'select problem from verify_audit_chain($1)',
+      [tenant.id],
+    )
+    const row = rows[0]
+
+    return row ? row.problem : 'nothing'
+  }
+
+  async function versions(): Promise<number[]> {
+    const { rows } = await admin.query<{ fingerprint_version: number }>(
+      'select distinct fingerprint_version from audit_entries order by fingerprint_version',
+    )
+
+    return rows.map((row) => row.fingerprint_version)
+  }
+
+  it('checks its entries of version 2 through the update and writes version 3 from then on', async () => {
+    await runMigrations(ownerDatabaseUrl(), kept(migrationsFolderUpTo(113)))
+    await admin.query('insert into tenants (id, name) values ($1, $2)', [
+      tenant.id,
+      'Wohnbau Nord eG',
+    ])
+    await admin.query(
+      "insert into contractors (id, tenant_id, name) values ($1, $2, 'Elektro Kraus & Sohn')",
+      [contractor, tenant.id],
+    )
+
+    expect(await tableNames(admin)).not.toContain('audit_value_nonces')
+    expect(await chain()).toBeNull()
+
+    await runMigrations(ownerDatabaseUrl())
+
+    expect(await versions()).toEqual([2])
+    expect(await chain()).toBeNull()
+
+    // The Leitung blacks out the name as the trigger of 0112 logged it.
+    await admin.query(
+      `insert into auth_users (id, name, email) values ('lead', 'Sabine Krämer', 'lead@beispiel.example')`,
+    )
+    await admin.query(
+      `insert into tenant_roles (tenant_id, key, label, rights, leads, second_factor)
+       values ($1, 'management', 'Leitung', '{}', true, false)`,
+      [tenant.id],
+    )
+    await admin.query(
+      "insert into memberships (tenant_id, user_id, roles) values ($1, 'lead', '{management}')",
+      [tenant.id],
+    )
+
+    const { rows: named } = await admin.query<{ id: string }>(
+      "select id from audit_entries where table_name = 'contractors' and field = 'name'",
+    )
+    const client = await admin.connect()
+
+    try {
+      await client.query('begin')
+      await client.query('set local role "opengewerk_app"')
+      await client.query("select set_config('app.tenant_id', $1, true)", [tenant.id])
+      await client.query("select set_config('app.user_id', 'lead', true)")
+      await client.query(
+        `insert into audit_redactions (tenant_id, entry_id, side, reason, redacted_by)
+         values ($1, $2, 'new', 'Auskunft der Person', 'lead')`,
+        [tenant.id, named[0]?.id],
+      )
+      await client.query('commit')
+    } finally {
+      client.release()
+    }
+
+    expect(await chain()).toBeNull()
+
+    // A change after the update, written with nonces.
+    await admin.query("update contractors set name = 'Aufzugsdienst Rhein-Neckar' where id = $1", [
+      contractor,
+    ])
+
+    expect(await versions()).toEqual([2, 3])
+    expect(
+      Number((await admin.query('select count(*) from audit_value_nonces')).rows[0]?.count),
+    ).toBeGreaterThan(0)
+    expect(await chain()).toBeNull()
+
+    await revertMigration(admin, '0115_tenant_limits')
+    await revertMigration(admin, '0114_second_factor_changes')
+    await revertMigration(admin, '0113_audit_value_nonces')
+
+    expect(await tableNames(admin)).not.toContain('audit_value_nonces')
+    expect(await tableNames(admin)).not.toContain('second_factor_changes')
+    expect(await chain()).toBeNull()
+  })
+})

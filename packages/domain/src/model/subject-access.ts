@@ -157,7 +157,7 @@ export const subjectAccessParts = {
   },
   sessions: {
     title: 'Sitzungen und Anmeldungen',
-    note: 'Die Sitzungen bei diesem Betreiber, die noch gelten, mit ihrem zweiten Faktor, jede An- und Abmeldung hier und jedes neu gesetzte Passwort.',
+    note: 'Die Sitzungen bei diesem Betreiber, die noch gelten, mit ihrem zweiten Faktor, jede An- und Abmeldung hier, jedes neu gesetzte Passwort und jede Änderung am zweiten Faktor.',
     columns: [
       what,
       column('at', 'Zeitpunkt', 'moment'),
@@ -168,7 +168,13 @@ export const subjectAccessParts = {
       // Whether a session carries a second factor, which it holds since 0095 (#482).
       column('secondFactor', 'Zweiter Faktor', 'flag'),
     ],
-    sources: ['auth_sessions.user_id', 'tenant_sessions.user_id', 'password_resets.user_id'],
+    sources: [
+      'auth_sessions.user_id',
+      'tenant_sessions.user_id',
+      'password_resets.user_id',
+      // The app set up or the second factor taken away (#591).
+      'second_factor_changes.user_id',
+    ],
     printed: true,
   },
   push: {

@@ -124,6 +124,12 @@ export function rowsOf(tenant: Tenant): readonly Row[] {
       values: { tenant_id: tenant.id, user_id: tenant.userId },
     },
     {
+      // The app set up on an account, or its second factor taken away, as
+      // every operator it works for keeps it (#591).
+      table: 'second_factor_changes',
+      values: { tenant_id: tenant.id, user_id: tenant.userId },
+    },
+    {
       // A change of the mail server of the instance, as every operator keeps
       // it (#360).
       table: 'account_mail_server_changes',

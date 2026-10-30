@@ -37,6 +37,7 @@ import {
   type SigningContext,
   instanceSigningKey,
   type TenantTransaction,
+  UploadLimits,
 } from '@opengewerk/platform-server'
 import { files } from '@opengewerk/platform-server/schema'
 import { and, asc, eq, inArray, isNull, or } from 'drizzle-orm'
@@ -122,6 +123,7 @@ export class Printer {
     private readonly database: Database,
     @Inject(FILE_STORE) private readonly store: FileStorage,
     @Inject(RENDERER) private readonly render: Renderer,
+    private readonly limits: UploadLimits,
     @Optional()
     @Inject(SIGNING)
     private readonly signing?: SigningContext | null,
@@ -174,6 +176,11 @@ export class Printer {
 
     // Signed before it is kept: the print kept is the signed one, and its hash is the hash of that file.
     made = await this.sign(made)
+
+    // Asked before it is kept (#588): a print may take the room the routes
+    // that take files leave free, down to the last of it, and no more than
+    // its operator may have made within an hour. Refused, nothing is kept.
+    await this.limits.admitMade(identity.tenantId, made.byteLength)
 
     const blob = await this.store.put(made)
     const sha256 = await this.database.forTenant(identity, async (tx) => {

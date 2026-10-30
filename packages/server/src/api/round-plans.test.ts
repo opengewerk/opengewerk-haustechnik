@@ -8,6 +8,7 @@ import {
   addDays,
   catalogueOf,
   type IsoDate,
+  keyDateFor,
   rightsOfRoles,
   type RoleKey,
   roundShowsFrom,
@@ -1282,8 +1283,8 @@ describe('a round in the office', () => {
     await admin.query(
       `insert into meter_readings (tenant_id, property_id, area_id, asset_id, key_date, read_on,
                                    value_milli, source, activity_id, recorded_by)
-       values ($1, $2, $3, $4, $5, $5, 1000, 'round', $6, 'u-tech')`,
-      [tenant, northProperty, north, northAsset, today, round],
+       values ($1, $2, $3, $4, $5, $6, 1000, 'round', $7, 'u-tech')`,
+      [tenant, northProperty, north, northAsset, keyDateFor(today), today, round],
     )
 
     expect((await page('u-tech', round)).body['reopening']).toEqual({
@@ -1499,8 +1500,8 @@ describe('a round in the office', () => {
     const { rows } = await admin.query<{ id: string }>(
       `insert into meter_readings (tenant_id, property_id, area_id, asset_id, key_date, read_on,
                                    value_milli, source, activity_id, recorded_by)
-       values ($1, $2, $3, $4, $5, $5, 2000, 'round', $6, 'u-tech') returning id`,
-      [tenant, northProperty, north, northAsset, plus(-1), round],
+       values ($1, $2, $3, $4, $5, $6, 2000, 'round', $7, 'u-tech') returning id`,
+      [tenant, northProperty, north, northAsset, keyDateFor(plus(-1)), plus(-1), round],
     )
 
     expect(

@@ -120,7 +120,8 @@ async function tenantRows(tx: TenantTransaction, userId: string) {
           from member_passkeys where user_id = ${u} order by created_at`,
   )
 
-  // With every new password of the person, by the link or on the server (#360).
+  // With every new password of the person, by the link or on the server (#360),
+  // and every app set up or second factor taken away (#591).
   const signIns = await rowsOf(
     tx,
     sql`select 'Anmeldung bei diesem Betreiber' as what, started_at as at, ended_at as until, null as device,
@@ -129,6 +130,9 @@ async function tenantRows(tx: TenantTransaction, userId: string) {
         union all
         select 'Passwort neu gesetzt', reset_at, null, null, null, null, null
           from password_resets where user_id = ${u}
+        union all
+        select 'Zweiter Faktor eingerichtet oder zurückgesetzt', changed_at, null, null, null, null, null
+          from second_factor_changes where user_id = ${u}
         order by 2`,
   )
 

@@ -1,10 +1,12 @@
-import { BadGatewayException } from '@nestjs/common'
+import { BadGatewayException, HttpException, HttpStatus } from '@nestjs/common'
 import type { EvidenceId, StatedAnswer } from '@opengewerk/haustechnik-domain'
 import {
   type Database,
   type FileStorage,
   noFileStorage,
   type PrintJob,
+  uploadAllowance,
+  UploadLimits,
 } from '@opengewerk/platform-server'
 import sharp from 'sharp'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -27,7 +29,7 @@ describe('a print that fails (#475)', () => {
   it('passes on a failure while reading what it shows as it is, and asks no renderer', async () => {
     const render = vi.fn(() => Promise.resolve(new Uint8Array()))
     const failure = new Error('Connection terminated unexpectedly')
-    const printer = new Printer(database, noFileStorage, render)
+    const printer = new Printer(database, noFileStorage, render, new UploadLimits(noFileStorage))
 
     await expect(printer.printed(asking, of, place, () => Promise.reject(failure))).rejects.toBe(
       failure,
@@ -38,7 +40,12 @@ describe('a print that fails (#475)', () => {
   it('answers a renderer that fails at a print of the day with a sentence of its own and logs what it said', async () => {
     const refusal = new Error('Abgelehnt (HTTP 500). Antwort: http://renderer:3000/pdf')
     const complained = vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    const printer = new Printer(database, noFileStorage, () => Promise.reject(refusal))
+    const printer = new Printer(
+      database,
+      noFileStorage,
+      () => Promise.reject(refusal),
+      new UploadLimits(noFileStorage),
+    )
     const failed: unknown = await printer.fresh(job).catch((error: unknown) => error)
 
     expect(failed).toBeInstanceOf(BadGatewayException)
@@ -47,6 +54,34 @@ describe('a print that fails (#475)', () => {
       'renderer:3000',
     )
     expect(complained).toHaveBeenCalledWith(expect.any(String), refusal)
+  })
+})
+
+describe('a print when the store is all but full (#588)', () => {
+  it('is refused before it is kept, and nothing of it is written', async () => {
+    const put = vi.fn(() => Promise.reject(new Error('Kept although refused')))
+    const store: FileStorage = {
+      ...noFileStorage,
+      put,
+      freeBytes: () => Promise.resolve(uploadAllowance.lastFreeBytes),
+    }
+    // Asked once, for a print kept already; a second time would write its rows.
+    const forTenant = vi.fn(() => Promise.resolve(null))
+    const printer = new Printer(
+      { forTenant } as unknown as Database,
+      store,
+      () => Promise.resolve(new Uint8Array(1024)),
+      new UploadLimits(store),
+    )
+    const operator = { tenantId: '019a0000-0000-7000-8000-000000000001' } as Asking
+    const refused: unknown = await printer
+      .printed(operator, of, place, () => Promise.resolve(job))
+      .catch((error: unknown) => error)
+
+    expect(refused).toBeInstanceOf(HttpException)
+    expect((refused as HttpException).getStatus()).toBe(HttpStatus.INSUFFICIENT_STORAGE)
+    expect(put).not.toHaveBeenCalled()
+    expect(forTenant).toHaveBeenCalledTimes(1)
   })
 })
 
@@ -65,7 +100,12 @@ describe('the photos of a print (#580)', () => {
       .jpeg({ quality: 80 })
       .toBuffer()
     const store: FileStorage = { ...noFileStorage, get: () => Promise.resolve(kept) }
-    const printer = new Printer(database, store, () => Promise.resolve(new Uint8Array()))
+    const printer = new Printer(
+      database,
+      store,
+      () => Promise.resolve(new Uint8Array()),
+      new UploadLimits(store),
+    )
     const file = { sha256: 'a'.repeat(64), name: 'Foto.jpg', mediaType: 'image/jpeg' }
     const answer = {
       section: 'Rundgang',

@@ -79,9 +79,18 @@ const places: Readonly<Record<string, readonly Why[]>> = {
   // The sessions without a second factor, once the account has the app (#360).
   'upstream/opengewerk/packages/platform/server/src/authentication/authentication.ts#authSessions':
     ['sessions'],
+  // The other sessions of an account whose passkey or recovery codes changed, or whose second
+  // factor was taken away (#591).
+  'upstream/opengewerk/packages/platform/server/src/authentication/other-sessions.ts#authSessions':
+    ['sessions'],
   'upstream/opengewerk/packages/platform/server/src/authentication/passkeys.ts#authPasskeys': [
     { byHand: 'ein Passkey, den seine Person löscht' },
   ],
+  'upstream/opengewerk/packages/platform/server/src/authentication/second-factor.ts#authPasskeys': [
+    { byHand: 'der zweite Faktor eines Kontos, den die Leitung oder der Server zurücksetzt' },
+  ],
+  'upstream/opengewerk/packages/platform/server/src/authentication/second-factor.ts#authTwoFactors':
+    [{ byHand: 'der zweite Faktor eines Kontos, den die Leitung oder der Server zurücksetzt' }],
   'upstream/opengewerk/packages/platform/server/src/authentication/staff.ts#authSessions': [
     'sessions',
   ],
@@ -112,7 +121,7 @@ const places: Readonly<Record<string, readonly Why[]>> = {
 const emptied: readonly DeletionRuleKey[] = ['emptied-activity', 'activity-without-evidence']
 
 /** The tables the functions of the migrations delete from, by their name in the database. */
-const inMigrations: Readonly<Record<string, readonly DeletionRuleKey[]>> = {
+const inMigrations: Readonly<Record<string, readonly Why[]>> = {
   // 0095: the sessions of the password on an account with the app (#360).
   auth_sessions: ['sessions'],
   prints: ['evidence'],
@@ -135,6 +144,9 @@ const inMigrations: Readonly<Record<string, readonly DeletionRuleKey[]>> = {
   files: [...emptied, 'remedied-defect'],
   // 0112: a count of the page of a label, past its hour (#540).
   outside_counts: ['outside-count'],
+  // 0113: the nonce of a value of the change log goes with the value the
+  // Leitung blacks out (#589).
+  audit_value_nonces: [{ byHand: 'ein Wert im Änderungsprotokoll, den die Leitung schwärzt' }],
 }
 
 /**
@@ -236,7 +248,9 @@ describe('the deletion concept', () => {
     const rules = deletionRules(defaultDeletionFacts).map((rule) => rule.key)
     const used = new Set<DeletionRuleKey>([
       ...Object.values(places).flatMap((whys) => whys.filter((why) => typeof why === 'string')),
-      ...Object.values(inMigrations).flat(),
+      ...Object.values(inMigrations).flatMap((whys) =>
+        whys.filter((why) => typeof why === 'string'),
+      ),
       ...Object.values(lettingGo),
       ...outsideTheDatabase,
     ])

@@ -792,6 +792,27 @@
       "when": 1792704059023,
       "tag": "0112_outside_counts",
       "breakpoints": true
+    },
+    {
+      "idx": 113,
+      "version": "7",
+      "when": 1793316143622,
+      "tag": "0113_audit_value_nonces",
+      "breakpoints": true
+    },
+    {
+      "idx": 114,
+      "version": "7",
+      "when": 1793316173034,
+      "tag": "0114_second_factor_changes",
+      "breakpoints": true
+    },
+    {
+      "idx": 115,
+      "version": "7",
+      "when": 1793316176905,
+      "tag": "0115_tenant_limits",
+      "breakpoints": true
     }
   ]
 }

@@ -63,6 +63,10 @@ export const access: AccessRules<Right> = {
     accountNotOnlyHere:
       'Dieses Konto arbeitet auch für einen anderen Betreiber dieser Instanz oder gehört zu ' +
       'ihrer Verwaltung. Name und E-Mail ändert dann nur die Person selbst.',
+    secondFactorNotOnlyHere:
+      'Dieses Konto arbeitet auch für einen anderen Betreiber dieser Instanz oder gehört zu ' +
+      'ihrer Verwaltung. Den zweiten Faktor setzt dann zurück, wer den Server betreut, mit ' +
+      'reset-second-factor.',
     noSuchSessionHere: 'Diese Sitzung gibt es bei diesem Betreiber nicht.',
     lastLead:
       'Das ist die letzte Leitung dieses Betreibers. Erst eine zweite Leitung einsetzen, ' +
@@ -102,6 +106,10 @@ export const access: AccessRules<Right> = {
       tenantNameMissing: 'Der Name des Betreibers fehlt.',
       leadNameMissing: 'Der Name der Leitung fehlt.',
       leadEmailNotOne: 'Die E-Mail-Adresse der Leitung sieht nicht wie eine aus.',
+      ownTenantsOff: 'Weitere Betreiber legt auf dieser Instanz nur die Verwaltung der Instanz an.',
+      ownTenantsLimit:
+        'Mehr als fünf eigene Betreiber legt ein Konto nicht an. Einen weiteren legt die ' +
+        'Verwaltung der Instanz an.',
       appointOperator: {
         usage:
           'Aufruf: appoint-operator <e-mail>\n' +

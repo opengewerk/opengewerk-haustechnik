@@ -7,6 +7,49 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+### Sicherheit
+
+- Das Fundament steht auf dem Stand von OpenGewerk 0.6.3 und bringt die Korrekturen aus dessen Sicherheitsprüfung vom
+  27. bis 29.10.2026 mit. Warum: Die Haustechnik baut auf demselben Fundament und hatte dieselben Lücken. **Das Update
+  meldet einmal jedes Gerät ab**, weil die Cookies der Anmeldung jetzt `__Host-better-auth.*` heißen; ein Cookie mit
+  `__Secure-` durfte auch eine andere Subdomain derselben Domain setzen. Dazu kommen aus dem Fundament: Wer einen
+  Passkey löscht oder neue Wiederherstellungscodes erzeugt, meldet alle anderen Geräte ab; die Sperre nach zehn
+  falschen Codes zählt jeden Versuch, bevor der Code geprüft wird; die Anmeldung nimmt nur Pfade an, für die es eine
+  Route gibt; Pool, Mail und Push haben Fristen, und `GET /sync/conflicts` liefert höchstens 200 Konflikte; Drucke
+  warten in einer Schlange auf den Renderer, höchstens drei je Betreiber; Ablehnungen von Mailserver und Push verraten
+  nicht mehr, was der Resolver der Instanz antwortet; die Leser für Tabellen gehen ihre Eingabe einmal durch; der
+  Abruf eines Geräts verliert keine Zeile mehr, wenn eine Transaktion während des Abrufs in zwei Tabellen schreibt,
+  und eine Übertragung trägt höchstens 2000 Vorgänge; der Lauf der Fristen erinnert je Betreiber und Durchgang an
+  höchstens 100 Fristen; ein Dokument vom Gerät öffnet nur noch als Bild oder PDF, jede andere Datei wird gespeichert.
+- Hat ein Konto einen zweiten Faktor, ändert eine Anmeldung ohne ihn nichts mehr daran: eine App einrichten, einen
+  Passkey hinzufügen oder löschen und sich unter „Konto“ bestätigen geht nur noch aus einer Sitzung mit dem Passkey
+  oder dem Code aus der App (#591). Wer seinen einzigen zweiten Faktor verloren hat, bekommt ihn von der Leitung unter
+  „Zugänge“ zurückgesetzt („Faktor zurücksetzen“), ein Konto, das auch für einen anderen Betreiber arbeitet oder zur
+  Verwaltung der Instanz gehört, mit `reset-second-factor` auf dem Server. Das Einrichten einer App und jedes
+  Zurücksetzen stehen als Zeile der neuen Tabelle `second_factor_changes` (Migration `0114_second_factor_changes`) im
+  Änderungsprotokoll jedes Betreibers, für den das Konto arbeitet, und das Konto bekommt eine E-Mail. Warum: Ein Konto,
+  dessen zweiter Faktor ein Passkey ist, meldet sich auch mit dem Passwort allein an, und aus einer solchen Sitzung
+  ließ sich eine App einrichten, die dann jede Rolle mit zweitem Faktor und den Bereich der Instanz öffnete.
+- Im Bereich der Instanz gibt es unter „Einstellungen“ die Karte „Betreiber“: „Speicher je Betreiber“ ist eine Grenze
+  in GB für alles, was ein Betreiber im Dateispeicher ablegt, ab Werk ohne Grenze (#592, Migration
+  `0115_tenant_limits`). Die Liste der Betreiber zeigt in der neuen Spalte „Belegt“, wie viel jeder belegt. Warum: Der
+  Dateispeicher ist einer für alle Betreiber, und der erste, der die freie Reserve erreichte, sperrte das Hochladen für
+  alle anderen. Der Haken „Leitungen dürfen weitere Betreiber anlegen“ auf derselben Karte kommt aus dem Fundament;
+  die Haustechnik bietet einer Leitung das Anlegen weiterer Betreiber bisher nicht an, und der Satz darunter sagt es.
+- Das Änderungsprotokoll schreibt jeden neuen Eintrag in Fassung 3: jeder Wert bekommt 32 zufällige Bytes in
+  `audit_value_nonces`, sein Fingerabdruck geht über diese und den Wert, und das Schwärzen löscht sie mit dem Wert
+  (#589, Migration `0113_audit_value_nonces`). Warum: Der Fingerabdruck war SHA-256 des Werts allein und blieb beim
+  Schwärzen stehen, sodass ein geschwärzter Name oder ein Datum aus Datenbank und Sicherung zu erraten war. Einträge,
+  die schon geschrieben sind, behalten ihren Fingerabdruck.
+- Ein Text, den der Abgleich bringt, ist höchstens 100.000 Zeichen lang, die Antworten eines Erlaubnisscheins bis zu
+  ihrer Prüfung; dazu zählt jedes Konto, was es in einer Stunde als JSON ändert, über alle Betreiber zusammen, und
+  über 100 MB antwortet jede Route mit 429 (#590). Warum: Über den Abgleich kam ein Text beliebiger Länge in ein Feld,
+  und wie oft jemand schrieb, hatte keine Grenze; ein Zugang konnte so die Datenbank füllen, die alle Betreiber teilen.
+- Ein Druck, den der Server erzeugt und aufbewahrt, fragt vorher die Grenze für erzeugte Dateien: er bekommt 507, wenn
+  nur noch das letzte Gigabyte frei ist, und 429, wenn der Betreiber in der Stunde schon 500 MB Drucke hatte (#588).
+  Warum: Drucke gingen ohne Frage in den gemeinsamen Speicher, bis zum letzten Byte, auf demselben Datenträger wie
+  Datenbank und Sicherung.
+
 ### Behoben
 
 - „Neuer Auftrag“ und „Mangel melden“ kündigen nicht mehr als „Später“ an, was seit 0.2.0 gebaut ist: Material aus dem

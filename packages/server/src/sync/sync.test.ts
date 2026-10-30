@@ -10,12 +10,13 @@ import {
   missingRight,
   type RoleKey,
   heldPageOf,
+  longestFormValues,
   signedPageOf,
   syncEntities,
   type SyncValue,
   type TenantId,
 } from '@opengewerk/haustechnik-domain'
-import { Database, fingerprintOf, newId } from '@opengewerk/platform-server'
+import { Database, fingerprintOf, longestSyncText, newId } from '@opengewerk/platform-server'
 import { sql } from 'drizzle-orm'
 import { labelCodeFrom } from '@opengewerk/haustechnik-domain'
 import type { Pool } from 'pg'
@@ -24,6 +25,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { pageFingerprint } from '../activities/signing.js'
 import { ApiModule } from '../api/api.module.js'
+import { syncRoutesFor } from '../api/sync-routes.js'
 import { as, onDevice, testIdentities } from '../api/test-identity.js'
 import {
   applicationDatabaseUrl,
@@ -613,6 +615,23 @@ describe('taking stock without a connection', () => {
     expect(answer.body).toMatchObject({
       message: missingRight('location.write'),
       operationId: moving.id,
+    })
+  })
+})
+
+describe('the length of a text from a device (#590)', () => {
+  it('is held to the length of the foundation, the answers of a permit to the length of their check', async () => {
+    const long = operation('rooms', 'create', newId<'room'>(), {
+      floorId: place.floor,
+      number: '0.13',
+      name: 'x'.repeat(longestSyncText + 1),
+    })
+    const refused = await send('u-tech', [long]).expect(400)
+
+    expect(refused.body.operationId).toBe(long.id)
+    expect(refused.body.message).toMatch(/länger als 100\.000 Zeichen/)
+    expect(syncRoutesFor(catalogueOf(probeCatalogueBundle), database).longerTexts).toEqual({
+      work_permits: { answers: longestFormValues },
     })
   })
 })
