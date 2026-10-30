@@ -50,6 +50,12 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Warum: Drucke gingen ohne Frage in den gemeinsamen Speicher, bis zum letzten Byte, auf demselben Datenträger wie
   Datenbank und Sicherung.
 
+### Geändert
+
+- Die Datenbank läuft auf dem neueren Abbild von `postgres:18-alpine`, demselben, auf dem seit OpenGewerk 0.6.3 die
+  Sicherung des Fundaments baut. Warum: `pg_dump` der Sicherung muss zum Server passen, und der Lauf
+  „Betrieb über Docker Compose“ hält beide Digests gleich.
+
 ### Behoben
 
 - „Neuer Auftrag“ und „Mangel melden“ kündigen nicht mehr als „Später“ an, was seit 0.2.0 gebaut ist: Material aus dem
