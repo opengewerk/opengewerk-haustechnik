@@ -149,6 +149,15 @@ jobs:
             "ghcr.io/opengewerk/opengewerk-haustechnik@$APP_DIGEST" \
             "ghcr.io/opengewerk/opengewerk-haustechnik-backup@$BACKUP_DIGEST"
 
+          # The kit signed as well, keyless like the images and by the same
+          # run. It decides which images a start checks, against which
+          # identity, and its scripts run with Docker's rights; a checksum
+          # beside it on the same page only says that both were put there
+          # together. The bundle holds signature and certificate in one file
+          # for `cosign verify-blob` (opengewerk/opengewerk#753).
+          kit="opengewerk-haustechnik-$VERSION.tar.gz"
+          cosign sign-blob --yes --bundle "$kit.sigstore.json" "$kit"
+
       - name: Release schreiben
         env:
           GH_TOKEN: ${{ github.token }}
@@ -166,7 +175,8 @@ jobs:
             --title "OpenGewerk Haustechnik $VERSION" \
             --notes-file notes.md \
             "opengewerk-haustechnik-$VERSION.tar.gz" \
-            "opengewerk-haustechnik-$VERSION.tar.gz.sha256"
+            "opengewerk-haustechnik-$VERSION.tar.gz.sha256" \
+            "opengewerk-haustechnik-$VERSION.tar.gz.sigstore.json"
 
   # The same images on Docker Hub, with their signatures, after the release
   # page exists (#494). Without the secrets the called workflow does nothing.

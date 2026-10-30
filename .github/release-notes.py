@@ -138,6 +138,15 @@ cosign verify ghcr.io/opengewerk/opengewerk-haustechnik-backup:{version} \\
   --certificate-identity {identity} \\
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
+
+Das Paket ist im selben Lauf genauso signiert. Vor dem Entpacken prüfen, mit `opengewerk-haustechnik-{version}.tar.gz.sigstore.json` daneben:
+
+```bash
+cosign verify-blob opengewerk-haustechnik-{version}.tar.gz \\
+  --bundle opengewerk-haustechnik-{version}.tar.gz.sigstore.json \\
+  --certificate-identity {identity} \\
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+```
 """
 
 
