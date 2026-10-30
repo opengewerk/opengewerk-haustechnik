@@ -7,8 +7,29 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+## [0.2.5] - 2026-10-30
+
+Eine Sicherheitsfassung. Das Fundament steht auf dem Stand von OpenGewerk 0.6.3 und bringt die Korrekturen aus
+dessen Sicherheitsprüfung vom 27. bis 29.10.2026 mit: Den zweiten Faktor ändert nur noch eine Sitzung, die ihn trägt,
+und die Leitung setzt ihn zurück, wenn jemand ihn verloren hat; das Änderungsprotokoll schreibt jeden Wert mit
+Zufallsbytes, die das Schwärzen mitnimmt; der Abgleich und jedes Konto haben Grenzen für das, was sie schreiben; und
+im Bereich der Instanz lässt sich der Speicher je Betreiber begrenzen. Dazu ist das Installationspaket jetzt signiert
+und lässt sich vor dem Entpacken mit `cosign verify-blob` prüfen.
+
+**Das Update meldet einmal jedes Gerät ab**, weil die Cookies der Anmeldung jetzt `__Host-better-auth.*` heißen;
+danach meldet sich jeder neu an. Wer einen Passkey als zweiten Faktor hat und sich mit dem Passwort anmeldet, meldet
+sich für eine neue App, einen Passkey oder die Bestätigung unter „Konto“ mit dem Passkey an.
+
+Aktualisiert wird wie bei jeder Fassung, vorher gesichert. Drei Migrationen kommen dazu, `0113_audit_value_nonces`,
+`0114_second_factor_changes` und `0115_tenant_limits`.
+
 ### Sicherheit
 
+- Das Installationspaket ist ab dieser Fassung signiert wie die Abbilder, ohne Schlüssel über Sigstore, und die
+  Release-Seite trägt die Datei `opengewerk-haustechnik-<fassung>.tar.gz.sigstore.json` und den Befehl
+  `cosign verify-blob` dazu. Warum: Das Paket legt fest, welche Abbilder der Start prüft und gegen welchen Workflow,
+  und seine Skripte laufen mit den Rechten von Docker; die Prüfsumme daneben stammt von derselben Seite und sagt nur,
+  dass beides zusammen hochgeladen wurde.
 - Das Fundament steht auf dem Stand von OpenGewerk 0.6.3 und bringt die Korrekturen aus dessen Sicherheitsprüfung vom
   27. bis 29.10.2026 mit. Warum: Die Haustechnik baut auf demselben Fundament und hatte dieselben Lücken. **Das Update
   meldet einmal jedes Gerät ab**, weil die Cookies der Anmeldung jetzt `__Host-better-auth.*` heißen; ein Cookie mit

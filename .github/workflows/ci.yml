@@ -882,6 +882,10 @@ jobs:
                           for image in ("opengewerk-haustechnik", "opengewerk-haustechnik-backup")
                       ),
                   ),
+                  (
+                      "ohne die Prüfung des Pakets",
+                      "cosign verify-blob opengewerk-haustechnik-0.0.0.tar.gz" not in page,
+                  ),
                   ("mit Docker Hub, ohne dass gespiegelt wird", "auch auf Docker Hub" in page),
                   (
                       "ohne Docker Hub, wo gespiegelt wird",
