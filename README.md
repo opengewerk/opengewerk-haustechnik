@@ -5,7 +5,7 @@
   </picture>
 </p>
 
-<p align="center"><strong>Self-hosted Software für Betreiber und ihre Haustechnik</strong></p>
+<p align="center"><strong>Self-hosted Open-Source-CAFM für Betreiber von Gebäuden und ihre Haustechnik</strong></p>
 
 <p align="center">
   <a href="https://github.com/opengewerk/opengewerk-haustechnik/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/opengewerk/opengewerk-haustechnik/actions/workflows/ci.yml/badge.svg"></a>
@@ -15,9 +15,9 @@
 
 ## Was ist OpenGewerk Haustechnik?
 
-OpenGewerk Haustechnik ist ein self-hosted Open-Source-System für alle, die Gebäude betreiben und dafür eigene Haustechniker haben: Kliniken und Pflegeeinrichtungen, Bildungsträger, Wohnungsunternehmen, Kommunen, kirchliche Träger, Unternehmen mit eigener Werks- oder Haustechnik. Liegenschaften, Gebäude, Räume und technische Anlagen stehen in einem Datenmodell. Der Leitsatz lautet **Die Betreiberpflicht ist der Kern, nicht die Checkliste**: gebaut wird um die Kette Anlage, Pflicht, Termin, Vorgang, Nachweis. Welche Prüfung für welche Anlagenart gilt, in welchem Abstand, durch wen und nach welcher Vorschrift, steht in offenen Pflichtenpaketen mit Fundstelle und Gültigkeitszeitraum. Das System schlägt vor, der Betreiber entscheidet. Rundgänge und Prüfungen laufen auf dem Telefon auch ohne Netz, und ein Nachweis lässt sich nach der Unterschrift nicht mehr ändern, auch nicht vom Administrator.
+OpenGewerk Haustechnik ist Open-Source-Software für das technische Gebäudemanagement, ein CAFM für alle, die Gebäude betreiben und dafür eigene Haustechniker haben: Kliniken und Pflegeeinrichtungen, Bildungsträger, Wohnungsunternehmen, Kommunen, kirchliche Träger, Unternehmen mit eigener Werks- oder Haustechnik. Sie ist self-hosted und läuft auf dem eigenen Server des Betreibers, ohne Lizenzkosten und ohne Nutzerlimits. Liegenschaften, Gebäude, Räume und technische Anlagen stehen in einem Datenmodell. Im Mittelpunkt steht die Betreiberpflicht: gebaut wird um die Kette Anlage, Pflicht, Termin, Vorgang, Nachweis. Welche Prüfung für welche Anlagenart gilt, in welchem Abstand, durch wen und nach welcher Vorschrift, steht in offenen Pflichtenpaketen mit Fundstelle und Gültigkeitszeitraum; das System schlägt vor, der Betreiber entscheidet. Rundgänge und Prüfungen laufen auf dem Telefon auch ohne Netz, und ein Nachweis lässt sich nach der Unterschrift nicht mehr ändern, auch nicht vom Administrator.
 
-Wie sie sich von CAFM-Systemen, Checklisten-Werkzeugen und Excel abgrenzt und wie sie zur Handwerkersoftware OpenGewerk steht, steht in [Funktionsumfang und Stand](docs/funktionsumfang.md).
+Wie sie sich von kommerziellen CAFM-Systemen, quelloffener Instandhaltungssoftware, Checklisten-Werkzeugen und Excel unterscheidet und wie sie zur Handwerkersoftware OpenGewerk steht, beschreibt [Funktionsumfang und Stand](docs/funktionsumfang.md).
 
 ## Stand
 
@@ -57,15 +57,15 @@ Sicherung, Rückspielen, Speicher, die Kommandozeile und der Betrieb neben OpenG
 
 ## Projektfamilie
 
-- [`opengewerk`](https://github.com/opengewerk/opengewerk): die Handwerkersoftware, CRM und ERP für Handwerksbetriebe, und das Fundament, auf dem diese Anwendung steht.
-- [`opengewerk-haustechnik`](https://github.com/opengewerk/opengewerk-haustechnik): diese Anwendung, für Betreiber von Gebäuden und ihre Haustechnik.
+- [`opengewerk`](https://github.com/opengewerk/opengewerk): die Open-Source-Handwerkersoftware, CRM und ERP für Handwerksbetriebe, und das Fundament, auf dem diese Anwendung steht.
+- [`opengewerk-haustechnik`](https://github.com/opengewerk/opengewerk-haustechnik): diese Anwendung, das CAFM für Betreiber von Gebäuden und ihre Haustechnik.
 - [`opengewerk-kanzlei`](https://github.com/opengewerk/opengewerk-kanzlei): der Hub, mit dem eine Steuerberaterkanzlei ihre Mandanten aus einer Anwendung heraus bearbeitet.
 - [`opengewerk-api-spec`](https://github.com/opengewerk/opengewerk-api-spec): der API-Vertrag zwischen Handwerkersoftware und Kanzlei-Hub.
 - [opengewerk.de](https://opengewerk.de): die Website des Projekts.
 
 ## Hilfe und Mitmachen
 
-Besonders wertvoll sind Rückmeldungen aus dem Betrieb: welche Prüfung im Alltag untergeht, welche Fundstelle im Pflichtenkatalog fehlt oder nicht stimmt, wo ein Rundgang heute noch auf Papier läuft. Wer vom Fach ist, ob Elektro, Brandschutz, Trinkwasser, Raumluft oder Aufzüge, kann einen Eintrag des Katalogs prüfen, ohne eine Zeile Code zu schreiben.
+Am meisten helfen Rückmeldungen aus dem Betrieb: welche Prüfung im Alltag untergeht, welche Fundstelle im Pflichtenkatalog fehlt oder nicht stimmt, wo ein Rundgang heute noch auf Papier läuft. Wer vom Fach ist, ob Elektro, Brandschutz, Trinkwasser, Raumluft oder Aufzüge, kann einen Eintrag des Katalogs prüfen, ohne eine Zeile Code zu schreiben.
 
 - Fragen und Ideen gehören in die [Discussions](https://github.com/opengewerk/opengewerk-haustechnik/discussions), kurze Fragen auch auf den [Discord-Server](https://discord.gg/NRrEvbQdxz). Zum Austausch gibt es [r/OpenGewerk](https://www.reddit.com/r/OpenGewerk/).
 - Fehler und Wünsche laufen über die [Issue-Vorlagen](https://github.com/opengewerk/opengewerk-haustechnik/issues/new/choose).
