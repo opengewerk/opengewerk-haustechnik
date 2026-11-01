@@ -7,6 +7,12 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+### Geändert
+
+- README und Funktionsumfang nennen OpenGewerk Haustechnik ein Open-Source-CAFM für das technische
+  Gebäudemanagement, self-hosted. Warum: unter diesen Wörtern sucht, wer Software für Betreiberpflichten und
+  Wartung braucht, und "CAFM" stand bisher nur dort, wo sich die Anwendung von kommerziellen Systemen abgrenzt.
+
 ## [0.2.5] - 2026-10-30
 
 Eine Sicherheitsfassung. Das Fundament steht auf dem Stand von OpenGewerk 0.6.3 und bringt die Korrekturen aus
