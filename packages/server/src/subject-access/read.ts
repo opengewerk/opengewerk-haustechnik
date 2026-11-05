@@ -467,13 +467,23 @@ async function instanceRows(
   asUser: string,
 ) {
   return database.forInstance(async (tx) => {
+    // A new address that waits for its link (opengewerk/opengewerk#754), and
+    // how many the person asked for on other accounts: counted, since the
+    // accounts are another person's.
     const account = await rowsOf(
       tx,
       sql`select u.name, u.email,
                  exists (select 1 from auth_accounts a where a.user_id = u.id and a.password is not null) as password,
                  (coalesce(u.two_factor_enabled, false)
-                   or exists (select 1 from auth_two_factors t where t.user_id = u.id)) as "secondFactor"
-            from auth_users u where u.id = ${userId}`,
+                   or exists (select 1 from auth_two_factors t where t.user_id = u.id)) as "secondFactor",
+                 c.email as "pendingEmail",
+                 to_char(c.expires_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "pendingUntil",
+                 coalesce(c.requested_by <> u.id, false) as "pendingByLead",
+                 (select count(*)::int from auth_address_confirmations o
+                   where o.requested_by = u.id and o.user_id <> u.id) as "requestedForOthers"
+            from auth_users u
+            left join auth_address_confirmations c on c.user_id = u.id
+           where u.id = ${userId}`,
     )
     const passkeys = await rowsOf(
       tx,

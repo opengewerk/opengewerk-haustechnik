@@ -5025,3 +5025,47 @@ describe('the log of an instance from before 0113', () => {
     expect(await chain()).toBeNull()
   })
 })
+
+/**
+ * 0116 brings the confirmation of a new address (opengewerk/opengewerk#754),
+ * and every address that was there before counts as confirmed. Migrated the
+ * way an installation does it, as the owner of the tables: under FORCE ROW
+ * LEVEL SECURITY the owner only reads the accounts, and the update found none
+ * of them, which is what 0095 of opengewerk did.
+ */
+describe('the addresses of the accounts from before 0116', () => {
+  /** The migrations an installation carried before 0116. */
+  const before = 116
+
+  it('are all confirmed by the update, and keep that when it is taken back', async () => {
+    await runMigrations(ownerDatabaseUrl(), kept(migrationsFolderUpTo(before)))
+    await admin.query(
+      `insert into auth_users (id, name, email, email_verified)
+         values ('confirmed', 'Clara Confirmed', 'clara@example.de', true),
+                ('unconfirmed', 'Uwe Unconfirmed', 'uwe@example.de', false)`,
+    )
+
+    await runMigrations(ownerDatabaseUrl())
+
+    const verified = async () =>
+      (
+        await admin.query<{ id: string; email_verified: boolean }>(
+          'select id, email_verified from auth_users order by id',
+        )
+      ).rows
+
+    expect(await verified()).toEqual([
+      { id: 'confirmed', email_verified: true },
+      { id: 'unconfirmed', email_verified: true },
+    ])
+    expect(await tableNames(admin)).toContain('auth_address_confirmations')
+
+    await revertMigration(admin, '0116_address_confirmations')
+
+    expect(await tableNames(admin)).not.toContain('auth_address_confirmations')
+    expect(await verified()).toEqual([
+      { id: 'confirmed', email_verified: true },
+      { id: 'unconfirmed', email_verified: true },
+    ])
+  })
+})

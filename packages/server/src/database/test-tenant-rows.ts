@@ -1430,6 +1430,16 @@ export function rowsOfTheInstance(north: Tenant, south: Tenant): readonly Row[] 
         user_id: north.userId,
       },
     },
+    // An address that waits for its link (opengewerk/opengewerk#754).
+    {
+      table: 'auth_address_confirmations',
+      values: {
+        user_id: north.userId,
+        email: 'neu@nord.example',
+        token_hash: 'b'.repeat(64),
+        expires_at: tomorrow,
+      },
+    },
     {
       table: 'auth_passkeys',
       values: {

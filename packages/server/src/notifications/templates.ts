@@ -273,6 +273,78 @@ export function secondFactorChangedMessage(facts: {
 }
 
 /**
+ * The mail with the link to an address (N28 of the security audit of the
+ * repository opengewerk, opengewerk#754): to a new address of an account,
+ * which holds once the link is opened, or to the one it has, which counts as
+ * confirmed then. Sent to the address itself, so that the link proves the
+ * mail arrived.
+ */
+export function addressConfirmationMessage(facts: {
+  readonly name: string
+  readonly address: string
+  readonly change: boolean
+  readonly expiresAt: Date
+  readonly link: string
+  readonly application: string
+}): MessageText {
+  const body = [
+    greeting(facts.name || null),
+    '',
+    facts.change
+      ? `für Ihren Zugang zu ${facts.application} soll ab jetzt ${facts.address} gelten. Sie ` +
+        'gilt, sobald Sie den Link öffnen und dort bestätigen; bis dahin gilt die bisherige Adresse.'
+      : `bestätigen Sie bitte, dass ${facts.address} die Adresse Ihres Zugangs zu ` +
+        `${facts.application} ist. Dafür den Link öffnen und dort bestätigen.`,
+    '',
+    facts.link,
+    '',
+    `Der Link gilt bis ${momentOf(facts.expiresAt)} Uhr und einmal.`,
+    '',
+    'Wenn Sie das nicht erwartet haben, öffnen Sie den Link nicht. Es ändert sich dann nichts.',
+    '',
+    '-- ',
+    facts.application,
+  ].join('\n')
+
+  return {
+    subject: facts.change
+      ? `Neue E-Mail-Adresse für ${facts.application} bestätigen`
+      : `E-Mail-Adresse für ${facts.application} bestätigen`,
+    body,
+  }
+}
+
+/**
+ * The mail to the address an account had, once the link made another one the
+ * address that holds (opengewerk#754).
+ */
+export function addressChangedMessage(facts: {
+  readonly name: string
+  readonly address: string
+  readonly changedAt: Date
+  readonly link: string
+  readonly application: string
+}): MessageText {
+  const body = [
+    greeting(facts.name || null),
+    '',
+    `für Ihren Zugang zu ${facts.application} gilt seit ${momentOf(facts.changedAt)} Uhr die ` +
+      `Adresse ${facts.address}. An diese Adresse geht keine Mail mehr zu Ihrem Zugang.`,
+    '',
+    'Ihren Zugang sehen Sie unter „Konto“:',
+    '',
+    facts.link,
+    '',
+    'Wenn Sie das nicht selbst veranlasst haben, sagen Sie der Leitung Bescheid.',
+    '',
+    '-- ',
+    facts.application,
+  ].join('\n')
+
+  return { subject: `Neue E-Mail-Adresse für ${facts.application}`, body }
+}
+
+/**
  * The mail to every account of the administration of the instance when one
  * was named to it or taken off (#360), and to the one taken off. Whoever is
  * in the administration sets up the mail server of the instance, and through

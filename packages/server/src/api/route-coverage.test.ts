@@ -83,11 +83,13 @@ describe('every route', () => {
       .sort()
 
     expect(publicRoutes).toEqual([
+      'GET /auth/address/:token',
       'GET /fault-reports/by-label/:code',
       'GET /health',
       'GET /invitation/:token',
       'GET /legal-texts',
       'GET /setup',
+      'POST /auth/address/:token',
       'POST /fault-reports/by-label/:code',
       'POST /fault-reports/by-label/address/confirmation',
       'POST /invitation/:token',
@@ -126,6 +128,13 @@ describe('every route', () => {
    * keeps only as a hash, good once and gone with the report done; it writes
    * the moment of the confirmation and nothing else.
    *
+   * The link in the mail to an address of an account (opengewerk/opengewerk#754,
+   * with the foundation of OpenGewerk 0.6.5) makes no account, it sets the
+   * address of one, and it may be opened on any device, signed in as nobody.
+   * What stands in for authentication is again the token, 32 random bytes
+   * that went in a mail to that address and nowhere else, good once and for a
+   * day; that the mail arrived is the very thing it proves.
+   *
    * A further entry here would be a public route that writes for some other
    * reason, and there is no other reason.
    */
@@ -136,6 +145,7 @@ describe('every route', () => {
       .sort()
 
     expect(writingAndPublic).toEqual([
+      'POST /auth/address/:token',
       'POST /fault-reports/by-label/:code',
       'POST /fault-reports/by-label/address/confirmation',
       'POST /invitation/:token',
@@ -169,8 +179,8 @@ describe('every route', () => {
    * These need somebody signed in but no tenant, so they cannot ask for a
    * right: a right comes from a membership and a membership is per tenant,
    * which is exactly what has not been decided yet at this point, or, for the
-   * devices, the recovery codes and the passkeys, what the account has and no
-   * tenant. A new one turns this red, and it should, because the next route
+   * devices, the recovery codes, the passkeys and an address that waits for
+   * its link, what the account has and no tenant. A new one turns this red, and it should, because the next route
    * that "only needs a session" is far more likely to be one that forgot to
    * say which tenant it means.
    */
@@ -181,8 +191,10 @@ describe('every route', () => {
       .sort()
 
     expect(sessionOnly).toEqual([
+      'DELETE /auth/account/address',
       'DELETE /auth/devices/:sessionId',
       'DELETE /auth/passkeys/:passkeyId',
+      'GET /auth/account/address',
       'GET /auth/devices',
       'GET /auth/passkeys',
       'GET /auth/recovery-codes',
@@ -190,6 +202,7 @@ describe('every route', () => {
       'GET /instance/access',
       'PATCH /auth/account',
       'PATCH /auth/passkeys/:passkeyId',
+      'POST /auth/account/address',
       'POST /auth/sign-out',
       'POST /auth/tenant',
     ])

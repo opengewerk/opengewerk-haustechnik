@@ -2,6 +2,8 @@ import type { AccountMessages } from '@opengewerk/platform-server'
 
 import { application } from '../configuration.js'
 import {
+  addressChangedMessage,
+  addressConfirmationMessage,
   mailServerChangedMessage,
   operatorsChangedMessage,
   passkeyAddedMessage,
@@ -13,8 +15,9 @@ import {
 /**
  * What this application says in the mails to an account (#81, #126): the
  * link to a new password and the notice of a new passkey, of new recovery
- * codes and of a second factor set up or taken away (#591), in its words and
- * under its name, to the lead of every operator when the mail server of the
+ * codes and of a second factor set up or taken away (#591), the link to an
+ * address and the notice to the one it replaced (opengewerk#754), in its words
+ * and under its name, to the lead of every operator when the mail server of the
  * instance changes, and to the administration of the instance when an account
  * is named to it or taken off (#360).
  *
@@ -35,6 +38,9 @@ export const accountMessages: AccountMessages = {
     recoveryCodesRenewedMessage({ ...facts, application: application.name }),
   secondFactorChanged: (facts) =>
     secondFactorChangedMessage({ ...facts, application: application.name }),
+  addressConfirmation: (facts) =>
+    addressConfirmationMessage({ ...facts, application: application.name }),
+  addressChanged: (facts) => addressChangedMessage({ ...facts, application: application.name }),
   operatorsChanged: (facts) => operatorsChangedMessage({ ...facts, application: application.name }),
   mailServerChanged: (facts) =>
     mailServerChangedMessage({ ...facts, application: application.name }),

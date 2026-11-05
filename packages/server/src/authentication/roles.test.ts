@@ -303,7 +303,8 @@ describe('the name and the address of an account', () => {
 
     const corrected = { name: 'Max Beispiel', email: 'technik@klinikum.example' }
 
-    expect(answer.body).toEqual({ userId, ...corrected })
+    // No address waits for its link: only the name was put right.
+    expect(answer.body).toEqual({ userId, ...corrected, pending: null })
     expect(await accountOf(userId)).toEqual(corrected)
     expect(await corrections()).toEqual([
       {
