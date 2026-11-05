@@ -17,6 +17,17 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   Gebäudemanagement, self-hosted. Warum: unter diesen Wörtern sucht, wer Software für Betreiberpflichten und
   Wartung braucht, und "CAFM" stand bisher nur dort, wo sich die Anwendung von kommerziellen Systemen abgrenzt.
 
+### Sicherheit
+
+- Die Abhängigkeiten tragen keine Fassung mit offener Sicherheitsmeldung mehr. body-parser 2.4.0 (GHSA-27r3-jxmh-p828),
+  fast-uri 3.1.9, qs 6.17.1 und serialize-javascript 7.1.4 kamen mit #597, seroval 1.7.7 mit #601, und
+  seroval-plugins zieht hier auf 1.7.7 nach, alles im Lockfile, ohne dass sich eine angegebene Fassung ändert. happy-dom 21.0.4 steht auch an der Wurzel, damit kein Test mehr 20.14.5 nachzieht.
+  Für multer (GHSA-q7qp-rjg7-q26m), minimatch, glob und das alte esbuild unter drizzle-kit setzt `pnpm-workspace.yaml`
+  Overrides, die nur die betroffenen Fassungen anheben; Nest bleibt bei der Fassung des Fundaments im Submodul, damit
+  nur eine Nest im Baum liegt. deepmerge hat keine reparierte Fassung und fällt wie in OpenGewerk über einen Patch an
+  `@rollup/plugin-node-resolve` ganz weg; das `Dockerfile` kopiert dafür `patches/` vor dem Install. Warum: Dependabot
+  meldete 17 offene Befunde, darunter body-parser und multer als hoch, und beide laufen im Server der Instanz.
+
 ## [0.2.5] - 2026-10-30
 
 Eine Sicherheitsfassung. Das Fundament steht auf dem Stand von OpenGewerk 0.6.3 und bringt die Korrekturen aus
