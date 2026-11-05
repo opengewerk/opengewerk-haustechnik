@@ -7,6 +7,10 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+### Hinzugefügt
+
+- Die Demo zum Ausprobieren im Konzept (#599, Meilenstein „Demo“): Das Planungskonzept v0.96, Abschnitt 10, legt fest, was die Zugänge „Demo“ und „admin“ bei zwei Betreibern dürfen, wie die Demo jede volle Stunde zurückgesetzt wird und dass sie als eigenes Abbild auf dem Server der Demos läuft, wie in OpenGewerk nach dessen ADR 0017. Warum: Wer die Haustechnik kennenlernen will, soll sie ansehen können, ohne sie zu installieren, und keine Ausnahme der Demo darf eine Instanz mit echten Daten erreichen.
+
 ### Geändert
 
 - README und Funktionsumfang nennen OpenGewerk Haustechnik ein Open-Source-CAFM für das technische
