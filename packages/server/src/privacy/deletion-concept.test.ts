@@ -62,6 +62,13 @@ const places: Readonly<Record<string, readonly Why[]>> = {
   'packages/server/src/notifications/outside-answers.ts#faultReportContacts': ['outside-answer'],
   'packages/server/src/notifications/push.ts#pushSubscriptions': ['access-data'],
   'packages/server/src/retention/removal.ts#tasks': ['done-task'],
+  // An address that waits for its link goes when another one replaces it, when it is discarded and
+  // when its link is opened (opengewerk/opengewerk#754).
+  'upstream/opengewerk/packages/platform/server/src/authentication/address-confirmation.ts#authAddressConfirmations':
+    [{ byHand: 'eine Adresse, die auf ihren Link wartet' }],
+  // A link to a new password still open ends once a new address holds, since it went to the old one.
+  'upstream/opengewerk/packages/platform/server/src/authentication/address-confirmation.ts#authVerifications':
+    ['password-link'],
   'upstream/opengewerk/packages/platform/server/src/authentication/administration.ts#authSessions':
     ['sessions', 'access-data'],
   'upstream/opengewerk/packages/platform/server/src/authentication/administration.ts#authVerifications':

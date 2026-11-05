@@ -813,6 +813,13 @@
       "when": 1793316176905,
       "tag": "0115_tenant_limits",
       "breakpoints": true
+    },
+    {
+      "idx": 116,
+      "version": "7",
+      "when": 1793910423913,
+      "tag": "0116_address_confirmations",
+      "breakpoints": true
     }
   ]
 }

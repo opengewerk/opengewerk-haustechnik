@@ -91,14 +91,26 @@ export interface SubjectAccessPartDefinition {
 export const subjectAccessParts = {
   account: {
     title: 'Konto',
-    note: 'Ein Passwort und ein zweiter Faktor stehen nur als Hash; die Auskunft sagt, ob sie eingerichtet sind.',
+    note:
+      'Ein Passwort und ein zweiter Faktor stehen nur als Hash; die Auskunft sagt, ob sie eingerichtet sind. ' +
+      'Eine neue E-Mail-Adresse, die auf ihren Link wartet, steht mit dem Ende des Links daneben; für andere ' +
+      'Konten angeforderte Adressen zählt sie, ohne die Konten zu nennen.',
     columns: [
       column('name', 'Name'),
       column('email', 'E-Mail-Adresse'),
       column('password', 'Passwort gesetzt', 'flag'),
       column('secondFactor', 'Zweiter Faktor', 'flag'),
+      column('pendingEmail', 'Neue E-Mail-Adresse, wartet auf ihren Link'),
+      column('pendingUntil', 'Link gilt bis', 'moment'),
+      column('pendingByLead', 'Von der Leitung angefordert', 'flag'),
+      column('requestedForOthers', 'Für andere Konten angefordert, wartend', 'number'),
     ],
-    sources: ['auth_accounts.user_id', 'auth_two_factors.user_id'],
+    sources: [
+      'auth_accounts.user_id',
+      'auth_two_factors.user_id',
+      'auth_address_confirmations.user_id',
+      'auth_address_confirmations.requested_by',
+    ],
     printed: true,
   },
   passkeys: {

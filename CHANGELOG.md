@@ -27,6 +27,16 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
   nur eine Nest im Baum liegt. deepmerge hat keine reparierte Fassung und fällt wie in OpenGewerk über einen Patch an
   `@rollup/plugin-node-resolve` ganz weg; das `Dockerfile` kopiert dafür `patches/` vor dem Install. Warum: Dependabot
   meldete 17 offene Befunde, darunter body-parser und multer als hoch, und beide laufen im Server der Instanz.
+- Das Fundament steht auf dem Stand von OpenGewerk 0.6.5 statt 0.6.3 (#598), und eine neue E-Mail-Adresse gilt erst
+  mit dem Link in der Mail an sie (N28 der Sicherheitsprüfung von OpenGewerk, opengewerk/opengewerk#754). Unter
+  „Konto“ und unter „Zugänge“ wartet eine neue Adresse auf ihren Link, der einen Tag und einmal gilt, die bisherige
+  bekommt danach einen Hinweis, und ein Konto, das nur über seine Adresse gefunden wird, findet die Anwendung nur über
+  eine bestätigte. Migration 0116 legt `auth_address_confirmations` an und zählt jede Adresse, die es schon gibt, als
+  bestätigt; die beiden Mails sagen es im Wortlaut der Haustechnik. Die Auskunft über eine Person nennt im Teil
+  „Konto“ eine wartende Adresse mit dem Ende ihres Links und zählt, wie viele die Person für andere Konten angefordert
+  hat, ohne diese Konten zu nennen; Verfahrensbeschreibung und Löschkonzept führen die Tabelle. Warum: Eine Adresse kam bisher ohne Nachweis an
+  ein Konto, und spätere Vergaben fanden das Konto genau über sie; wer eine fremde Adresse eintrug, bekam so eine
+  Benennung oder einen Zugang, der einer anderen Person galt.
 
 ## [0.2.5] - 2026-10-30
 

@@ -428,6 +428,48 @@ describe('the information about a person with an access (#355)', () => {
   })
 
   /**
+   * A new address waits for its link with the account (opengewerk/opengewerk#754),
+   * and with whoever asked for it. The information names the one of the person
+   * and counts those the person asked for on other accounts, without a word
+   * of whose.
+   */
+  it('names the address that waits for its link and counts those asked for on other accounts', async () => {
+    // The Leitung has one waiting already, from the rows of the instance,
+    // asked for by nobody who is still there; it asks for one of the colleague.
+    await admin.query(
+      `insert into auth_address_confirmations (user_id, email, token_hash, requested_by, expires_at)
+       values ($1, 'neu-kollegium@nord.example', $3, $2, '2026-11-06T09:00:00Z')`,
+      [north.colleagueId, north.userId, 'c'.repeat(64)],
+    )
+
+    try {
+      const account = async (userId: string) =>
+        (await about(userId)).parts.find((part) => part.key === 'account')?.rows[0] ?? {}
+
+      expect(await account(north.colleagueId)).toMatchObject({
+        pendingEmail: 'neu-kollegium@nord.example',
+        pendingUntil: '2026-11-06T09:00:00.000Z',
+        pendingByLead: true,
+        requestedForOthers: 0,
+      })
+
+      const lead = await account(north.userId)
+
+      expect(lead).toMatchObject({
+        pendingEmail: 'neu@nord.example',
+        pendingByLead: false,
+        requestedForOthers: 1,
+      })
+      // The address waiting for the colleague is no part of the Leitung's.
+      expect(JSON.stringify(lead)).not.toContain('neu-kollegium')
+    } finally {
+      await admin.query('delete from auth_address_confirmations where user_id = $1', [
+        north.colleagueId,
+      ])
+    }
+  })
+
+  /**
    * A passkey belongs to the account, and the account may work for another
    * operator too (#474): the information names the passkeys this operator
    * knows, live or removed, and not one it does not know, nor when that was
