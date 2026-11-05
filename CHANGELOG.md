@@ -7,6 +7,17 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+## [0.2.6] - 2026-11-05
+
+Eine Sicherheitsfassung. Das Fundament steht auf dem Stand von OpenGewerk 0.6.5, und damit gilt eine neue
+E-Mail-Adresse erst mit dem Link in der Mail an sie: Unter „Konto“ und unter „Zugänge“ wartet sie, bis der Link
+geöffnet ist, und ein Konto, das nur über seine Adresse gefunden wird, findet die Anwendung nur über eine bestätigte.
+Dazu tragen die Abhängigkeiten keine Fassung mit offener Sicherheitsmeldung mehr, darunter body-parser und multer im
+Server der Instanz.
+
+Aktualisiert wird wie bei jeder Fassung, vorher gesichert. Eine Migration kommt dazu, `0116_address_confirmations`;
+sie zählt jede Adresse, die es schon gibt, als bestätigt. Abgemeldet wird dabei niemand.
+
 ### Hinzugefügt
 
 - Die Demo zum Ausprobieren im Konzept (#599, Meilenstein „Demo“): Das Planungskonzept v0.96, Abschnitt 10, legt fest, was die Zugänge „Demo“ und „admin“ bei zwei Betreibern dürfen, wie die Demo jede volle Stunde zurückgesetzt wird und dass sie als eigenes Abbild auf dem Server der Demos läuft, wie in OpenGewerk nach dessen ADR 0017. Warum: Wer die Haustechnik kennenlernen will, soll sie ansehen können, ohne sie zu installieren, und keine Ausnahme der Demo darf eine Instanz mit echten Daten erreichen.
