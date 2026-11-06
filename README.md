@@ -1,15 +1,15 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/opengewerk/.github/main/brand/opengewerk-logo-dark.svg">
-    <img alt="OpenGewerk" src="https://raw.githubusercontent.com/opengewerk/.github/main/brand/opengewerk-logo.svg" width="420">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/OpenGewerk/.github/main/brand/opengewerk-logo-dark.svg">
+    <img alt="OpenGewerk" src="https://raw.githubusercontent.com/OpenGewerk/.github/main/brand/opengewerk-logo.svg" width="420">
   </picture>
 </p>
 
 <p align="center"><strong>Self-hosted Open-Source-CAFM für Betreiber von Gebäuden und ihre Haustechnik</strong></p>
 
 <p align="center">
-  <a href="https://github.com/opengewerk/opengewerk-haustechnik/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/opengewerk/opengewerk-haustechnik/actions/workflows/ci.yml/badge.svg"></a>
-  <a href="https://github.com/opengewerk/opengewerk-haustechnik/releases"><img alt="Neueste Fassung" src="https://img.shields.io/github/v/release/opengewerk/opengewerk-haustechnik"></a>
+  <a href="https://github.com/OpenGewerk/opengewerk-haustechnik/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/OpenGewerk/opengewerk-haustechnik/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://github.com/OpenGewerk/opengewerk-haustechnik/releases"><img alt="Neueste Fassung" src="https://img.shields.io/github/v/release/opengewerk/opengewerk-haustechnik"></a>
   <a href="LICENSE"><img alt="Lizenz AGPL-3.0" src="https://img.shields.io/github/license/opengewerk/opengewerk-haustechnik"></a>
 </p>
 
@@ -21,11 +21,11 @@ Wie sie sich von kommerziellen CAFM-Systemen, quelloffener Instandhaltungssoftwa
 
 ## Stand
 
-Phase 1, das MVP für den Pilotbetrieb, ist abgeschlossen; die neueste Fassung steht unter [Releases](https://github.com/opengewerk/opengewerk-haustechnik/releases). Der Pilotbetrieb, ein Träger mit rund zwanzig Liegenschaften, arbeitet nur noch damit; seine bisherige Anwendung ist abgeschaltet. Phase 2, die vollständigen Betreiberpflichten, ist mit der Fassung 0.2.0 erschienen; was dazu noch offen ist, steht im [Meilenstein Phase 2](https://github.com/opengewerk/opengewerk-haustechnik/milestone/3). Was jede Fassung gebracht hat, steht im [CHANGELOG](CHANGELOG.md).
+Phase 1, das MVP für den Pilotbetrieb, ist abgeschlossen; die neueste Fassung steht unter [Releases](https://github.com/OpenGewerk/opengewerk-haustechnik/releases). Der Pilotbetrieb, ein Träger mit rund zwanzig Liegenschaften, arbeitet nur noch damit; seine bisherige Anwendung ist abgeschaltet. Phase 2, die vollständigen Betreiberpflichten, ist mit der Fassung 0.2.0 erschienen; was dazu noch offen ist, steht im [Meilenstein Phase 2](https://github.com/OpenGewerk/opengewerk-haustechnik/milestone/3). Was jede Fassung gebracht hat, steht im [CHANGELOG](CHANGELOG.md).
 
 ## Schnellstart
 
-Gebraucht werden Docker und Docker Compose ab 2.22. Das Paket einer Fassung liegt auf der Seite ihres [Releases](https://github.com/opengewerk/opengewerk-haustechnik/releases), mit Prüfsumme und signierten Abbildern für x86_64 und ARM64:
+Gebraucht werden Docker und Docker Compose ab 2.22. Das Paket einer Fassung liegt auf der Seite ihres [Releases](https://github.com/OpenGewerk/opengewerk-haustechnik/releases), mit Prüfsumme und signierten Abbildern für x86_64 und ARM64:
 
 ```bash
 tar --no-same-owner -xzf opengewerk-haustechnik-<fassung>.tar.gz
@@ -57,20 +57,20 @@ Sicherung, Rückspielen, Speicher, die Kommandozeile und der Betrieb neben OpenG
 
 ## Projektfamilie
 
-- [`opengewerk`](https://github.com/opengewerk/opengewerk): die Open-Source-Handwerkersoftware, CRM und ERP für Handwerksbetriebe, und das Fundament, auf dem diese Anwendung steht.
-- [`opengewerk-haustechnik`](https://github.com/opengewerk/opengewerk-haustechnik): diese Anwendung, das CAFM für Betreiber von Gebäuden und ihre Haustechnik.
-- [`opengewerk-kanzlei`](https://github.com/opengewerk/opengewerk-kanzlei): der Hub, mit dem eine Steuerberaterkanzlei ihre Mandanten aus einer Anwendung heraus bearbeitet.
-- [`opengewerk-api-spec`](https://github.com/opengewerk/opengewerk-api-spec): der API-Vertrag zwischen Handwerkersoftware und Kanzlei-Hub.
+- [`opengewerk`](https://github.com/OpenGewerk/opengewerk): die Open-Source-Handwerkersoftware, CRM und ERP für Handwerksbetriebe, und das Fundament, auf dem diese Anwendung steht.
+- [`opengewerk-haustechnik`](https://github.com/OpenGewerk/opengewerk-haustechnik): diese Anwendung, das CAFM für Betreiber von Gebäuden und ihre Haustechnik.
+- [`opengewerk-kanzlei`](https://github.com/OpenGewerk/opengewerk-kanzlei): der Hub, mit dem eine Steuerberaterkanzlei ihre Mandanten aus einer Anwendung heraus bearbeitet.
+- [`opengewerk-api-spec`](https://github.com/OpenGewerk/opengewerk-api-spec): der API-Vertrag zwischen Handwerkersoftware und Kanzlei-Hub.
 - [opengewerk.de](https://opengewerk.de): die Website des Projekts.
 
 ## Hilfe und Mitmachen
 
 Am meisten helfen Rückmeldungen aus dem Betrieb: welche Prüfung im Alltag untergeht, welche Fundstelle im Pflichtenkatalog fehlt oder nicht stimmt, wo ein Rundgang heute noch auf Papier läuft. Wer vom Fach ist, ob Elektro, Brandschutz, Trinkwasser, Raumluft oder Aufzüge, kann einen Eintrag des Katalogs prüfen, ohne eine Zeile Code zu schreiben.
 
-- Fragen und Ideen gehören in die [Discussions](https://github.com/opengewerk/opengewerk-haustechnik/discussions), kurze Fragen auch auf den [Discord-Server](https://discord.gg/NRrEvbQdxz). Zum Austausch gibt es [r/OpenGewerk](https://www.reddit.com/r/OpenGewerk/).
-- Fehler und Wünsche laufen über die [Issue-Vorlagen](https://github.com/opengewerk/opengewerk-haustechnik/issues/new/choose).
-- Sicherheitslücken bitte nicht als öffentliches Issue, sondern über das [private Sicherheitsformular](https://github.com/opengewerk/opengewerk-haustechnik/security/advisories/new). Das Verfahren steht in der [SECURITY.md](https://github.com/opengewerk/.github/blob/main/SECURITY.md) der Organisation.
-- Wer Code beitragen will, liest die [CONTRIBUTING.md](https://github.com/opengewerk/.github/blob/main/CONTRIBUTING.md) und die [Entwicklung](docs/entwicklung.md); es gilt der [Verhaltenskodex](https://github.com/opengewerk/.github/blob/main/CODE_OF_CONDUCT.md).
+- Fragen und Ideen gehören in die [Discussions](https://github.com/OpenGewerk/opengewerk-haustechnik/discussions), kurze Fragen auch auf den [Discord-Server](https://discord.gg/NRrEvbQdxz). Zum Austausch gibt es [r/OpenGewerk](https://www.reddit.com/r/OpenGewerk/).
+- Fehler und Wünsche laufen über die [Issue-Vorlagen](https://github.com/OpenGewerk/opengewerk-haustechnik/issues/new/choose).
+- Sicherheitslücken bitte nicht als öffentliches Issue, sondern über das [private Sicherheitsformular](https://github.com/OpenGewerk/opengewerk-haustechnik/security/advisories/new). Das Verfahren steht in der [SECURITY.md](https://github.com/OpenGewerk/.github/blob/main/SECURITY.md) der Organisation.
+- Wer Code beitragen will, liest die [CONTRIBUTING.md](https://github.com/OpenGewerk/.github/blob/main/CONTRIBUTING.md) und die [Entwicklung](docs/entwicklung.md); es gilt der [Verhaltenskodex](https://github.com/OpenGewerk/.github/blob/main/CODE_OF_CONDUCT.md).
 
 ## Lizenz
 
