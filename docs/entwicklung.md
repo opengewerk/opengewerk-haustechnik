@@ -7,7 +7,7 @@ Vorausgesetzt werden Node 24 und ein aktiviertes Corepack; pnpm kommt in der Ver
 Das Fundament liegt im Repository `opengewerk` und ist hier als Git-Submodul unter `upstream/opengewerk` eingebunden, auf einem festen Commit. Geklont wird deshalb mit dem Submodul:
 
 ```bash
-git clone --recurse-submodules https://github.com/opengewerk/opengewerk-haustechnik.git
+git clone --recurse-submodules https://github.com/OpenGewerk/opengewerk-haustechnik.git
 ```
 
 Wer schon ohne geklont hat, holt es nach:

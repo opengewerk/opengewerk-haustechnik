@@ -15,7 +15,7 @@ import sys
 # 14.10.2026, so the limit is real and not a margin.
 LONGEST = 110_000
 
-REPOSITORY = 'https://github.com/opengewerk/opengewerk-haustechnik'
+REPOSITORY = 'https://github.com/OpenGewerk/opengewerk-haustechnik'
 
 # The changelog is wrapped for an editor, and GitHub shows every line end on a
 # release page as a break, in the middle of a sentence. A line that continues

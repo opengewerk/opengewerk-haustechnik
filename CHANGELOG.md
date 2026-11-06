@@ -7,6 +7,15 @@ die Versionsnummern folgen der [Semantischen Versionierung](https://semver.org/l
 
 ## [Unreleased]
 
+### Geändert
+
+- Die Organisation auf GitHub heißt jetzt OpenGewerk statt opengewerk. Links, Release-Notizen und die
+  Beschreibungen auf Docker Hub nennen den neuen Namen. `start.sh` prüft die Signatur einer Fassung gegen
+  `OpenGewerk/opengewerk-haustechnik`, weil GitHub den Namen genau so in die Identität des
+  Release-Workflows schreibt; Fassungen bis 0.2.6 sind noch unter dem alten Namen signiert und bringen
+  ihre eigene `application.env` mit. Die Namen der Abbilder auf ghcr.io und Docker Hub bleiben klein
+  geschrieben, dort sind Großbuchstaben nicht erlaubt.
+
 ## [0.2.6] - 2026-11-05
 
 Eine Sicherheitsfassung. Das Fundament steht auf dem Stand von OpenGewerk 0.6.5, und damit gilt eine neue

@@ -101,7 +101,7 @@ jobs:
           push: true
           tags: ghcr.io/opengewerk/opengewerk-haustechnik:${{ steps.version.outputs.version }}
           labels: |
-            org.opencontainers.image.source=https://github.com/opengewerk/opengewerk-haustechnik
+            org.opencontainers.image.source=https://github.com/OpenGewerk/opengewerk-haustechnik
             org.opencontainers.image.version=${{ steps.version.outputs.version }}
             org.opencontainers.image.licenses=AGPL-3.0-only
 
@@ -117,7 +117,7 @@ jobs:
           push: true
           tags: ghcr.io/opengewerk/opengewerk-haustechnik-backup:${{ steps.version.outputs.version }}
           labels: |
-            org.opencontainers.image.source=https://github.com/opengewerk/opengewerk-haustechnik
+            org.opencontainers.image.source=https://github.com/OpenGewerk/opengewerk-haustechnik
             org.opencontainers.image.version=${{ steps.version.outputs.version }}
             org.opencontainers.image.licenses=AGPL-3.0-only
 

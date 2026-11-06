@@ -12,7 +12,7 @@ informed: Mitwirkende der Organisation opengewerk
 
 OpenGewerk Haustechnik ist eine eigene Anwendung mit eigenem Repository, eigener Fassung und eigenen Betreibern. Sie führt andere Dinge als die Handwerkersoftware: Liegenschaft, Gebäude, Raum, Anlage, Pflicht und Nachweis statt Kunde, Auftrag und Beleg. Leitentscheidung 7 des Planungskonzepts legt fest, dass sie dabei auf demselben Fundament steht, eingebunden und nie abgeschrieben: Mandantentrennung, Anmeldung, Rechte, Abgleich ohne Netz, Audit-Log, Regel-, Fristen- und Formular-Engine werden nicht ein zweites Mal gebaut.
 
-Wie eine weitere Anwendung das Fundament bezieht, hat [ADR 0010 im Repository `opengewerk`](https://github.com/opengewerk/opengewerk/blob/main/docs/adr/0010-fundament-als-pakete.md) entschieden: das Fundament liegt dort in eigenen Paketen unter `packages/platform/`, und die Anwendung bindet das Repository als Git-Submodul auf einem festen Commit ein.
+Wie eine weitere Anwendung das Fundament bezieht, hat [ADR 0010 im Repository `opengewerk`](https://github.com/OpenGewerk/opengewerk/blob/main/docs/adr/0010-fundament-als-pakete.md) entschieden: das Fundament liegt dort in eigenen Paketen unter `packages/platform/`, und die Anwendung bindet das Repository als Git-Submodul auf einem festen Commit ein.
 
 Offen ist, was daraus für dieses Repository folgt:
 

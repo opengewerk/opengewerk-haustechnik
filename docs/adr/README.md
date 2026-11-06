@@ -6,19 +6,19 @@ Die Dokumente folgen dem [MADR-Format](https://adr.github.io/madr/), auf Deutsch
 
 ## Zwei Orte
 
-OpenGewerk Haustechnik steht auf demselben Fundament wie die Handwerkersoftware. Die Entscheidungen über das Fundament und über den Tech-Stack stehen deshalb nicht hier, sondern im Repository `opengewerk` unter [`docs/adr/`](https://github.com/opengewerk/opengewerk/tree/main/docs/adr), und gelten hier unverändert:
+OpenGewerk Haustechnik steht auf demselben Fundament wie die Handwerkersoftware. Die Entscheidungen über das Fundament und über den Tech-Stack stehen deshalb nicht hier, sondern im Repository `opengewerk` unter [`docs/adr/`](https://github.com/OpenGewerk/opengewerk/tree/main/docs/adr), und gelten hier unverändert:
 
 | ADR dort | Entscheidung |
 | --- | --- |
-| [0002](https://github.com/opengewerk/opengewerk/blob/main/docs/adr/0002-sprache-und-backend-framework.md) | TypeScript durchgängig, NestJS, ein Paket `domain` ohne I/O |
-| [0003](https://github.com/opengewerk/opengewerk/blob/main/docs/adr/0003-datenbank-und-datenzugriff.md) | PostgreSQL mit Row-Level Security, Drizzle ORM, UUIDv7 |
-| [0004](https://github.com/opengewerk/opengewerk/blob/main/docs/adr/0004-frontend-und-pwa.md) | React und Vite als eine PWA mit zwei Einstiegen |
-| [0005](https://github.com/opengewerk/opengewerk/blob/main/docs/adr/0005-offline-sync-und-konflikte.md) | Eigener Abgleich mit Postausgang und serverautoritativer Zusammenführung |
-| [0006](https://github.com/opengewerk/opengewerk/blob/main/docs/adr/0006-auth-und-mandantenfaehigkeit.md) | Eingebaute Anmeldung über better-auth, Rollen und Rechte, Trennung in der Datenbank |
-| [0007](https://github.com/opengewerk/opengewerk/blob/main/docs/adr/0007-dateispeicher-dokumente-und-pdf.md) | Inhaltsadressierter Dateispeicher, PDF über Chromium in einem eigenen Container |
-| [0008](https://github.com/opengewerk/opengewerk/blob/main/docs/adr/0008-plugin-system-fuer-gewerke.md) | Fachliches als Datenpakete mit Tests |
-| [0009](https://github.com/opengewerk/opengewerk/blob/main/docs/adr/0009-werkzeuge-und-repo-struktur.md) | pnpm mit Turborepo, Node 24, TypeScript 7, Vitest, ESLint mit Prettier, PostgreSQL 18 |
-| [0010](https://github.com/opengewerk/opengewerk/blob/main/docs/adr/0010-fundament-als-pakete.md) | Das Fundament als eigene Pakete, eingebunden als Git-Submodul auf einem festen Commit |
+| [0002](https://github.com/OpenGewerk/opengewerk/blob/main/docs/adr/0002-sprache-und-backend-framework.md) | TypeScript durchgängig, NestJS, ein Paket `domain` ohne I/O |
+| [0003](https://github.com/OpenGewerk/opengewerk/blob/main/docs/adr/0003-datenbank-und-datenzugriff.md) | PostgreSQL mit Row-Level Security, Drizzle ORM, UUIDv7 |
+| [0004](https://github.com/OpenGewerk/opengewerk/blob/main/docs/adr/0004-frontend-und-pwa.md) | React und Vite als eine PWA mit zwei Einstiegen |
+| [0005](https://github.com/OpenGewerk/opengewerk/blob/main/docs/adr/0005-offline-sync-und-konflikte.md) | Eigener Abgleich mit Postausgang und serverautoritativer Zusammenführung |
+| [0006](https://github.com/OpenGewerk/opengewerk/blob/main/docs/adr/0006-auth-und-mandantenfaehigkeit.md) | Eingebaute Anmeldung über better-auth, Rollen und Rechte, Trennung in der Datenbank |
+| [0007](https://github.com/OpenGewerk/opengewerk/blob/main/docs/adr/0007-dateispeicher-dokumente-und-pdf.md) | Inhaltsadressierter Dateispeicher, PDF über Chromium in einem eigenen Container |
+| [0008](https://github.com/OpenGewerk/opengewerk/blob/main/docs/adr/0008-plugin-system-fuer-gewerke.md) | Fachliches als Datenpakete mit Tests |
+| [0009](https://github.com/OpenGewerk/opengewerk/blob/main/docs/adr/0009-werkzeuge-und-repo-struktur.md) | pnpm mit Turborepo, Node 24, TypeScript 7, Vitest, ESLint mit Prettier, PostgreSQL 18 |
+| [0010](https://github.com/OpenGewerk/opengewerk/blob/main/docs/adr/0010-fundament-als-pakete.md) | Das Fundament als eigene Pakete, eingebunden als Git-Submodul auf einem festen Commit |
 
 Ein ADR in diesem Ordner entscheidet, was nur diese Anwendung betrifft. Braucht sie etwas anderes vom Fundament, wird es dort entschieden und geändert und hier der Stand angehoben.
 

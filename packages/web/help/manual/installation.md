@@ -4,7 +4,7 @@ OpenGewerk Haustechnik läuft auf einem eigenen Server in Docker. Gebraucht werd
 
 ## Schritt für Schritt
 
-1. Das Repository mit Submodul holen: `git clone --recurse-submodules https://github.com/opengewerk/opengewerk-haustechnik.git`
+1. Das Repository mit Submodul holen: `git clone --recurse-submodules https://github.com/OpenGewerk/opengewerk-haustechnik.git`
 2. Im Ordner des Repositorys starten: `sh docker/start.sh`
 3. Beim ersten Mal legt das Skript `docker/.env` an, erzeugt jeden Schlüssel selbst und fragt nach der Adresse, unter der die Instanz geöffnet wird. Es gibt nur Namen aus, nie einen Wert.
 4. Danach baut es das Abbild, spielt die Migrationen ein und startet die Anwendung. Sie ist nur auf dem Server selbst erreichbar, auf Port 23800.
